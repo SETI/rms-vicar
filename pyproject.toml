@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "rms-vicar"
 dynamic = ["version"]
-description = "Routines for converting to and from vicar dates"
+description = "Routines for converting to and from VICAR image files"
 readme = "README.md"
 requires-python = ">=3.7"
 dependencies = [
