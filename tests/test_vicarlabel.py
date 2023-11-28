@@ -203,14 +203,17 @@ class Test_VicarLabel(unittest.TestCase):
     # as_string, __str__, __repr__
     test = VicarLabel()
     test.append("LBLSIZE=100  NOTE='more stuff'")
-    self.assertEqual(test.as_string(),
+    # Fails on platforms other than Mac
+#     self.assertEqual(test.as_string(),
+#                      "LBLSIZE=0             FORMAT='BYTE'  TYPE='IMAGE'  BUFSIZ=20480  "
+#                      "DIM=3  EOL=0  RECSIZE=0  ORG='BSQ'  NL=0  NS=0  NB=0  N1=0  N2=0  "
+#                      "N3=0  N4=0  NBB=0  NLB=0  HOST='MAC-OSX'  INTFMT='LOW'  "
+#                      "REALFMT='RIEEE'  BHOST='MAC-OSX'  BINTFMT='LOW'  BREALFMT='RIEEE'  "
+#                      "BLTYPE=''  LBLSIZE=100           NOTE='more stuff'  ")
+    self.assertEqual(test.as_string(stop=17),
                      "LBLSIZE=0             FORMAT='BYTE'  TYPE='IMAGE'  BUFSIZ=20480  "
                      "DIM=3  EOL=0  RECSIZE=0  ORG='BSQ'  NL=0  NS=0  NB=0  N1=0  N2=0  "
-                     "N3=0  N4=0  NBB=0  NLB=0  HOST='MAC-OSX'  INTFMT='LOW'  "
-                     "REALFMT='RIEEE'  BHOST='MAC-OSX'  BINTFMT='LOW'  BREALFMT='RIEEE'  "
-                     "BLTYPE=''  LBLSIZE=100           NOTE='more stuff'  ")
-    self.assertEqual(test.as_string(stop=4),
-                     "LBLSIZE=0             FORMAT='BYTE'  TYPE='IMAGE'  BUFSIZ=20480  ")
+                     "N3=0  N4=0  NBB=0  NLB=0  ")
     self.assertEqual(test.as_string(start='BLTYPE'),
                      "BLTYPE=''  LBLSIZE=100           NOTE='more stuff'  ")
     self.assertEqual(test.as_string(start='BLTYPE', sep='xxx'),
@@ -297,6 +300,11 @@ class Test_VicarLabel(unittest.TestCase):
     self.assertRaises(VicarError, vic.__setitem__, set(), 7)
     self.assertRaises(VicarError, vic.__setitem__, 0, set())
     self.assertRaises(VicarError, vic.__setitem__, 3.14, 'pi')
+
+    self.assertRaises(VicarError, vic.__setitem__, 'ORG', 'whatever')
+    self.assertRaises(VicarError, vic.__setitem__, 'NL', 'whatever')
+    self.assertRaises(VicarError, vic.__setitem__, 'NL', -1)
+    self.assertRaises(VicarError, vic.__setitem__, 'NL+', -1)
 
     # __setitem__, value_str
     vic['A'] = 1
@@ -424,6 +432,9 @@ class Test_VicarLabel(unittest.TestCase):
     self.assertEqual(vic.value_str('H'), "  ( 1 ,  2  ,   3   ) ")
     vic['H'] = [4,5,6,7]
     self.assertEqual(vic.value_str('H'), "  (4,5,6,7) ")
+
+    vic['ORG+'] = 'not BSQ or BIL or BIP'   # not a VicarError
+    self.assertEqual(vic.value_str(('ORG',-1)), "'not BSQ or BIL or BIP'")
 
     # copy
     vic2 = vic.copy()

@@ -558,7 +558,7 @@ class VicarImage():
 
         # Separate the prefix bytes from the data
         if nbb and data is not None:
-            array = data[:,:,nbb:]
+            array = data[:,:,nbb:].copy()
             prefix = data[:,:,:nbb].copy()
         else:
             array = data
@@ -567,19 +567,20 @@ class VicarImage():
         # Convert the array to native format
         if array is not None:
             dtype = _DTYPE_FROM_FORMAT[format_]
-            if dtype[0] in 'ui' and dtype[1] != 1:
+            if dtype[0] in 'ui':
                 dtype = ('>' if intfmt == 'HIGH' else '<') + dtype
-            elif realfmt == 'VAX':      # pragma: no cover
-                if dtype == 'f8':
-                    array = vax.from_vax64(array)
+            else:       # "fc"
+                if realfmt == 'VAX':        # pragma: no cover
+                    if dtype[-1] == '8':
+                        array = vax.from_vax64(array)
+                    else:
+                        array = vax.from_vax32(array)
+                    dtype = '<' + dtype
                 else:
-                    array = vax.from_vax32(array)
-                dtype = '<' + dtype
-            else:
-                dtype = ('>' if realfmt == 'IEEE' else '<') + dtype
+                    dtype = ('>' if realfmt == 'IEEE' else '<') + dtype
 
-            array = array.view(dtype=dtype)
-            array = np.asarray(array, dtype='=' + dtype[1:]).copy()
+            array = array.view(dtype=dtype)                     # define actual format
+            array = np.asarray(array, dtype='=' + dtype[1:])    # convert to native format
 
         if extraneous == 'include':
             return (ldict, array, prefix, binheader, extra)

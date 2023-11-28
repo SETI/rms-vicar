@@ -8,11 +8,14 @@ PDS Ring-Moon Systems Node, SETI Institute
 
 Supported versions: Python >= 3.7
 
-Classes and methods to read and write VICAR-format data files.
+Classes and methods to read and write VICAR-format data files:
 
     VicarLabel      class for reading, writing, and parsing of VICAR labels.
     VicarImage      class for handling VICAR image (and other) data files.
     VicarError      extension of class ValueError to contain exceptions.
+
+This module supports the definition of the VICAR file format as found here:
+[https://www-mipl.jpl.nasa.gov/external/VICAR_file_fmt.pdf](https://www-mipl.jpl.nasa.gov/external/VICAR_file_fmt.pdf)
 
 To read a VICAR image file:
 
@@ -53,6 +56,7 @@ Numerous methods are available to iterate over the VICAR label parameters:
     for key in vic.keys(): ...
     for name in vic.names(): ...
     for value in vic.values(): ...
+
 Iterators can take a regular expression as input to restrict the items returned:
 
     for value in vic.values(r'LAB\d\d'): ...

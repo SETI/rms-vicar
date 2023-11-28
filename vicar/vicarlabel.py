@@ -29,22 +29,27 @@ _HOST_DICT = {('big'   , 'sunos3'): 'SUN-3',
               ('big'   , 'darwin'): 'MAC-OSX',
               ('little', 'darwin'): 'MAC-OSX',
               ('little', 'linux2'): 'X86-LINUX',
+              ('little', 'linux3'): 'X86-LINUX',
+              ('little', 'linux' ): 'X86-LINUX',
               ('little', 'win32' ): 'WIN-XP'     }
 
 try:
     _HOST = _HOST_DICT[(sys.byteorder, sys.platform)]
-except KeyError:        # pragma: no cover
-    _HOST = sys.sysplatform.upper()
+except KeyError:                # pragma: no cover
+    if sys.platform.startswith('linux'):
+        _HOST = 'X86-LINUX'     # could be "linux4" I guess
+    else:
+        _HOST = sys.platform.upper()
 
 # [sys.byteorder] -> INTFMT, REALFMT
 _INTFMT_DICT  = {'little': 'LOW'  , 'big': 'HIGH'}
 _REALFMT_DICT = {'little': 'RIEEE', 'big': 'IEEE'}
 
-# Required keywords
+# Required keywords, default values
 _REQUIRED = [('LBLSIZE' , 0,     ),
-             ('FORMAT'  , 'BYTE' ),
-             ('TYPE'    , 'IMAGE'),     # Always
-             ('BUFSIZ'  , 20480  ),     # Always
+             ('FORMAT'  , 'BYTE' ),     # Guess
+             ('TYPE'    , 'IMAGE'),     # Guess
+             ('BUFSIZ'  , 20480  ),     # Always ignored
              ('DIM'     , 3      ),     # Always
              ('EOL'     , 0      ),
              ('RECSIZE' , 0      ),
@@ -67,6 +72,21 @@ _REQUIRED = [('LBLSIZE' , 0,     ),
              ('BLTYPE'  , ''),]
 
 _LBLSIZE_WIDTH = 16     # fixed space between "LBLSIZE=" and the next parameter name
+
+_VALID_VALUES = {
+    'FORMAT'  : {'BYTE', 'HALF', 'FULL', 'REAL', 'DOUB', 'COMP',
+                 'WORD', 'LONG', 'COMPLEX'},
+    'ORG'     : {'BSQ', 'BIL', 'BIP'},
+    'INTFMT'  : {'HIGH', 'LOW'},
+    'REALFMT' : {'IEEE', 'RIEEE', 'VAX'},
+    'BINTFMT' : {'HIGH', 'LOW'},
+    'BREALFMT': {'IEEE', 'RIEEE', 'VAX'},
+    'DIM'     : {3},
+    'EOL'     : {0, 1},
+    'N4'      : {0},
+}
+
+_REQUIRED_INTS = {'LBLSIZE', 'RECSIZE', 'NL', 'NS', 'NB', 'N1', 'N2', 'N3', 'NBB', 'NLB'}
 
 
 class VicarError(ValueError):
@@ -158,8 +178,16 @@ class VicarLabel():
         names = [t[0] for t in params]
         values = []
         formats = []
+        name_set = set()
         for tuple_ in params:
             (value, valfmt) = VicarLabel._interpret_value_format(tuple_[1:])
+
+            # Check types and values of required parameters
+            name = tuple_[0]
+            is_first = tuple_[0] not in name_set
+            name_set.add(name)
+            VicarLabel._check_type(name, value, is_first)
+
             values.append(value)
             formats.append(valfmt)
 
@@ -231,6 +259,22 @@ class VicarLabel():
         """True if this is a valid name for a VICAR label parameter."""
 
         return bool(_NAME.match(name))
+
+    @staticmethod
+    def _check_type(name, value, is_first):
+        """Raise an exception for an invalid value of a required VICAR parameter."""
+
+        if name in _VALID_VALUES:
+            # Only the first occurrence of these is constrained; for example,
+            # ORG='ROW' exists in some files, but only after ORG='BSQ'.
+            if value not in _VALID_VALUES[name] and is_first:
+                raise VicarError(f'Invalid value for {name}: {repr(value)}; '
+                                 f'must be in {_VALID_VALUES[name]}')
+        elif name in _REQUIRED_INTS:
+            # This constraint applies to every occurrence, not just the first
+            if not isinstance(value, numbers.Integral) or value < 0:
+                raise VicarError(f'Invalid value for {name}: {repr(value)}; '
+                                 f'must be a non-negative integer')
 
     @staticmethod
     def _interpret_value_format(tuple_):
@@ -576,6 +620,10 @@ class VicarLabel():
             if not VicarLabel._validate_value(value):
                 raise VicarError('Invalid VICAR parameter value: ' + repr(value))
 
+            name = self._names[key]
+            is_first = self._key_index[name][0] == key
+            VicarLabel._check_type(name, value, is_first)
+
             # Default to the pre-existing format if it works
             if not valfmt:
                 valfmt = self._formats[key]
@@ -611,6 +659,8 @@ class VicarLabel():
             key = key[:-1]
 
         (value, valfmt) = VicarLabel._interpret_value_format(value)
+        VicarLabel._check_type(key, value, is_first=False)
+
         names = self._names + [key]
         values = self._values + [value]
         formats = self._formats + [valfmt]
@@ -633,6 +683,11 @@ class VicarLabel():
             values = list(self._values)
             formats = list(self._formats)
 
+            name = names[key]
+            if name in _REQUIRED:
+                is_first = self._key_index[name][0] == key
+                if is_first:
+                    raise VicarError('The first occurrence of {name} cannot be deleted')
             names.pop(key)
             values.pop(key)
             formats.pop(key)
@@ -662,12 +717,12 @@ class VicarLabel():
             if fmt:
                 return fmt % value
 
-            if isinstance(value, str):
-                return "'" + value.replace("'", "''") + "'"
             if isinstance(value, numbers.Integral):
                 return str(value)
             if isinstance(value, numbers.Real):
                 return _float_str(value)
+
+            return "'" + value.replace("'", "''") + "'"
 
         def _float_str(value):
             """Format a float using a reasonable set of digits; avoid "00000" or "99999".
