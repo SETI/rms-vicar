@@ -529,17 +529,18 @@ class VicarImage():
             (label, extra) = VicarLabel.read_label(f, _extra=True)
 
             # Handle extraneous bytes
-            if all(c == 0 for c in extra):
-                message = (f'{filepath} has {len(extra)} zero-valued trailing bytes')
-            else:       # pragma: no cover
-                message = (f'{filepath} has {len(extra)} trailing bytes')
+            if extra:
+                if all(c == 0 for c in extra):
+                    message = (f'{filepath} has {len(extra)} zero-valued trailing bytes')
+                else:       # pragma: no cover
+                    message = (f'{filepath} has {len(extra)} trailing bytes')
 
-            if extraneous == 'print':
-                print(message)
-            elif extraneous == 'warn':
-                warnings.warn(message)
-            elif extraneous == 'error':
-                raise VicarError(message)
+                if extraneous == 'print':
+                    print(message)
+                elif extraneous == 'warn':
+                    warnings.warn(message)
+                elif extraneous == 'error':
+                    raise VicarError(message)
 
             # Extract key label parameters
             ldict = VicarLabel(label)
