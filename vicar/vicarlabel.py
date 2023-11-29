@@ -70,6 +70,7 @@ _REQUIRED = [('LBLSIZE' , 0,     ),
              ('BINTFMT' , _INTFMT_DICT [sys.byteorder]),
              ('BREALFMT', _REALFMT_DICT[sys.byteorder]),
              ('BLTYPE'  , ''),]
+_REQUIRED_NAMES = set([t[0] for t in _REQUIRED])
 
 _LBLSIZE_WIDTH = 16     # fixed space between "LBLSIZE=" and the next parameter name
 
@@ -404,13 +405,13 @@ class VicarLabel():
 
         # Convert from string to list of tuples
         if not isinstance(source, list):
-            params = _LABEL_GRAMMAR.parse_string(source).as_list()
+            source = _LABEL_GRAMMAR.parse_string(source).as_list()
 
         # Extract names, values, formats in order
-        names = [t[0] for t in params]
+        names = [t[0] for t in source]
         values = []
         formats = []
-        for tuple_ in params:
+        for tuple_ in source:
             (value, valfmt) = VicarLabel._interpret_value_format(tuple_[1:])
             values.append(value)
             formats.append(valfmt)
@@ -632,7 +633,7 @@ class VicarLabel():
                         if isinstance(value, numbers.Integral):
                             if valfmt.fmt[-1] not in 'di':
                                 valfmt = _ValueFormat('', *valfmt[1:])
-                        elif isinstance(value, numbers.Real):
+                        else:
                             if valfmt.fmt[-1] not in 'eEfFgG':
                                 valfmt = _ValueFormat('', *valfmt[1:])
                     else:   # preserve spacing only
@@ -679,15 +680,17 @@ class VicarLabel():
         """
 
         if isinstance(key, numbers.Integral):
+
+            name = self._names[key]
+            if name in _REQUIRED_NAMES:
+                is_first = self._key_index[name][0] == key
+                if is_first:
+                    raise VicarError('The first occurrence of {name} cannot be deleted')
+
             names = list(self._names)
             values = list(self._values)
             formats = list(self._formats)
 
-            name = names[key]
-            if name in _REQUIRED:
-                is_first = self._key_index[name][0] == key
-                if is_first:
-                    raise VicarError('The first occurrence of {name} cannot be deleted')
             names.pop(key)
             values.pop(key)
             formats.pop(key)

@@ -144,13 +144,15 @@ class VicarImage():
 
         Input:
             source      optional path to a VICAR data file as a string or a pathlib.Path
-                        object, a VICAR label string, or a VicarLabel object.
+                        object, or else a VicarLabel object.
             array       optional data array for this object. If the source is a file path,
                         this array will override that in the file.
             prefix      optional prefix bytes for this object. If the source is a file
-                        path, this value will override that in the file.
+                        path, this value will override that in the file. To remove the
+                        prefix array found in the file, use prefix=[].
             binheader   optional binary header for this data file. If the source is a
-                        file path, this value will override that in the file.
+                        file path, this value will override that in the file. To remove
+                        the binheader found in the file, use binheader=b''.
         """
 
         self._filepath = None
@@ -159,7 +161,7 @@ class VicarImage():
             self._label = VicarLabel([])
         elif isinstance(source, VicarLabel):
             self._label = source
-        elif isinstance(source, (str, pathlib.Path)):
+        else:
             self._filepath = pathlib.Path(source)
             info = VicarImage._read_file(self.filepath, extraneous='ignore')
             (self._label, array1, prefix1, binheader1) = info
@@ -207,8 +209,8 @@ class VicarImage():
         return self._array[0]
 
     @property
-    def array_2d(self):
-        """The array object as 2-D."""
+    def data_2d(self):
+        """The array object as 2-D; DEPRECATED name."""
         return self.array2d
 
     @property
@@ -217,8 +219,8 @@ class VicarImage():
         return self._array
 
     @property
-    def array_3d(self):
-        """The array object as 3-D."""
+    def data_3d(self):
+        """The array object as 3-D; DEPRECATED name."""
         return self._array
 
     @property
@@ -296,9 +298,13 @@ class VicarImage():
             nbb = 0
         else:
             value = np.asarray(value)
-            value = value.reshape((3-value.ndim) * (1,) + value.shape)  # reshape to 3-D
-            _check_array_vs_prefix(self._array, value)
-            nbb = value.shape[-1] * value.itemsize
+            if value.size == 0:
+                nbb = 0
+                value = None
+            else:
+                value = value.reshape((3-value.ndim) * (1,) + value.shape)
+                _check_array_vs_prefix(self._array, value)
+                nbb = value.shape[-1] * value.itemsize
 
         recsize = self['RECSIZE']
         nlb = self['NLB']
@@ -319,12 +325,18 @@ class VicarImage():
 
         if value is not None:
             self._label['HOST'] = _HOST
+            (fmt, isint) = _format_isint(value)
+
+            # Prefix defines attributes left undefined by array
             if self._array is None:
-                (self._label['FORMAT'], isint) = _format_isint(value)
-                if isint:
+                self._label['FORMAT'] = fmt
+
+            if isint:
+                if self._array is None or self._array.dtype.kind in 'fc':
                     if value.itemsize > 1:
                         self._label['INTFMT'] = _intfmt(value)
-                else:
+            else:
+                if self._array is None or self._array.dtype.kind in 'ui':
                     self._label['REALFMT'] = _realfmt(value)
 
     @property
@@ -341,16 +353,16 @@ class VicarImage():
             return
 
         nlb = self._label['NLB']
+        width = len(bytes(value))
         if self._array is not None:
             recsize = self._label['RECSIZE']
-            width = len(bytes(value))
             if width % recsize != 0:
                 raise VicarError(f'binary header length {width} is incompatible with '
                                  f'RECSIZE={recsize}')
             nlb = width // recsize
 
         # Tests passed
-        self._binheader = value
+        self._binheader = None if width == 0 else value
         self._label['BHOST'] = _HOST
         self._label['NLB'] = nlb
 

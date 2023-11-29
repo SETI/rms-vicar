@@ -57,6 +57,7 @@ class Test_VicarLabel(unittest.TestCase):
         self.assertEqual(vic[('LBLSIZE',-2)], 1536)
         self.assertEqual(vic['LBLSIZE+'], [1536,1024])
         self.assertRaises(KeyError, vic.__getitem__, 'FOO')
+        self.assertRaises(KeyError, vic.__getitem__, 'FOO+')
         self.assertRaises(KeyError, vic.__getitem__, 3.14159)
         self.assertRaises(IndexError, vic.__getitem__, ('LBLSIZE',2))
         self.assertRaises(TypeError, vic.__getitem__, set())
@@ -164,6 +165,11 @@ class Test_VicarLabel(unittest.TestCase):
     vic2.append(parts[1] + parts[2])
     self.assertEqual(reference, vic2)
 
+    vic3 = vic2.copy()
+    vic2.append('PI=3.14159')
+    vic3.append([('PI', 3.14159)])
+    self.assertEqual(vic3, vic3)
+
     # skip over LBLSIZE and it will be filled in
     params = _LABEL_GRAMMAR.parse_string(parts[0]).as_list()
     missing_lblsize = VicarLabel(params[1:])
@@ -225,6 +231,20 @@ class Test_VicarLabel(unittest.TestCase):
     test2 = eval(repr(test))
     self.assertEqual(test, test2)
 
+    # del of required
+    test.append("ORG='ROWS'")
+    with self.assertRaises(VicarError):
+        del test['ORG']
+
+    with self.assertRaises(VicarError):
+        del test['NLB']
+
+    with self.assertRaises(VicarError):
+        del test['BLTYPE']
+
+    del test['ORG',1]
+    self.assertEqual(test2, test)
+
     # del
     vic = VicarLabel(text)  # reinitialize
     for k in range(1,11):
@@ -251,7 +271,7 @@ class Test_VicarLabel(unittest.TestCase):
     vic = VicarLabel(dest)
     for k in range(1,11):
         del vic['LAB' + ('%02d' % k)]
-    vic.write_label()
+    vic.write_label(dest)
 
     altvic = VicarLabel(dest)
     self.assertEqual(vic, altvic)
@@ -449,6 +469,9 @@ class Test_VicarLabel(unittest.TestCase):
     self.assertEqual(vic.names()[:6], ['LBLSIZE', 'A', 'B', 'C', 'F', 'FORMAT'])
     self.assertRaises(KeyError, vic.reorder, 'A', 'UNK', 'C', 'F')
     self.assertRaises(ValueError, vic.reorder, 'A', 'F', 'C', 'F')
+
+    vic.reorder('FORMAT', 'F', 'G')
+    self.assertEqual(vic.names()[:7], ['LBLSIZE', 'A', 'B', 'C', 'FORMAT', 'F', 'G'])
 
     # _set_n321, _set_nbls, _n123_from_nbls, _nbls_from_n123
     vic['ORG'] = 'BSQ'

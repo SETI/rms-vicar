@@ -89,12 +89,12 @@ class Test_VicarImage(unittest.TestCase):
     self.assertEqual(vim.as_dict()['TARGET'], 'EUROPA')
 
     self.assertEqual(vim.array.shape, (1, 800, 800))
-    self.assertEqual(vim.array_3d.shape, (1, 800, 800))
     self.assertEqual(vim.array3d.shape, (1, 800, 800))
-    self.assertEqual(vim.array_2d.shape, (800, 800))
+    self.assertEqual(vim.data_3d.shape, (1, 800, 800))
     self.assertEqual(vim.array2d.shape, (800, 800))
+    self.assertEqual(vim.data_2d.shape, (800, 800))
 
-    image = vim.array_2d
+    image = vim.array2d
     self.assertEqual(image.shape, (800,800))
     self.assertEqual(image.dtype, np.dtype('uint8'))
     self.assertEqual(image[367,371], 220)
@@ -138,11 +138,11 @@ class Test_VicarImage(unittest.TestCase):
     # binheader
     test = VicarImage(test_dir / 'C2069302_GEOMA.DAT')
     self.assertTrue(test.array is None)
-    self.assertTrue(test.array_2d is None)
-    self.assertTrue(test.array_3d is None)
+    self.assertTrue(test.array2d is None)
+    self.assertTrue(test.array3d is None)
     self.assertTrue(test.prefix is None)
-    self.assertTrue(test.prefix_2d is None)
-    self.assertTrue(test.prefix_3d is None)
+    self.assertTrue(test.prefix2d is None)
+    self.assertTrue(test.prefix3d is None)
     array = test.binheader_array()
     self.assertEqual(array.shape, (552,4))
     self.assertEqual(array.dtype, np.dtype('=f4'))
@@ -168,15 +168,15 @@ class Test_VicarImage(unittest.TestCase):
     test.write_file(dest)
     test2 = VicarImage.from_file(dest)
     self.assertEqual(test2.label, test.label)
-    self.assertTrue(np.all(test.array_3d == test2.array_3d))
-    self.assertTrue(np.all(test.prefix_3d == test2.prefix_3d))
+    self.assertTrue(np.all(test.array3d == test2.array3d))
+    self.assertTrue(np.all(test.prefix3d == test2.prefix3d))
     self.assertEqual(test.binheader, test2.binheader)
 
     with self.assertRaises(VicarError):
-        _ = test.array_2d
+        _ = test.array2d
 
     with self.assertRaises(VicarError):
-        _ = test.prefix_2d
+        _ = test.prefix2d
 
     os.remove(dest)
 
@@ -380,7 +380,7 @@ class Test_VicarImage(unittest.TestCase):
     vim.binheader = None
     self.assertEqual(vim.binheader_array(), None)
 
-    # Start from array
+    # Start from float array
     vim = VicarImage.from_array(np.random.randn(3,100,100).astype('>f8'))
     self.assertEqual(vim['REALFMT'], 'IEEE')
     vim = VicarImage.from_array(np.random.randn(3,100,100).astype('<f8'))
@@ -391,6 +391,50 @@ class Test_VicarImage(unittest.TestCase):
     self.assertEqual(vim['NL'], 100)
     self.assertEqual(vim['NS'], 100)
     self.assertEqual(vim['FORMAT'], 'DOUB')
+
+    vim.label['INTFMT'] = 'HIGH'    # override
+    vim.prefix = np.random.randint(0, 255, (3,100,10)).astype('u1')
+    self.assertEqual(vim['INTFMT'], 'HIGH')
+
+    vim.label['INTFMT'] = 'LOW'     # override
+    vim.prefix = np.random.randint(0, 255, (3,100,10)).astype('u1')
+    self.assertEqual(vim['INTFMT'], 'LOW')
+
+    vim.prefix = np.random.randint(0, 32000, (3,100,10)).astype('>i2')
+    self.assertEqual(vim['INTFMT'], 'HIGH')
+    vim.prefix = np.random.randint(0, 32000, (3,100,10)).astype('<i2')
+    self.assertEqual(vim['INTFMT'], 'LOW')
+
+    with self.assertRaises(VicarError):
+        vim.prefix = np.random.randn(3,100,100).astype('<f8')
+
+    vim.prefix = np.random.randn(3,100,100).astype('>f4')
+    self.assertEqual(vim['FORMAT'], 'DOUB')     # unchanged
+
+    # Start from int array
+    vim = VicarImage.from_array(np.random.randint(-1000, 1000, (100,100)).astype('<i4'))
+    self.assertEqual(vim['INTFMT'], 'LOW')
+    vim = VicarImage.from_array(np.random.randint(-1000, 1000, (100,100)).astype('>i4'))
+    self.assertEqual(vim['INTFMT'], 'HIGH')
+    vim = VicarImage.from_array(np.random.randint(-1000, 1000, (100,100)).astype('<i4'))
+    self.assertEqual(vim['INTFMT'], 'LOW')
+    self.assertEqual(vim['NB'], 1)
+    self.assertEqual(vim['NL'], 100)
+    self.assertEqual(vim['NS'], 100)
+    self.assertEqual(vim['FORMAT'], 'FULL')
+
+    vim.prefix = np.random.randn(100,10).astype('>f4')
+    self.assertEqual(vim['REALFMT'], 'IEEE')
+    vim.prefix = np.random.randn(100,10).astype('<f4')
+    self.assertEqual(vim['REALFMT'], 'RIEEE')
+    vim.prefix = np.random.randn(100,10).astype('>f4')
+    self.assertEqual(vim['REALFMT'], 'IEEE')
+
+    with self.assertRaises(VicarError):
+        vim.prefix = np.random.randint(0, 32000, (100,100)).astype('>i2')
+
+    vim.prefix = np.random.randint(0, 32000, (100,100)).astype('<i2')
+    self.assertEqual(vim['FORMAT'], 'FULL')     # unchanged
 
     # copy
     filepath = test_dir / 'C2069302_GEOMED.IMG'
@@ -407,19 +451,53 @@ class Test_VicarImage(unittest.TestCase):
     vim2.binheader = None
     self.assertEqual(vim2, vim3)
 
-#   @patch('builtins.print')
-#   def test_VicarImage_from_file_print(self, x):
-#
-#     print(11111, x)
-#
-#     # Reading image file C0532836239R.IMG
-#     vicar_dir = pathlib.Path(sys.modules['vicar'].__file__)
-#     test_dir = vicar_dir.parent.parent / 'test_files'
-#     filepath = test_dir / 'C0532836239R.IMG'
-#
-#     vim = VicarImage.from_file(filepath, extraneous='print')
-#     sys.stdout.write(str( self.call_args ) + '\n')
-#     sys.stdout.write(str( self.call_args_list ) + '\n')
+    # Reading image file C0532836239R.IMG, with overrides
+    filepath = test_dir / 'C0532836239R.IMG'
+    array = np.random.randn(1999,200).astype('<f4')
+
+    with self.assertRaises(VicarError):
+        vim = VicarImage(filepath, array=np.random.randn(100,100).astype('<f4'))
+
+    with self.assertRaises(VicarError):
+        vim = VicarImage(filepath, prefix=np.random.randn(100,100).astype('<f4'))
+
+    with self.assertRaises(VicarError):
+        vim = VicarImage(filepath, binheader=1999 * b'\0')
+
+    binheader = 2000 * b'\0'
+    vim = VicarImage(filepath, binheader=binheader)
+    self.assertEqual(vim.binheader, binheader)
+
+    prefix = np.random.randn(800,10).astype('<f4')
+    with self.assertRaises(VicarError):
+        vim = VicarImage(filepath, prefix=prefix)
+
+    binheader = 840 * b'1'
+    vim = VicarImage(filepath, prefix=prefix, binheader=binheader)
+    self.assertTrue(np.all(vim.prefix2d.view(dtype='<f4') == prefix))
+    self.assertEqual(vim.binheader, binheader)
+
+    array = np.random.randint(0, 255, (1,800,800)).astype('u1')
+    vim = VicarImage(filepath, array=array)
+    self.assertTrue(np.all(vim.array == array))
+
+    with self.assertRaises(VicarError):
+        vim = VicarImage(filepath, array=array, prefix=prefix)
+
+    vim = VicarImage(filepath, array=array, prefix=prefix, binheader=b'')
+    self.assertTrue(np.all(vim.array == array))
+    self.assertTrue(np.all(vim.prefix2d.view(dtype='<f4') == prefix))
+    self.assertTrue(vim.binheader is None)
+
+    vim = VicarImage(filepath, binheader=b'')
+    self.assertEqual(vim.array.shape, (1,800,800))
+    self.assertTrue(vim.prefix2d.shape, (800,200))
+    self.assertTrue(vim.binheader is None)
+
+    vim = VicarImage(filepath, prefix=[], binheader=b'')
+    self.assertEqual(vim.array.shape, (1,800,800))
+    self.assertTrue(vim.prefix2d is None)
+    self.assertTrue(vim.binheader is None)
 
 ##########################################################################################
 # Perform unit testing if executed from the command line
