@@ -14,7 +14,7 @@ import sys
 from collections import namedtuple
 from vicar._LABEL_GRAMMAR import _LABEL_GRAMMAR
 
-_NAME = re.compile(r'[A-Z][A-Z0-9_]{0,31}$')
+_NAME = re.compile(r'[A-Z][A-Z0-9_]*$')
 _LBLSIZE = re.compile(r'LBLSIZE *= *(\d+)')
 
 _ValueFormat = namedtuple('_ValueFormat', ['fmt', 'name_blanks', 'val_blanks',

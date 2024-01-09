@@ -223,7 +223,8 @@ def _name_info(token):
 
 ALPHAS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 ALNUMS = ALPHAS + '0123456789_'
-NAME = Combine(Word(ALPHAS, ALNUMS, max=32) + OPT_WHITE)
+# NAME = Combine(Word(ALPHAS, ALNUMS, max=32) + OPT_WHITE)
+NAME = Combine(Word(ALPHAS, ALNUMS) + OPT_WHITE) # some labels violate the 32-char limit
 NAME.set_name('NAME')
 NAME.set_parse_action(lambda s,l,t: _name_info(t[0]))
 
