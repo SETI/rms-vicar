@@ -80,7 +80,7 @@ class Test_LABEL_GRAMMAR(unittest.TestCase):
     self.assertEqual(tuples, [('A2345678901234567890123456789012', 7, 0)])
 
     # Exceptions
-    text = 'A23456789012345678901234567890123=7'
+    text = 'A234567890123-45678901234567890123=7'
     self.assertRaises(ParseException, _LABEL_GRAMMAR.parse_string, text)
 
     text = '_123=7'
@@ -88,6 +88,7 @@ class Test_LABEL_GRAMMAR(unittest.TestCase):
 
     text = "GROUPS=('LINE','SAMP','C_POS_IMAGE','INPUT',)  "
     self.assertRaises(ParseException, _LABEL_GRAMMAR.parse_string, text)
+
 
 ##########################################################################################
 # Perform unit testing if executed from the command line
