@@ -62,4 +62,9 @@ Here are the steps to create and write a VICAR image file:
 from vicar.vicarlabel import VicarLabel, VicarError
 from vicar.vicarimage import VicarImage
 
+try:
+    from ._version import __version__
+except ImportError as err:
+    __version__ = 'Version unspecified'
+
 ##########################################################################################
