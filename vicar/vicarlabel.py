@@ -606,7 +606,7 @@ class VicarLabel():
         new one.
 
         If a name appears multiple times in the label, this sets the value at the first
-        occurrence. Use the tuple (name, n) to return later values, where n = 0, 1, 2 ...
+        occurrence. Use the tuple (name, n) to set later values, where n = 0, 1, 2, ...
         to index from the first occurrence, or n = -1, -2, ... to index from the last.
 
         Append a "+" to a name to append a new "name=value" pair the label, even if that
@@ -651,6 +651,19 @@ class VicarLabel():
         else:
             self.__setitem__(indx, value)
             return
+
+        # Allow a (name,occurrence) index one past the end; name with optional "+"
+        if isinstance(key, tuple) and isinstance(key[0], str) and len(key) == 2:
+            name = key[0][:-1] if key[0].endswith('+') else key[0]
+            if name in self._names:
+                valid_indices = (len(self._key_index[name]),)
+            else:
+                valid_indices = (0, -1)
+
+            if key[1] not in valid_indices:
+                raise IndexError(name + ' index out of range')
+
+            key = name
 
         # Handle a new name or append to a name
         if not isinstance(key, str):
@@ -1150,7 +1163,7 @@ class VicarLabel():
         if not filepath:
             filepath = self._filepath
 
-        if not self._filepath:
+        if not filepath:
             raise ValueError('file path is missing')
 
         with self._filepath.open('r+b') as f:

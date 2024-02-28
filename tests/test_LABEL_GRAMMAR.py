@@ -80,8 +80,10 @@ class Test_LABEL_GRAMMAR(unittest.TestCase):
     self.assertEqual(tuples, [('A2345678901234567890123456789012', 7, 0)])
 
     # Exceptions
-    text = 'A23456789012345678901234567890123=7'
-    self.assertRaises(ParseException, _LABEL_GRAMMAR.parse_string, text)
+
+# Test removed because we allow longer names now
+#     text = 'A23456789012345678901234567890123=7'
+#     self.assertRaises(ParseException, _LABEL_GRAMMAR.parse_string, text)
 
     text = '_123=7'
     self.assertRaises(ParseException, _LABEL_GRAMMAR.parse_string, text)
