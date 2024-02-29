@@ -524,6 +524,22 @@ class Test_VicarLabel(unittest.TestCase):
         self.assertEqual(size + len(extra), os.path.getsize(filepath))
         self.assertTrue(all([c == 0 for c in extra]))
 
+        # New __setitem__ tests
+        lbl = VicarLabel()
+        lbl['NEW1', 0] = 1
+        lbl['NEW2+', 0] = 2
+        lbl['NEW3', -1] = 3
+        lbl['NEW4+', -1] = 4
+        lbl['NEW5'] = 5
+        lbl['NEW5', 1] = 6
+        self.assertEqual(lbl['NEW1'], 1)
+        self.assertEqual(lbl['NEW2'], 2)
+        self.assertEqual(lbl['NEW3'], 3)
+        self.assertEqual(lbl['NEW4'], 4)
+        self.assertEqual(lbl['NEW5+'], [5,6])
+
+        self.assertRaises(IndexError, lbl.__setitem__, ('NEW6', 1), 7)
+        self.assertRaises(IndexError, lbl.__setitem__, ('NEW6',-2), 8)
 
 ##########################################################################################
 # Perform unit testing if executed from the command line
