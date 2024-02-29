@@ -91,6 +91,7 @@ class Test_LABEL_GRAMMAR(unittest.TestCase):
     text = "GROUPS=('LINE','SAMP','C_POS_IMAGE','INPUT',)  "
     self.assertRaises(ParseException, _LABEL_GRAMMAR.parse_string, text)
 
+
 ##########################################################################################
 # Perform unit testing if executed from the command line
 ##########################################################################################

@@ -1,6 +1,25 @@
-| PyPI Release | Test Status | Code Coverage |
-| ------------ | ----------- | ------------- |
-| [![PyPI version](https://badge.fury.io/py/rms-vicar.svg)](https://badge.fury.io/py/rms-vicar) | [![Build status](https://img.shields.io/github/actions/workflow/status/SETI/rms-vicar/run-tests.yml?branch=master)](https://github.com/SETI/rms-vicar/actions) | [![Code coverage](https://img.shields.io/codecov/c/github/SETI/rms-vicar/main?logo=codecov)](https://codecov.io/gh/SETI/rms-vicar) |
+[![GitHub release; latest by date](https://img.shields.io/github/v/release/SETI/rms-vicar)](https://github.com/SETI/rms-vicar/releases)
+[![GitHub Release Date](https://img.shields.io/github/release-date/SETI/rms-vicar)](https://github.com/SETI/rms-vicar/releases)
+[![Test Status](https://img.shields.io/github/actions/workflow/status/SETI/rms-vicar/run-tests.yml?branch=main)](https://github.com/SETI/rms-vicar/actions)
+[![Code coverage](https://img.shields.io/codecov/c/github/SETI/rms-vicar/main?logo=codecov)](https://codecov.io/gh/SETI/rms-vicar)
+<br />
+[![PyPI - Version](https://img.shields.io/pypi/v/rms-vicar)](https://pypi.org/project/rms-vicar)
+[![PyPI - Format](https://img.shields.io/pypi/format/rms-vicar)](https://pypi.org/project/rms-vicar)
+[![PyPI - Downloads](https://img.shields.io/pypi/dm/rms-vicar)](https://pypi.org/project/rms-vicar)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/rms-vicar)](https://pypi.org/project/rms-vicar)
+<br />
+[![GitHub commits since latest release](https://img.shields.io/github/commits-since/SETI/rms-vicar/latest)](https://github.com/SETI/rms-vicar/commits/main/)
+[![GitHub commit activity](https://img.shields.io/github/commit-activity/m/SETI/rms-vicar)](https://github.com/SETI/rms-vicar/commits/main/)
+[![GitHub last commit](https://img.shields.io/github/last-commit/SETI/rms-vicar)](https://github.com/SETI/rms-vicar/commits/main/)
+<br />
+[![Number of GitHub open issues](https://img.shields.io/github/issues-raw/SETI/rms-vicar)](https://github.com/SETI/rms-vicar/issues)
+[![Number of GitHub closed issues](https://img.shields.io/github/issues-closed-raw/SETI/rms-vicar)](https://github.com/SETI/rms-vicar/issues)
+[![Number of GitHub open pull requests](https://img.shields.io/github/issues-pr-raw/SETI/rms-vicar)](https://github.com/SETI/rms-vicar/pulls)
+[![Number of GitHub closed pull requests](https://img.shields.io/github/issues-pr-closed-raw/SETI/rms-vicar)](https://github.com/SETI/rms-vicar/pulls)
+<br />
+![GitHub License](https://img.shields.io/github/license/SETI/rms-vicar)
+[![Number of GitHub stars](https://img.shields.io/github/stars/SETI/rms-vicar)](https://github.com/SETI/rms-vicar/stargazers)
+![GitHub forks](https://img.shields.io/github/forks/SETI/rms-vicar)
 
 # rms-vicar
 
