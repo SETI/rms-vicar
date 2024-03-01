@@ -524,7 +524,7 @@ class Test_VicarLabel(unittest.TestCase):
         self.assertEqual(size + len(extra), os.path.getsize(filepath))
         self.assertTrue(all([c == 0 for c in extra]))
 
-        # New __setitem__ tests
+        # New __setitem__ features 2/28/24
         lbl = VicarLabel()
         lbl['NEW1', 0] = 1
         lbl['NEW2+', 0] = 2
@@ -540,6 +540,106 @@ class Test_VicarLabel(unittest.TestCase):
 
         self.assertRaises(IndexError, lbl.__setitem__, ('NEW6', 1), 7)
         self.assertRaises(IndexError, lbl.__setitem__, ('NEW6',-2), 8)
+
+        # New features 2/29/24
+        # append() using a dictionary
+        lbl = VicarLabel()
+        lbl.append({'A':1, 'B':'TWO', 'C':(3, '%03d', 1, 1)})
+        self.assertEqual(lbl['A'], 1)
+        self.assertEqual(lbl['B'], 'TWO')
+        self.assertEqual(lbl['C'], 3)
+        self.assertEqual(lbl._formats[-1], ('%03d', 0, 1, 1, []))
+
+        # arg() with a value
+        lbl = VicarLabel()
+        lbl.append({'TASK':'FICOR77', 'FOO':1})
+        lbl.append({'TASK':'RESLOC', 'BAR':2})
+        lbl.append({'TASK':'GEOMA', 'FOO':3, 'BAR':4})
+        print(lbl)
+
+        self.assertEqual(lbl.arg('TASK', 'GEOMA'), len(lbl) - 3)
+        self.assertEqual(lbl.arg('TASK', 'FICOR77'), len(lbl) - 7)
+        self.assertEqual(lbl.arg(len(lbl) - 3, 'GEOMA'), len(lbl) - 3)
+        self.assertRaises(ValueError, lbl.arg, 'TASK', 'whatever')
+        self.assertRaises(ValueError, lbl.arg, len(lbl) - 3, 'RESLOC')
+
+        # arg() with a new key
+        self.assertEqual(lbl.arg(('FOO', 'TASK', 'FICOR77'), 1), len(lbl) - 6)
+        self.assertEqual(lbl.arg(('BAR', 'TASK', 'RESLOC'), 2), len(lbl) - 4)
+        self.assertEqual(lbl.arg(('FOO', 'TASK', 'GEOMA'), 3), len(lbl) - 2)
+        self.assertEqual(lbl.arg(('BAR', 'TASK', 'GEOMA'), 4), len(lbl) - 1)
+
+        self.assertEqual(lbl.arg(('FOO', 'TASK', 'FICOR77')), len(lbl) - 6)
+        self.assertEqual(lbl.arg(('BAR', 'TASK', 'RESLOC')), len(lbl) - 4)
+        self.assertEqual(lbl.arg(('FOO', 'TASK', 'GEOMA')), len(lbl) - 2)
+        self.assertEqual(lbl.arg(('BAR', 'TASK', 'GEOMA')), len(lbl) - 1)
+
+        self.assertRaises(ValueError, lbl.arg, ('FOO', 'TASK', 'GEOMA'), 99)
+        self.assertRaises(KeyError, lbl.arg, ('FOO', 'TASK', 'RESLOC'))
+
+        # __getitem__() with a new key
+        self.assertEqual(lbl['FOO', 'TASK'], 1)
+        self.assertEqual(lbl['FOO', 'TASK', 'FICOR77'], 1)
+        self.assertEqual(lbl['BAR', 'TASK', 'RESLOC'], 2)
+        self.assertEqual(lbl['FOO', 'TASK', 'GEOMA'], 3)
+        self.assertEqual(lbl['BAR', 'TASK', 'GEOMA'], 4)
+
+        self.assertRaises(KeyError, lbl.__getitem__, ('BAR', 'TASK'))
+        self.assertRaises(KeyError, lbl.__getitem__, ('BAR', 'TASK', 'FICOR77'))
+        self.assertRaises(KeyError, lbl.__getitem__, ('FOO', 'TASK', 'RESLOC'))
+
+        self.assertRaises(KeyError, lbl.__getitem__, ('FOO', 'TASKX'))
+        self.assertRaises(KeyError, lbl.__getitem__, ('FOO', 'TASKX', 'whatever'))
+        self.assertRaises(ValueError, lbl.__getitem__, ('FOO', 'TASK', 'RESSAR77'))
+
+        # __setitem__() with a new key, existing
+        lbl['FOO', 'TASK', 'FICOR77'] = 77
+        self.assertEqual(lbl['FOO', 'TASK', 'FICOR77'], 77)
+        self.assertEqual(lbl[len(lbl) - 6], 77)
+
+        lbl['FOO', 'TASK', 'GEOMA'] = 88
+        self.assertEqual(lbl['FOO', 'TASK', 'GEOMA'], 88)
+        self.assertEqual(lbl[len(lbl) - 2], 88)
+
+        # __contains__() with an integer key
+        self.assertTrue(-len(lbl) in lbl)
+        self.assertTrue(len(lbl) - 1 in lbl)
+        self.assertFalse(-len(lbl) - 1 in lbl)
+        self.assertFalse(len(lbl) in lbl)
+
+        # __contains__() with a new key
+        self.assertTrue('FOO' in lbl)
+        self.assertTrue(('FOO', 'TASK') in lbl)
+        self.assertTrue(('FOO', 'TASK', 'FICOR77') in lbl)
+        self.assertFalse(('FOO', 'TASK', 'RESLOC') in lbl)
+        self.assertTrue(('FOO', 'TASK', 'GEOMA') in lbl)
+
+        self.assertFalse(('BAR', 'TASK') in lbl)
+        self.assertFalse(('BAR', 'TASK', 'FICOR77') in lbl)
+        self.assertTrue(('BAR', 'TASK', 'RESLOC') in lbl)
+        self.assertTrue(('BAR', 'TASK', 'GEOMA') in lbl)
+
+        # __setitem__() with a new key, not existing
+        indx = lbl.arg('TASK', 'RESLOC')
+        lbl['BAR', 'TASK', 'FICOR77'] = 99  # insertion
+        self.assertEqual(lbl.arg(('BAR', 'TASK', 'FICOR77')), indx)
+        self.assertTrue(('BAR', 'TASK', 'FICOR77') in lbl)
+        names = list(lbl.names())
+        self.assertEqual(names[-8:], ['TASK', 'FOO', 'BAR', 'TASK', 'BAR',
+                                      'TASK', 'FOO', 'BAR'])
+
+        indx = len(lbl)
+        lbl['NEW', 'TASK', 'GEOMA'] = 99
+        self.assertEqual(lbl.arg(('NEW', 'TASK', 'GEOMA')), indx)
+        self.assertTrue(('NEW', 'TASK', 'GEOMA') in lbl)
+        names = list(lbl.names())
+        self.assertEqual(names[-9:], ['TASK', 'FOO', 'BAR', 'TASK', 'BAR',
+                                      'TASK', 'FOO', 'BAR', 'NEW'])
+
+        # __delitem__() with new key
+        del lbl['FOO', 'TASK', 'GEOMA']
+        names = list(lbl.names())
+        self.assertEqual(names[-3:], ['TASK', 'BAR', 'NEW'])
 
 ##########################################################################################
 # Perform unit testing if executed from the command line

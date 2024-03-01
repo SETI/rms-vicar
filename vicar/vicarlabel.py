@@ -98,7 +98,7 @@ class VicarLabel():
     """Class to support accessing, reading, modifying, and writing VICAR labels."""
 
     def __init__(self, source=None):
-        """Constructor
+        """Constructor.
 
         Input:
             source      the path to a VICAR data file, a VICAR label text string or a list
@@ -374,7 +374,11 @@ class VicarLabel():
         """Insert the content of a second VICAR label into this object.
 
         Input:
-            source      a VICAR label text string or a list of tuples.
+            source      a VICAR label text string, a list of tuples, or a dictionary.
+
+        If a dictionary is provided, it is converted to a list of (name, value) tuples and
+        then treated as a list input. The order is defined by the order of the entries in
+        the dictionary.
 
         If a list of tuples is provided, each tuple must contain a parameter name and a
         value, where the value is represented by an int, float, string, or list.
@@ -403,8 +407,11 @@ class VicarLabel():
                             comma or the right parenthesis; zero is the default.
         """
 
-        # Convert from string to list of tuples
-        if not isinstance(source, list):
+        # Interpret the input
+        if isinstance(source, dict):
+            source = [(k,) + (v if isinstance(v, tuple) else (v,))
+                      for k,v in source.items()]
+        elif not isinstance(source, list):
             source = _LABEL_GRAMMAR.parse_string(source).as_list()
 
         # Extract names, values, formats in order
@@ -512,27 +519,134 @@ class VicarLabel():
 
     ########################################
 
-    def __getitem__(self, key):
-        """Retrieve the value of the VICAR parameter defined by this name, (name,
+    def _after_arg(self, key, exists=True):
+        """Internal method to return the index associated with a key of the form (name,
+        after_name) or (name, after_name, after_value).
+
+        Return -1 if the key has a different format.
+
+        If the parameter is not found and exists is True, raise a KeyError. Otherwise,
+        return the index where this item can be inserted into the label.
+        """
+
+        if isinstance(key, tuple) and len(key) in (2,3) and isinstance(key[1], str):
+            (name, after_name) = key[:2]
+            start = self.arg(*key[1:])
+            stops = [i for i,n in enumerate(self._names) if n == after_name] + [len(self)]
+            stop = [i for i in stops if i > start][0]
+
+            args = [i for i,n in enumerate(self._names) if n == name and start < i < stop]
+            if args:
+                return args[0]
+
+            if not exists:
+                return stop
+
+            if len(key) == 2:
+                raise KeyError(f'{name} not found after {after_name}')
+            else:
+                raise KeyError(f'{name} not found after {after_name}={repr(key[2])}')
+
+        return -1
+
+    ########################################
+
+    def arg(self, key, value=None):
+        """The numerical index of the item in the VICAR label defined by this name, (name,
         occurrence), or numeric index.
 
         If a name appears multiple times in the label, this returns the value at the first
         occurrence. Use the tuple (name, n) to return later values, where n = 0, 1, 2 ...
         to index from the first occurrence, or n = -1, -2, ... to index from the last.
 
-        Append a "+" to a name to retrieve a list containing all the values of that
-        parameter name.
+        Use the key (name, after_name) to return the index of the given parameter
+        name after the first occurrence of parameter after_name and before any later
+        occurrence of after_name.
+
+        Use the key (name, after_name, after_value) to return the index of the given
+        parameter name after the location where after_name equals after_value and before
+        the next occurrence of after_name.
+
+        If a value is provided, this returns the index of the item in the label where the
+        given key has the given value.
         """
 
+        # Handle an integer key
+        if isinstance(key, numbers.Integral):
+            if key < 0:
+                key += self._len
+            if key >= 0 and key < self._len:
+                if value is None or value == self._values[key]:
+                    return key
+                raise ValueError(f'index {key} does not have value {repr(value)}')
+            raise IndexError('list index out of range')
+
+        # Handle a name or (name, occurrence) key
+        try:
+            indices = self._key_index[key]
+        except KeyError as e:
+            error = e
+        else:
+            if value is None:
+                return indices[0]
+            indices = [i for i in indices if self._values[i] == value]
+            if indices:
+                return indices[0]
+            raise ValueError(f'index {key} does not have value {value}')
+
+        # Handle a (name, after_key) or (name, after_key, after_value) key
+        indx = self._after_arg(key)
+        if indx >= 0:
+            if value is None or value == self._values[indx]:
+                return indx
+            raise ValueError(f'index {key} does not have value {repr(value)}')
+
+        # Check for IndexError instead of KeyError
+        if (isinstance(key, tuple) and isinstance(key[0], str)
+                                   and isinstance(key[1], numbers.Integral)
+                                   and key[0] in self._key_index):
+            raise IndexError(key[0] + ' index out of range')
+
+        raise error
+
+    ########################################
+
+    def __getitem__(self, key):
+        """Retrieve the value of the VICAR parameter defined by this name, index, or
+        using various other indexing options.
+
+        If a name appears multiple times in the label, this returns the value at the first
+        occurrence. Use [name, n] to return later values, where n = 0, 1, 2 ... to index
+        from the first occurrence, or n = -1, -2, ... to index from the last.
+
+        Append a "+" to a name to retrieve a list containing all the values of the given
+        parameter name.
+
+        Use [name, after_name] to return the value of the given parameter name that falls
+        after the first occurrence of parameter after_name and before any later occurrence
+        of after_name.
+
+        Use [name, after_name, after_value] to return the value of the given parameter
+        name that falls after the location where after_name equals after_value and before
+        any later occurrence of after_name.
+        """
+
+        # Handle an integer key
         if isinstance(key, numbers.Integral):
             return self._values[key]            # IndexError if out of range
 
+        # Handle a name or (name, occurrence) key
         try:
             indx = self._key_index[key][0]      # first if more than one
         except KeyError as e:
             error = e
         else:
             return self._values[indx]
+
+        # Handle a (name, after_key) or (name, after_key, after_value) key
+        arg = self._after_arg(key)
+        if arg >= 0:
+            return self._values[arg]
 
         # Check for IndexError
         if (isinstance(key, tuple) and isinstance(key[0], str)
@@ -554,66 +668,73 @@ class VicarLabel():
     ########################################
 
     def get(self, key, default):
-        """The value of a VICAR parameter defined by this name, (name, occurrence), or
-        numeric index. If the key is missing, return the default value.
+        """Retrieve the value of the VICAR parameter defined by this name, index, or
+        using various other indexing options. If the key is missing, return the default
+        value.
 
         If a name appears multiple times in the label, this returns the value at the first
-        occurrence. Use the tuple (name, n) to return later values, where n = 0, 1, 2 ...
+        occurrence. Use the key (name, n) to return later values, where n = 0, 1, 2 ...
         to index from the first occurrence, or n = -1, -2, ... to index from the last.
+
+        Use the key (name, after_name) to return the value of the given parameter name
+        that falls after the first occurrence of parameter after_name and before any later
+        occurrence of after_name.
+
+        Use the key (name, after_name, after_value) to return the value of the given
+        parameter name that falls after the location where after_name equals after_value
+        and before any later occurrence of after_name.
         """
 
         try:
-            return self[key]
+            return self.__getitem__(key)
         except Exception:
             return default
 
     ########################################
 
-    def arg(self, key):
-        """The numerical index of the item in the VICAR label defined by this name, (name,
-        occurrence), or numeric index.
-
-        If a name appears multiple times in the label, this returns the value at the first
-        occurrence. Use the tuple (name, n) to return later values, where n = 0, 1, 2 ...
-        to index from the first occurrence, or n = -1, -2, ... to index from the last.
-        """
-
-        if isinstance(key, numbers.Integral):
-            if key < 0:
-                key += self._len
-            if key >= 0 and key < self._len:
-                return key
-            raise IndexError('list index out of range')
-
-        try:
-            return self._key_index[key][0]
-        except KeyError as e:
-            error = e
-
-        # Check for IndexError instead of KeyError
-        if (isinstance(key, tuple) and isinstance(key[0], str)
-                                   and isinstance(key[1], numbers.Integral)
-                                   and key[0] in self._key_index):
-            raise IndexError(key[0] + ' index out of range')
-
-        raise error
-
-    ########################################
-
     def __setitem__(self, key, value):
-        """Set the value of the VICAR parameter defined by this name, (name, occurrence),
-        or numeric index. If the parameter is not currently found in the label, create a
-        new one.
+        """Set the value of the VICAR parameter defined by this name, index, or using
+        various other indexing options. If the parameter is not currently found in the
+        label, create a new one.
 
         If a name appears multiple times in the label, this sets the value at the first
-        occurrence. Use the tuple (name, n) to set later values, where n = 0, 1, 2, ...
-        to index from the first occurrence, or n = -1, -2, ... to index from the last.
+        occurrence. Use [name, n] to set later values, where n = 0, 1, 2, ... to index
+        from the first occurrence, or n = -1, -2, ... to index from the last.
 
         Append a "+" to a name to append a new "name=value" pair the label, even if that
         name already appears.
+
+        Use [name, after_name] to set the given parameter name after the first occurrence
+        of the parameter after_name and before any later occurrence of after_name.
+
+        Use [name, after_name, after_value] to set the given parameter name after the
+        location where after_name equals after_value and before any later occurrence of
+        after_name.
+
+        Use a tuple to include additional formatting information with the new value. The
+        tuple contains up to six values in total:
+            (value[, format][[[, name_blanks], val_blanks], sep_blanks])
+        The value is required. Optional subsequent items are:
+            format          a format string, e.g., "%+7d" or "%7.3f".
+            name_blanks     number of blank characters after the name and before the
+                            equal sign; zero is the default.
+            val_blanks      number of blank characters after the equal sign and before
+                            the value; zero is the default.
+            sep_blanks      number of blanks after the value and before the next label
+                            parameter or the label's end; default 2.
+
+        If the value is a list, then each item in the list must be either a parameter
+        value (int, float, or string) or else a tuple of up to four values:
+            (value[, format][[, blanks_before], blanks_after])
+        After the value, the optional items are:
+            format          a format string, e.g., "%+07d", "%12.3e" or "%.4f".
+            blanks_before   the number of blanks before the value, after the left
+                            parenthesis or comma; zero is the default.
+            blanks_after    the number of blanks after the value and before the next
+                            comma or the right parenthesis; zero is the default.
         """
 
-        # Handle a numeric index
+        # Handle an integer key
         if isinstance(key, numbers.Integral):
 
             # Handle an input with embedded formatting info
@@ -643,7 +764,7 @@ class VicarLabel():
             self._formats[key] = valfmt
             return
 
-        # Handle a string or tuple index recursively
+        # Handle a name or (name, occurrence) key recursively
         try:
             indx = self._key_index[key][0]
         except (KeyError, TypeError):
@@ -652,9 +773,23 @@ class VicarLabel():
             self.__setitem__(indx, value)
             return
 
-        # Allow a (name,occurrence) index one past the end; name with optional "+"
-        if isinstance(key, tuple) and isinstance(key[0], str) and len(key) == 2:
-            name = key[0][:-1] if key[0].endswith('+') else key[0]
+        # Plan to insert a new parameter at the end
+        insert_loc = len(self)
+
+        # Handle a (name, after_key) or (name, after_key, after_value) key recursively
+        indx = self._after_arg(key, exists=False)
+        if indx >= 0:
+            if indx < len(self) and self._names[indx] == key[0]:    # name already exists
+                self.__setitem__(indx, value)
+                return
+
+            # Insert new keyword at the end of this section
+            key = key[0]
+            insert_loc = indx
+
+        # Allow a (name, occurrence) key to index one past the end; name with optional "+"
+        if (isinstance(key, tuple) and isinstance(key[0], str) and len(key) == 2):
+            name = key[0][:-1] if key[0].endswith('+') else key[0]      # strip "+"
             if name in self._names:
                 valid_indices = (len(self._key_index[name]),)
             else:
@@ -675,9 +810,13 @@ class VicarLabel():
         (value, valfmt) = VicarLabel._interpret_value_format(value)
         VicarLabel._check_type(key, value, is_first=False)
 
-        names = self._names + [key]
-        values = self._values + [value]
-        formats = self._formats + [valfmt]
+        names = list(self._names)
+        values = list(self._values)
+        formats = list(self._formats)
+
+        names.insert(insert_loc, key)
+        values.insert(insert_loc, value)
+        formats.insert(insert_loc, valfmt)
 
         self._update(names, values, formats)
 
@@ -692,6 +831,7 @@ class VicarLabel():
         from the first occurrence, or n = -1, -2, ... to index from the last.
         """
 
+        # Handle an integer key
         if isinstance(key, numbers.Integral):
 
             name = self._names[key]
@@ -711,14 +851,35 @@ class VicarLabel():
             self._update(names, values, formats)
             return
 
+        # Handle a (name, after_key) or (name, after_key, after_value) key recursively
+        indx = self._after_arg(key)
+        if indx >= 0:
+            self.__delitem__(indx)
+            return
+
+        # Handle a name or (name, occurrence) key recursively
         indx = self._key_index[key][0]      # raise KeyError on failure
         self.__delitem__(indx)
 
     ########################################
 
     def __contains__(self, key):
-        """True if the given key exists in the VICAR label."""
+        """True if the given key can be used to index the VICAR label."""
 
+        # Handle an integer key
+        if isinstance(key, numbers.Integral):
+            return -len(self) <= key < len(self)
+
+        # Handle a (name, after_key) or (name, after_key, after_value) key
+        try:
+            indx = self._after_arg(key)
+        except Exception:
+            pass
+        else:
+            if indx >= 0:
+                return True
+
+        # Handle a name or (name, occurrence) key
         return (key in self._key_index)
 
     ######################################################################################
