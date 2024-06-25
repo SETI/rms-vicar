@@ -18,34 +18,34 @@ class Test_VicarLabel(unittest.TestCase):
         vicar_dir = pathlib.Path(sys.modules['vicar'].__file__)
         test_dir = vicar_dir.parent.parent / 'test_files'
 
-        text = ("LBLSIZE=1536            FORMAT='BYTE'  TYPE='TABULAR'  BUFSIZ=20480  "
-        "DIM=3  EOL=1  RECSIZE=512  ORG='BSQ'    NS=512  NB=1  N1=512  N2=1  "
-        "N3=1  N4=0  NBB=0    HOST='AXP-VMS'  INTFMT='LOW'  "
-        "REALFMT='VAX'          NL=0            NLB=18  BHOST='AXP-VMS'  "
-        "BINTFMT='LOW'  BREALFMT='VAX'  BLTYPE='IBIS'  "
-        "PROPERTY='IBIS'                TYPE='TIEPOINT'  NR=552  NC=4  ORG='ROW'  "
-        "FMT_DEFAULT='REAL'  GROUPS=('LINE','SAMP','C_POS_IMAGE','INPUT','POSITION',"
-        "'C_POSITION','PIXEL','C_PIXEL','OUTPUT','C_POINT','C_ROOT')  GROUP_1=(3,1)  "
-        "GROUP_2=(4,2)  GROUP_3=(3,4,1,2)  GROUP_4=(3,4)  GROUP_5=(1,2,3,4)  "
-        "GROUP_6=(3,4,1,2)  GROUP_7=(1,2,3,4)  GROUP_8=(1,2,3,4)  GROUP_9=(1,2)  "
-        "GROUP_10=(1,2,3,4)  GROUP_11=(3,4,1,2)  SEGMENT=16  BLOCKSIZE=512  "
-        "COFFSET=(0,4,8,12)  PROPERTY='TIEPOINT'  NUMBER_OF_AREAS_HORIZONTAL=23  "
-        "NUMBER_OF_AREAS_VERTICAL=22  TASK='TASK'  USER='SHOWALTER'  "
-        "DAT_TIM='Sun Oct  2 05:05:17 2011'  "
-        "LAB01='                     800     800 800 800 L 1                          SC'  "
-        "LAB02='VGR-2   FDS 20693.02   PICNO 0215J2+001   SCET 79.192 01:19:58         C'  "
-        "LAB03='WA CAMERA  EXP   15360.0 MSEC FILT 2(CLEAR )  LO GAIN  SCAN RATE  5:1  C'  "
-        "LAB04='ERT 79.192 02:11:56   1/ 2 FULL    RES   VIDICON TEMP  -80.00 DEG C    C'  "
-        "LAB05='IN/205140/14 OUT/xxxxxx/xx     J_RINGS     DSS #14   BIT SNR    6.273  C'  "
-        "LAB06=' xxxxx A/xxxxxxxx B/xxxx C/xxxx D/xxxxxxxx ETLM/xxxxxxxxxxxxxxxxxxxxS AC'  "
-        "LBLSIZE=1024            "
-        "LAB07='NA OPCAL xx(015360.0*MSEC)PIXAVG 032/0 OPERATIONAL MODE 3(WAONLY)     AC'  "
-        "LAB08='CAM ECAL CYCLE BEAM  RESET OPEN  CLOSE FLOOD AEXPM  FIL G1 SHUT MODE  AC'  "
-        "LAB09='NA   NO   PREP  NO    YES   NO    NO    NO    NO    0 P  * NORMAL     AC'  "
-        "LAB10='WA   NO   READ  YES   NO    NO    NO    NO    NO    2 P  7 NORMAL     AC'  "
-        "LAB11='LSB_TRUNC=OFF  TLM_MODE=IM-2D COMPRESSION=OFF                          L'  "
-        "NLABS=11    TASK='VGRFILLI'  USER='SHOWALTER'  DAT_TIM='Sun Oct  2 05:05:17 2011'  "
-        "LIN_CNT=0  TASK='RESLOC'  USER='SHOWALTER'  DAT_TIM='Sun Oct  2 05:05:18 2011'    ")
+        text = """LBLSIZE=1536            FORMAT='BYTE'  TYPE='TABULAR'  BUFSIZ=20480  \
+DIM=3  EOL=1  RECSIZE=512  ORG='BSQ'    NS=512  NB=1  N1=512  N2=1  \
+N3=1  N4=0  NBB=0    HOST='AXP-VMS'  INTFMT='LOW'  \
+REALFMT='VAX'          NL=0            NLB=18  BHOST='AXP-VMS'  \
+BINTFMT='LOW'  BREALFMT='VAX'  BLTYPE='IBIS'  \
+PROPERTY='IBIS'                TYPE='TIEPOINT'  NR=552  NC=4  ORG='ROW'  \
+FMT_DEFAULT='REAL'  GROUPS=('LINE','SAMP','C_POS_IMAGE','INPUT','POSITION',\
+'C_POSITION','PIXEL','C_PIXEL','OUTPUT','C_POINT','C_ROOT')  GROUP_1=(3,1)  \
+GROUP_2=(4,2)  GROUP_3=(3,4,1,2)  GROUP_4=(3,4)  GROUP_5=(1,2,3,4)  \
+GROUP_6=(3,4,1,2)  GROUP_7=(1,2,3,4)  GROUP_8=(1,2,3,4)  GROUP_9=(1,2)  \
+GROUP_10=(1,2,3,4)  GROUP_11=(3,4,1,2)  SEGMENT=16  BLOCKSIZE=512  \
+COFFSET=(0,4,8,12)  PROPERTY='TIEPOINT'  NUMBER_OF_AREAS_HORIZONTAL=23  \
+NUMBER_OF_AREAS_VERTICAL=22  TASK='TASK'  USER='SHOWALTER'  \
+DAT_TIM='Sun Oct  2 05:05:17 2011'  \
+LAB01='                     800     800 800 800 L 1                          SC'  \
+LAB02='VGR-2   FDS 20693.02   PICNO 0215J2+001   SCET 79.192 01:19:58         C'  \
+LAB03='WA CAMERA  EXP   15360.0 MSEC FILT 2(CLEAR )  LO GAIN  SCAN RATE  5:1  C'  \
+LAB04='ERT 79.192 02:11:56   1/ 2 FULL    RES   VIDICON TEMP  -80.00 DEG C    C'  \
+LAB05='IN/205140/14 OUT/xxxxxx/xx     J_RINGS     DSS #14   BIT SNR    6.273  C'  \
+LAB06=' xxxxx A/xxxxxxxx B/xxxx C/xxxx D/xxxxxxxx ETLM/xxxxxxxxxxxxxxxxxxxxS AC'  \
+LBLSIZE=1024            \
+LAB07='NA OPCAL xx(015360.0*MSEC)PIXAVG 032/0 OPERATIONAL MODE 3(WAONLY)     AC'  \
+LAB08='CAM ECAL CYCLE BEAM  RESET OPEN  CLOSE FLOOD AEXPM  FIL G1 SHUT MODE  AC'  \
+LAB09='NA   NO   PREP  NO    YES   NO    NO    NO    NO    0 P  * NORMAL     AC'  \
+LAB10='WA   NO   READ  YES   NO    NO    NO    NO    NO    2 P  7 NORMAL     AC'  \
+LAB11='LSB_TRUNC=OFF  TLM_MODE=IM-2D COMPRESSION=OFF                          L'  \
+NLABS=11    TASK='VGRFILLI'  USER='SHOWALTER'  DAT_TIM='Sun Oct  2 05:05:17 2011' \
+LIN_CNT=0  TASK='RESLOC'  USER='SHOWALTER'  DAT_TIM='Sun Oct  2 05:05:18 2011'    """
 
         def test_vic(source):
 
@@ -211,15 +211,15 @@ class Test_VicarLabel(unittest.TestCase):
         test.append("LBLSIZE=100  NOTE='more stuff'")
         # Fails on platforms other than Mac
 #     self.assertEqual(test.as_string(),
-#                      "LBLSIZE=0             FORMAT='BYTE'  TYPE='IMAGE'  BUFSIZ=20480  "
-#                      "DIM=3  EOL=0  RECSIZE=0  ORG='BSQ'  NL=0  NS=0  NB=0  N1=0  N2=0  "
-#                      "N3=0  N4=0  NBB=0  NLB=0  HOST='MAC-OSX'  INTFMT='LOW'  "
-#                      "REALFMT='RIEEE'  BHOST='MAC-OSX'  BINTFMT='LOW'  BREALFMT='RIEEE'  "
-#                      "BLTYPE=''  LBLSIZE=100           NOTE='more stuff'  ")
+# "LBLSIZE=0             FORMAT='BYTE'  TYPE='IMAGE'  BUFSIZ=20480  "
+# "DIM=3  EOL=0  RECSIZE=0  ORG='BSQ'  NL=0  NS=0  NB=0  N1=0  N2=0  "
+# "N3=0  N4=0  NBB=0  NLB=0  HOST='MAC-OSX'  INTFMT='LOW'  "
+# "REALFMT='RIEEE'  BHOST='MAC-OSX'  BINTFMT='LOW'  BREALFMT='RIEEE'  "
+# "BLTYPE=''  LBLSIZE=100           NOTE='more stuff'  ")
         self.assertEqual(test.as_string(stop=17),
-                         "LBLSIZE=0             FORMAT='BYTE'  TYPE='IMAGE'  BUFSIZ=20480  "
-                         "DIM=3  EOL=0  RECSIZE=0  ORG='BSQ'  NL=0  NS=0  NB=0  N1=0  N2=0  "
-                         "N3=0  N4=0  NBB=0  NLB=0  ")
+                         "LBLSIZE=0             FORMAT='BYTE'  TYPE='IMAGE'  "
+                         "BUFSIZ=20480  DIM=3  EOL=0  RECSIZE=0  ORG='BSQ'  NL=0  NS=0  "
+                         "NB=0  N1=0  N2=0  N3=0  N4=0  NBB=0  NLB=0  ")
         self.assertEqual(test.as_string(start='BLTYPE'),
                          "BLTYPE=''  LBLSIZE=100           NOTE='more stuff'  ")
         self.assertEqual(test.as_string(start='BLTYPE', sep='xxx'),
@@ -276,7 +276,8 @@ class Test_VicarLabel(unittest.TestCase):
         altvic = VicarLabel(dest)
         self.assertEqual(vic, altvic)
         self.assertEqual(len(vic['LBLSIZE+']), 1)
-        self.assertEqual(os.path.getsize(dest), vic['LBLSIZE'] + vic['RECSIZE'] * vic['NLB'])
+        self.assertEqual(os.path.getsize(dest), vic['LBLSIZE'] +
+                         vic['RECSIZE'] * vic['NLB'])
         self.assertEqual(altvic.filepath, dest)
 
         vic2 = VicarLabel(text)
@@ -288,8 +289,9 @@ class Test_VicarLabel(unittest.TestCase):
         altvic = VicarLabel(dest)
         self.assertEqual(vic, altvic)
         self.assertEqual(len(vic['LBLSIZE+']), 2)
-        self.assertEqual(os.path.getsize(dest), vic['LBLSIZE'] + vic['RECSIZE'] * vic['NLB']
-                                                + vic[('LBLSIZE',1)])
+        self.assertEqual(os.path.getsize(dest),
+                         vic['LBLSIZE'] + vic['RECSIZE'] * vic['NLB']
+                         + vic[('LBLSIZE',1)])
 
         altvic.filepath = None
         self.assertRaises(ValueError, altvic.write_label)
@@ -498,7 +500,7 @@ class Test_VicarLabel(unittest.TestCase):
         self.assertEqual((vic['NB'], vic['NL'], vic['NS']), (101, 201, 301))
         self.assertEqual((vic['N1'], vic['N3'], vic['N2']), (101, 201, 301))
 
-        #### Reading image file C0532836239R.IMG
+        # Reading image file C0532836239R.IMG
         filepath = test_dir / 'C0532836239R.IMG'
 
         vic = VicarLabel(filepath)
@@ -640,12 +642,3 @@ class Test_VicarLabel(unittest.TestCase):
         del lbl['FOO', 'TASK', 'GEOMA']
         names = list(lbl.names())
         self.assertEqual(names[-3:], ['TASK', 'BAR', 'NEW'])
-
-##########################################################################################
-# Perform unit testing if executed from the command line
-##########################################################################################
-
-if __name__ == '__main__':
-    unittest.main()
-
-##########################################################################################

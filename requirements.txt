@@ -1,5 +1,10 @@
 coverage
+flake8
+myst-parser
 numpy
 pyparsing
 pytest
 rms-vax
+sphinx
+sphinxcontrib-napoleon
+sphinx-rtd-theme

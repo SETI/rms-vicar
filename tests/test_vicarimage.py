@@ -14,6 +14,7 @@ from vicar.vicarlabel import VicarError
 
 from contextlib import redirect_stdout
 
+
 class Test_VicarImage(unittest.TestCase):
 
     def test_VicarImage(self):
@@ -66,13 +67,16 @@ class Test_VicarImage(unittest.TestCase):
         self.assertRaises(VicarError, _check_array_vs_prefix, None, np.arange(10))
         self.assertRaises(VicarError, _check_array_vs_prefix, np.zeros((10,10)), None)
         self.assertRaises(VicarError, _check_array_vs_prefix, None, np.zeros((10,10)))
-        self.assertRaises(VicarError, _check_array_vs_prefix, np.zeros((10,10,10,10)), None)
-        self.assertRaises(VicarError, _check_array_vs_prefix, np.zeros((1,100,100)),
-                                                              np.zeros((1,200,10)))
-        self.assertRaises(VicarError, _check_array_vs_prefix, np.zeros((1,200,100), dtype='>i4'),
-                                                              np.zeros((1,200,20), dtype='<i4'))
-        self.assertRaises(VicarError, _check_array_vs_prefix, np.zeros((1,200,100), dtype='>f4'),
-                                                              np.zeros((1,200,20), dtype='<f4'))
+        self.assertRaises(VicarError, _check_array_vs_prefix, np.zeros((10,10,10,10)),
+                          None)
+        self.assertRaises(VicarError, _check_array_vs_prefix,
+                          np.zeros((1,100,100)), np.zeros((1,200,10)))
+        self.assertRaises(VicarError, _check_array_vs_prefix,
+                          np.zeros((1,200,100), dtype='>i4'),
+                          np.zeros((1,200,20), dtype='<i4'))
+        self.assertRaises(VicarError, _check_array_vs_prefix,
+                          np.zeros((1,200,100), dtype='>f4'),
+                          np.zeros((1,200,20), dtype='<f4'))
 
         # Reading image file C0532836239R.IMG
         vicar_dir = pathlib.Path(sys.modules['vicar'].__file__)
@@ -412,11 +416,14 @@ class Test_VicarImage(unittest.TestCase):
         self.assertEqual(vim['FORMAT'], 'DOUB')     # unchanged
 
         # Start from int array
-        vim = VicarImage.from_array(np.random.randint(-1000, 1000, (100,100)).astype('<i4'))
+        vim = VicarImage.from_array(
+            np.random.randint(-1000, 1000, (100,100)).astype('<i4'))
         self.assertEqual(vim['INTFMT'], 'LOW')
-        vim = VicarImage.from_array(np.random.randint(-1000, 1000, (100,100)).astype('>i4'))
+        vim = VicarImage.from_array(
+            np.random.randint(-1000, 1000, (100,100)).astype('>i4'))
         self.assertEqual(vim['INTFMT'], 'HIGH')
-        vim = VicarImage.from_array(np.random.randint(-1000, 1000, (100,100)).astype('<i4'))
+        vim = VicarImage.from_array(
+            np.random.randint(-1000, 1000, (100,100)).astype('<i4'))
         self.assertEqual(vim['INTFMT'], 'LOW')
         self.assertEqual(vim['NB'], 1)
         self.assertEqual(vim['NL'], 100)
@@ -506,13 +513,3 @@ class Test_VicarImage(unittest.TestCase):
         vim = VicarImage(filepath)
 
         self.assertEqual(vim['UNEVEN_BIT_WEIGHT_CORRECTION_FLAG'], 1)
-
-
-##########################################################################################
-# Perform unit testing if executed from the command line
-##########################################################################################
-
-if __name__ == '__main__':
-        unittest.main()
-
-##########################################################################################

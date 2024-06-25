@@ -66,6 +66,7 @@ _FORMAT_FROM_DTYPE = {'u1': ('BYTE', True ),
                       'f8': ('DOUB', False),
                       'c8': ('COMP', False)}
 
+
 def _intfmt(x):
     if isinstance(x, np.ndarray):
         if x.dtype.byteorder == '<':    # pragma: no cover
@@ -74,6 +75,7 @@ def _intfmt(x):
             return 'HIGH'
 
     return 'LOW' if sys.byteorder == 'little' else 'HIGH'
+
 
 def _realfmt(x):
     if isinstance(x, np.ndarray):
@@ -84,6 +86,7 @@ def _realfmt(x):
 
     return 'RIEEE' if sys.byteorder == 'little' else 'IEEE'
 
+
 def _format_isint(x):
     try:
         key = x.dtype.kind + str(x.itemsize)
@@ -91,9 +94,17 @@ def _format_isint(x):
     except KeyError:
         raise VicarError(f'array dtype "{x.dtype}" is not supported by VICAR')
 
+
 def _check_array_vs_prefix(array, prefix):
     """Raise an exception if the given image array and prefix byte array are not
     compatible.
+
+    Args:
+        array (xxx): xxx
+        prefix (xxx): xxx
+
+    Raises:
+        VicarError: xxx
     """
 
     if array is not None and array.ndim != 3:
@@ -130,6 +141,7 @@ def _check_array_vs_prefix(array, prefix):
             raise VicarError('prefix and array formats are incompatible: '
                              f'{realfmt1}, {realfmt2}')
 
+
 ##########################################################################################
 # Class VicarImage
 ##########################################################################################
@@ -142,17 +154,24 @@ class VicarImage():
     def __init__(self, source=None, array=None, *, prefix=None, binheader=None):
         """Constructor for a VicarImage object.
 
-        Input:
-            source      optional path to a VICAR data file as a string or a pathlib.Path
-                        object, or else a VicarLabel object.
-            array       optional data array for this object. If the source is a file path,
-                        this array will override that in the file.
-            prefix      optional prefix bytes for this object. If the source is a file
-                        path, this value will override that in the file. To remove the
-                        prefix array found in the file, use prefix=[].
-            binheader   optional binary header for this data file. If the source is a
-                        file path, this value will override that in the file. To remove
-                        the binheader found in the file, use binheader=b''.
+        Args:
+            source (xxx, optional):
+                optional path to a VICAR data file as a string or a pathlib.Path
+                object, or else a VicarLabel object.
+            array (xxx, optional):
+                optional data array for this object. If the source is a file path,
+                this array will override that in the file.
+            prefix (xxx, optional):
+                optional prefix bytes for this object. If the source is a file
+                path, this value will override that in the file. To remove the
+                prefix array found in the file, use prefix=[].
+            binheader (xxx, optional):
+                optional binary header for this data file. If the source is a
+                file path, this value will override that in the file. To remove
+                the binheader found in the file, use binheader=b''.
+
+        Returns:
+            xxx: xxx
         """
 
         self._filepath = None
@@ -195,12 +214,23 @@ class VicarImage():
 
     @property
     def label(self):
-        """The VicarLabel object."""
+        """The VicarLabel object.
+
+        Returns:
+            xxx: xxx
+        """
         return self._label
 
     @property
     def array2d(self):
-        """The array object as 2-D."""
+        """The array object as 2-D.
+
+        Returns:
+            xxx: xxx
+
+        Raises:
+            VicarError: xxx
+        """
 
         if self._array is None:
             return None
@@ -210,17 +240,32 @@ class VicarImage():
 
     @property
     def data_2d(self):
-        """The array object as 2-D; DEPRECATED name."""
+        """The array object as 2-D; DEPRECATED name.
+
+        Returns:
+            xxx: xxx
+        """
         return self.array2d
 
     @property
     def array3d(self):
-        """The array object as 3-D."""
+        """The array object as 3-D.
+
+        Returns:
+            xxx: xxx
+        """
         return self._array
 
     @property
     def data_3d(self):
-        """The array object as 3-D; DEPRECATED name."""
+        """The array object as 3-D; DEPRECATED name.
+
+        Returns:
+            xxx: xxx
+
+        Raises:
+            VicarError: xxx
+        """
         return self._array
 
     @property
@@ -264,7 +309,14 @@ class VicarImage():
 
     @property
     def prefix2d(self):
-        """The image prefix object as a 2-D array."""
+        """The image prefix object as a 2-D array.
+
+        Returns:
+            xxx: xxx
+
+        Raises:
+            VicarError: xxx
+        """
 
         if self._prefix is None:
             return None
@@ -274,17 +326,32 @@ class VicarImage():
 
     @property
     def prefix_2d(self):
-        """The image prefix object as a 2-D array."""
+        """The image prefix object as a 2-D array.
+
+        Returns:
+            xxx: xxx
+        """
         return self.prefix2d
 
     @property
     def prefix3d(self):
-        """The image prefix object as a 3-D array."""
+        """The image prefix object as a 3-D array.
+
+        Returns:
+            xxx: xxx
+        """
         return self._prefix
 
     @property
     def prefix_3d(self):
-        """The image prefix object as a 3-D array."""
+        """The image prefix object as a 3-D array.
+
+        Returns:
+            xxx: xxx
+
+        Raises:
+            VicarError: xxx
+        """
         return self._prefix
 
     @property
@@ -341,7 +408,14 @@ class VicarImage():
 
     @property
     def binheader(self):
-        """The binary header as an array or bytes object."""
+        """The binary header as an array or bytes object.
+
+        Returns:
+            xxx: xxx
+
+        Raises:
+            VicarError: xxx
+        """
         return self._binheader
 
     @binheader.setter
@@ -376,16 +450,21 @@ class VicarImage():
     def from_file(filepath, extraneous='ignore'):
         """VicarImage object from an existing VICAR image file.
 
-        Input:
-            filepath    path to a VICAR data file as a string or a pathlib.Path object.
-            extraneous  how to handle the presence of extraneous bytes at the end of the
-                        file:
-                            "error"     to raise VicarError;
-                            "warn"      to raise a UserWarning;
-                            "print"     to print a message;
-                            "ignore"    to ignore;
-                            "include"   to include the extraneous bytes as part of the
-                                        return.
+        Args:
+            filepath (xxx): path to a VICAR data file as a string or a pathlib.Path
+                object.
+            extraneous (str, optional):
+                how to handle the presence of extraneous bytes at the end of the
+                file:
+                "error"     to raise VicarError;
+                "warn"      to raise a UserWarning;
+                "print"     to print a message;
+                "ignore"    to ignore;
+                "include"   to include the extraneous bytes as part of the
+                return.
+
+        Returns:
+            xxx: xxx
         """
 
         info = VicarImage._read_file(filepath, extraneous=extraneous)
@@ -418,13 +497,18 @@ class VicarImage():
         dtype, and uses the NR and NC values, if present, to determine the number of rows
         and columns in the table.
 
-        Input:
-            kind        optional single-letter code for the data type: u = unsigned int;
-                        i = signed int; f = float. If not specified, the kind is inferred
-                        from the value of the FMT_DEFAULT parameter.
-            size        number of bytes per value. If not provided, it is inferred from
-                        the FMT_DEFAULT parameter if present. Otherwise, the default is
-                        1 for kind = "u"; 2 for kind = "i"; 4 for kind = "f".
+        Args:
+            kind (str, optional):
+                optional single-letter code for the data type: u = unsigned int;
+                i = signed int; f = float. If not specified, the kind is inferred
+                from the value of the FMT_DEFAULT parameter.
+            size (xxx, optional):
+                number of bytes per value. If not provided, it is inferred from
+                the FMT_DEFAULT parameter if present. Otherwise, the default is
+                1 for kind = "u"; 2 for kind = "i"; 4 for kind = "f".
+
+        Returns:
+            xxx: xxx
         """
 
         if self._binheader is None:
@@ -450,7 +534,7 @@ class VicarImage():
         else:
             size = size if size else 4
             dpref = ('>' if label['BREALFMT'] == 'IEEE' else '<')
-            dtype = dpref + kind +  str(size)
+            dtype = dpref + kind + str(size)
 
         # Convert the bytes to an array
         values = np.frombuffer(self._binheader, dtype=dtype)
@@ -472,7 +556,11 @@ class VicarImage():
         return values
 
     def copy(self):
-        """An independent (deep) copy of this VicarImage."""
+        """An independent (deep) copy of this VicarImage.
+
+        Returns:
+            xxx: xxx
+        """
 
         return copy.deepcopy(self)
 
@@ -603,10 +691,14 @@ class VicarImage():
     def write_file(self, filepath=None):
         """Write the VicarImage object into a file.
 
-        Inputs:
-            filepath    optional the path of the file to write, as a string or
-                        pathlib.Path object. If not specified and this object's filepath
-                        attribute is defined, it will write to the file.
+        Args:
+            filepath (xxx, optional):
+                optional the path of the file to write, as a string or
+                pathlib.Path object. If not specified and this object's filepath
+                attribute is defined, it will write to the file.
+
+        Raises:
+            VicarError: xxx
         """
 
         filepath = filepath or self.filepath
@@ -647,7 +739,11 @@ class VicarImage():
     ######################################################################################
 
     def __len__(self):
-        """The number of keywords in the VICAR label."""
+        """The number of keywords in the VICAR label.
+
+        Returns:
+            xxx: xxx
+        """
 
         return self._label._len
 
@@ -661,6 +757,12 @@ class VicarImage():
 
         Append a "+" to a name to retrieve a list containing all the values of that
         parameter name.
+
+        Args:
+            key (xxx): xxx
+
+        Returns:
+            xxx: xxx
         """
 
         return self._label.__getitem__(key)
@@ -676,6 +778,13 @@ class VicarImage():
 
         Append a "+" to a name to append a new "name=value" pair the label, even if that
         name already appears.
+
+        Args:
+            key (xxx): xxx
+            value (xxx): xxx
+
+        Raises:
+            VicarError: xxx
         """
 
         if isinstance(key, numbers.Integral):
@@ -697,6 +806,12 @@ class VicarImage():
         If a name appears multiple times in the label, this deletes the first occurrence.
         Use the tuple (name, n) to return later values, where n = 0, 1, 2 ... to index
         from the first occurrence, or n = -1, -2, ... to index from the last.
+
+        Args:
+            key (xxx): xxx
+
+        Raises:
+            VicarError: xxx
         """
 
         if isinstance(key, numbers.Integral):
@@ -712,7 +827,14 @@ class VicarImage():
         self._label.__delitem__(key)
 
     def __contains__(self, key):
-        """True if the given key exists in the label of this VicarImage."""
+        """True if the given key exists in the label of this VicarImage.
+
+        Args:
+            key (xxx): xxx
+
+        Returns:
+            xxx: xxx
+        """
 
         return self._label.__contains__(key)
 
@@ -723,6 +845,13 @@ class VicarImage():
         If a name appears multiple times in the label, this returns the value at the first
         occurrence. Use the tuple (name, n) to return later values, where n = 0, 1, 2 ...
         to index from the first occurrence, or n = -1, -2, ... to index from the last.
+
+        Args:
+            key (xxx): xxx
+            default (xxx): xxx
+
+        Returns:
+            xxx: xxx
         """
 
         try:
@@ -737,6 +866,12 @@ class VicarImage():
         If a name appears multiple times in the label, this returns the value at the first
         occurrence. Use the tuple (name, n) to return later values, where n = 0, 1, 2 ...
         to index from the first occurrence, or n = -1, -2, ... to index from the last.
+
+        Args:
+            key (xxx): xxx
+
+        Returns:
+            xxx: xxx
         """
 
         return self._label.arg(key)
@@ -750,7 +885,11 @@ class VicarImage():
     def __iter__(self):
         """Iterator over the parameter name strings in the label of this VicarImage.
         It returns a name string if that name is unique, otherwise a tuple (name,
-        occurrence)."""
+        occurrence).
+
+        Returns:
+            xxx: xxx
+        """
 
         return self._label.__iter__()
 
@@ -759,9 +898,13 @@ class VicarImage():
 
         Implemented as a simple list.
 
-        Input:
-            pattern     optional regular expression. If provided, the iteration only
-                        includes parameter names that match the pattern.
+        Args:
+            pattern (xxx, optional):
+                optional regular expression. If provided, the iteration only
+                includes parameter names that match the pattern.
+
+        Returns:
+            xxx: xxx
         """
 
         return self._label.names(pattern=pattern)
@@ -772,9 +915,13 @@ class VicarImage():
 
         Implemented as a simple list.
 
-        Input:
-            pattern     optional regular expression. If provided, the iteration only
-                        includes parameter names that match the pattern.
+        Args:
+            pattern (xxx, optional):
+                optional regular expression. If provided, the iteration only
+                includes parameter names that match the pattern.
+
+        Returns:
+            xxx: xxx
         """
 
         return self._label.keys(pattern=pattern)
@@ -782,9 +929,13 @@ class VicarImage():
     def values(self, pattern=None):
         """Iterator over the values in the label of this VicarImage.
 
-        Input:
-            pattern     optional regular expression. If provided, the iteration only
-                        includes parameter names that match the pattern.
+        Args:
+            pattern (xxx, optional):
+                optional regular expression. If provided, the iteration only
+                includes parameter names that match the pattern.
+
+        Returns:
+            xxx: xxx
         """
 
         return self._label.values(pattern=pattern)
@@ -792,23 +943,39 @@ class VicarImage():
     def items(self, pattern=None, unique=True):
         """Iterator over the (key, value) pairs in the label of this VicarImage.
 
-        Input:
-            pattern     optional regular expression. If provided, the iteration only
-                        includes parameter names that match the pattern.
-            unique      True to return unique keys, in which non-unique names are replaced
-                        by tuples (name, occurrence). If False, all keys are name strings,
-                        and a string may appear multiple times.
+        Args:
+            pattern (xxx, optional):
+                optional regular expression. If provided, the iteration only
+                includes parameter names that match the pattern.
+            unique (bool, optional):
+                True to return unique keys, in which non-unique names are replaced
+                by tuples (name, occurrence). If False, all keys are name strings,
+                and a string may appear multiple times.
+
+        Returns:
+            xxx: xxx
         """
 
         return self._label.items(pattern=pattern, unique=unique)
 
     def args(self, pattern=None):
-        """Iterator over the numerical indices of the keywords."""
+        """Iterator over the numerical indices of the keywords.
+
+        Args:
+            pattern (xxx, optional): xxx
+
+        Returns:
+            xxx: xxx
+        """
 
         return self._label.args(pattern=pattern)
 
     def as_dict(self):
-        """The VicarLabel object, provided primarily for backward compatibility."""
+        """The VicarLabel object, provided primarily for backward compatibility.
+
+        Returns:
+            xxx: xxx
+        """
 
         return self._label
 
