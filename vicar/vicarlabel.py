@@ -360,7 +360,10 @@ class VicarLabel():
 
     @property
     def filepath(self):
-        """Get the label's filepath."""
+        """Get the label's filepath.
+
+        Returns:
+            Path: The path of the VicarImage file."""
         return self._filepath
 
     @filepath.setter
@@ -588,7 +591,7 @@ class VicarLabel():
     ########################################
 
     def arg(self, key, value=None):
-        """Return the numerical index of the item in the VICAR label defined.
+        """Return the numerical index of the item in the VICAR label defined by the key.
 
         The key can be defined by a name, index, or using various other indexing options.
         If the key is missing, return the default value.
@@ -666,7 +669,7 @@ class VicarLabel():
         """Get the value of the given VICAR parameter.
 
         If a name appears multiple times in the label, this returns the value at the first
-        occurrence. Use [name, n] to return later values, where n = 0, 1, 2 ... to index
+        occurrence. Use (name, n) to return later values, where n = 0, 1, 2 ... to index
         from the first occurrence, or n = -1, -2, ... to index from the last.
 
         Append a "+" to a name to retrieve a list containing all the values of the given
@@ -777,16 +780,16 @@ class VicarLabel():
         If the parameter is not currently found in the label, create a new one.
 
         If a name appears multiple times in the label, this sets the value at the first
-        occurrence. Use [name, n] to set later values, where n = 0, 1, 2, ... to index
+        occurrence. Use (name, n) to set later values, where n = 0, 1, 2, ... to index
         from the first occurrence, or n = -1, -2, ... to index from the last.
 
         Append a "+" to a name to append a new "name=value" pair the label, even if that
         name already appears.
 
-        Use [name, after_name] to set the given parameter name after the first occurrence
+        Use (name, after_name) to set the given parameter name after the first occurrence
         of the parameter after_name and before any later occurrence of after_name.
 
-        Use [name, after_name, after_value] to set the given parameter name after the
+        Use (name, after_name, after_value) to set the given parameter name after the
         location where after_name equals after_value and before any later occurrence of
         after_name.
 
@@ -1252,7 +1255,14 @@ class VicarLabel():
     ######################################################################################
 
     def __iter__(self):
-        """Iterator over the unique names or (name, occurrence) pairs in the label."""
+        """Iterator over the unique names or (name, occurrence) pairs in the label.
+
+        It returns a name string if that name is unique, otherwise a tuple (name,
+        occurrence).
+
+        Yields:
+            str or tuple: Each unique or non-unique name.
+        """
 
         self._counter = 0
         return self
@@ -1370,7 +1380,7 @@ class VicarLabel():
 
         if pattern:
             pattern = re.compile(pattern, re.I)
-            return [i for i,n in enumerate(self._names) if pattern.fullmatch(n)]
+            return (i for i,n in enumerate(self._names) if pattern.fullmatch(n))
 
         return range(self._len)
 

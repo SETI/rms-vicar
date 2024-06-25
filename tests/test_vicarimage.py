@@ -141,12 +141,12 @@ class Test_VicarImage(unittest.TestCase):
 
         # binheader
         test = VicarImage(test_dir / 'C2069302_GEOMA.DAT')
-        self.assertTrue(test.array is None)
-        self.assertTrue(test.array2d is None)
-        self.assertTrue(test.array3d is None)
-        self.assertTrue(test.prefix is None)
-        self.assertTrue(test.prefix2d is None)
-        self.assertTrue(test.prefix3d is None)
+        self.assertIsNone(test.array)
+        self.assertIsNone(test.array2d)
+        self.assertIsNone(test.array3d)
+        self.assertIsNone(test.prefix)
+        self.assertIsNone(test.prefix2d)
+        self.assertIsNone(test.prefix3d)
         array = test.binheader_array()
         self.assertEqual(array.shape, (552,4))
         self.assertEqual(array.dtype, np.dtype('=f4'))

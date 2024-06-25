@@ -13,7 +13,8 @@ The `vicar` module provides these classes:
 - `VicarError`: Extension of class ValueError to contain exceptions.
 
 Details of each class are available in the module documentation:
-https://rms-vicar.readthedocs.io/en/latest/module.html).
+https://rms-vicar.readthedocs.io/en/latest/module.html
+or in the help for each class/method.
 """
 
 __all__ = ['VicarError', 'VicarImage', 'VicarLabel']
