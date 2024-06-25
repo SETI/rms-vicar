@@ -87,6 +87,7 @@ BREAK = ((ZeroOrMore(White(' ')) + (FollowedBy(oneOf(', )'))
 
 OPT_WHITE = ZeroOrMore(White(' '))
 
+
 ############################################
 # INTEGER
 ############################################
@@ -114,13 +115,15 @@ def _int_info(token):
 
     return (value, fmt, before, after)
 
+
 INT = Word(nums)
 OPT_INT = Optional(INT)
 OPT_SIGN = Optional(oneOf('+ -'))
 
 INTEGER = Combine(OPT_WHITE + OPT_SIGN + INT + BREAK)
 INTEGER.set_name('INTEGER')
-INTEGER.set_parse_action(lambda s,l,t: _int_info(t[0]))
+INTEGER.set_parse_action(lambda s,loc,toks: _int_info(toks[0]))
+
 
 ############################################
 # FLOAT
@@ -153,10 +156,11 @@ def _float_info(token):
 
     return (value, fmt, before, after)
 
+
 DOT = Literal('.')
 
 EXPO = Combine(Suppress(oneOf('e E d D')) + OPT_SIGN + INT)
-EXPO.set_parse_action(lambda s,l,t: 'e' + t[0])
+EXPO.set_parse_action(lambda s,loc,toks: 'e' + toks[0])
 OPT_EXPO = Optional(EXPO)
 
 FLOAT_W_INT  = Combine(OPT_WHITE + OPT_SIGN + INT + DOT + OPT_INT + OPT_EXPO + BREAK)
@@ -164,7 +168,8 @@ FLOAT_WO_INT = Combine(OPT_WHITE + OPT_SIGN + DOT + INT + OPT_EXPO + BREAK)
 FLOAT_WO_DOT = Combine(OPT_WHITE + OPT_SIGN + INT + EXPO + BREAK)
 FLOAT        = FLOAT_W_INT | FLOAT_WO_INT | FLOAT_WO_DOT
 FLOAT.set_name('FLOAT')
-FLOAT.set_parse_action(lambda s,l,t: _float_info(t[0]))
+FLOAT.set_parse_action(lambda s,loc,toks: _float_info(toks[0]))
+
 
 ############################################
 # STRING
@@ -180,11 +185,13 @@ def _str_info(token):
     value = stripped[1:-1].replace("''", "'")
     return (value, '', before, after)
 
+
 QUOTE = Literal("'")
 QQUOTE = Literal("''")
 STRING = Combine(OPT_WHITE + QUOTE + ZeroOrMore(CharsNotIn("'") | QQUOTE) + QUOTE + BREAK)
 STRING.set_name('STRING')
-STRING.set_parse_action(lambda s,l,t: _str_info(t[0]))
+STRING.set_parse_action(lambda s,loc,toks: _str_info(toks[0]))
+
 
 ############################################
 # LIST
@@ -196,6 +203,7 @@ def _list_info(tokens):
 
     return (tokens[1:-1], '', before, after)
 
+
 SCALAR = INTEGER | FLOAT | STRING
 
 LPAREN = Combine(OPT_WHITE + Suppress(Literal('(')))
@@ -204,13 +212,15 @@ COMMA  = Suppress(Literal(','))
 
 LIST = LPAREN + SCALAR + ZeroOrMore(COMMA + SCALAR) + RPAREN
 LIST.set_name('LIST')
-LIST.set_parse_action(lambda s,l,t: _list_info(t))
+LIST.set_parse_action(lambda s,loc,toks: _list_info(toks))
+
 
 ############################################
 # VALUE
 ############################################
 
 VALUE = SCALAR | LIST
+
 
 ############################################
 # NAME
@@ -221,12 +231,14 @@ def _name_info(token):
     after = len(token) - len(rstripped)
     return (rstripped, after)
 
+
 ALPHAS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 ALNUMS = ALPHAS + '0123456789_'
 # NAME = Combine(Word(ALPHAS, ALNUMS, max=32) + OPT_WHITE)
-NAME = Combine(Word(ALPHAS, ALNUMS) + OPT_WHITE) # some labels violate the 32-char limit
+NAME = Combine(Word(ALPHAS, ALNUMS) + OPT_WHITE)  # some labels violate the 32-char limit
 NAME.set_name('NAME')
-NAME.set_parse_action(lambda s,l,t: _name_info(t[0]))
+NAME.set_parse_action(lambda s,loc,toks: _name_info(toks[0]))
+
 
 ############################################
 # STATEMENT
@@ -270,10 +282,12 @@ def _statement_info(tokens):
 
     return tuple(result)
 
+
 EQUAL = Suppress(Literal('='))
 STATEMENT = NAME + EQUAL + VALUE
 STATEMENT.set_name('STATEMENT')
-STATEMENT.set_parse_action(lambda s,l,t: _statement_info(t))
+STATEMENT.set_parse_action(lambda s,loc,toks: _statement_info(toks))
+
 
 ############################################
 # _LABEL_GRAMMAR
