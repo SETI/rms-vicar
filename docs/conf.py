@@ -18,7 +18,8 @@ author = 'PDS Ring-Moon Systems Node'
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-extensions = ['myst_parser', 'sphinx.ext.autodoc', 'sphinx.ext.napoleon']
+extensions = ['myst_parser', 'sphinx.ext.autodoc', 'sphinx.ext.napoleon',
+              'sphinx.ext.viewcode']
 
 templates_path = ['_templates']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
