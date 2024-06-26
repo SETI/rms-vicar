@@ -37,6 +37,7 @@ classifiers = [
 
 [project.urls]
 Homepage = "https://github.com/SETI/rms-vicar"
+Documentation = "https://rms-vicar.readthedocs.io/en/latest"
 Repository = "https://github.com/SETI/rms-vicar"
 Source = "https://github.com/SETI/rms-vicar"
 Issues = "https://github.com/SETI/rms-vicar/issues"
