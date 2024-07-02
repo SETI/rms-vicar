@@ -1,0 +1,20 @@
+``vicar`` Module
+================
+
+.. automodule:: vicar
+    :member-order: groupwise
+    :members:
+    :undoc-members:
+    :special-members:
+    :private-members:
+    :exclude-members: __dict__, __hash__, __module__, __weakref__
+    :show-inheritance:
+
+vicar._LABEL_GRAMMAR
+--------------------
+
+.. automodule:: vicar._LABEL_GRAMMAR
+   :members:
+   :undoc-members:
+   :show-inheritance:
+

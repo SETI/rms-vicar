@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Welcome to vicar’s documentation! &mdash; vicar  documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="_static/doctools.js?v=9a2dae69"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="vicar Module" href="module.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="#" class="icon icon-home">
+            vicar
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="module.html"><code class="docutils literal notranslate"><span class="pre">vicar</span></code> Module</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="#">vicar</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="#" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Welcome to <code class="docutils literal notranslate"><span class="pre">vicar</span></code>’s documentation!</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="welcome-to-vicar-s-documentation">
+<h1>Welcome to <code class="docutils literal notranslate"><span class="pre">vicar</span></code>’s documentation!<a class="headerlink" href="#welcome-to-vicar-s-documentation" title="Link to this heading"></a></h1>
+<section id="introduction">
+<h2>Introduction<a class="headerlink" href="#introduction" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">vicar</span></code> is a Python module that supports reading and writing of JPL’s VICAR file format. It supports the definition of the VICAR file format as found here:
+<a class="reference external" href="https://www-mipl.jpl.nasa.gov/external/VICAR_file_fmt.pdf">https://www-mipl.jpl.nasa.gov/external/VICAR_file_fmt.pdf</a></p>
+</section>
+<section id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Link to this heading"></a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">vicar</span></code> module is available via the <code class="docutils literal notranslate"><span class="pre">rms-vicar</span></code> package on PyPI and can be
+installed with:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>rms-vicar
+</pre></div>
+</div>
+</section>
+<section id="getting-started">
+<h2>Getting Started<a class="headerlink" href="#getting-started" title="Link to this heading"></a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">vicar</span></code> module provides these classes:</p>
+<ul class="simple">
+<li><p><a class="reference external" href="https://rms-vicar.readthedocs.io/en/latest/module.html#vicar.VicarLabel"><code class="docutils literal notranslate"><span class="pre">VicarLabel</span></code></a>:
+Class for reading, writing, and parsing of VICAR labels.</p></li>
+<li><p><a class="reference external" href="https://rms-vicar.readthedocs.io/en/latest/module.html#vicar.VicarImage"><code class="docutils literal notranslate"><span class="pre">VicarImage</span></code></a>:
+Class for handling VICAR image (and other) data files.</p></li>
+<li><p><a class="reference external" href="https://rms-vicar.readthedocs.io/en/latest/module.html#vicar.VicarError"><code class="docutils literal notranslate"><span class="pre">VicarError</span></code></a>:
+Extension of class ValueError to contain exceptions.</p></li>
+</ul>
+<p>Details of each class are available in the <a class="reference external" href="https://rms-vicar.readthedocs.io/en/latest/module.html">module documentation</a>.</p>
+<p>To read a VICAR image file:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">vicar</span>
+<span class="n">vic</span> <span class="o">=</span> <span class="n">vicar</span><span class="o">.</span><span class="n">VicarImage</span><span class="p">(</span><span class="s2">&quot;path/to/file&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The resulting object contains:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">vic.array</span></code>: The 3-D data array converted to native format.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">vic.array2d</span></code>: Same as above, but with leading dimension (typically, bands) stripped.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">vic.prefix</span></code>: The array prefix bytes as a 3-D array of unsigned bytes.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">vic.prefix2d</span></code>: Same as above, but with the leading dimension stripped.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">vic.binheader</span></code>: The binary header as a bytes object; use <code class="docutils literal notranslate"><span class="pre">vic.binheader_array()</span></code> to
+extract information.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">vic.label</span></code>: The internal <code class="docutils literal notranslate"><span class="pre">VicarLabel</span></code> object that manages the VICAR label information,
+if direct access is needed.</p></li>
+</ul>
+<p>VICAR parameter values can be extracted from the label using dictionary-like syntax:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">len(vic)</span></code>: The number of parameters in the VICAR label.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">vic['LBLSIZE']</span></code>: The value of the LBLSIZE parameter (an integer).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">vic[0]</span></code>: The value of the first parameter.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">vic[-1]</span></code>: The value of the last parameter.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">vic['LBLSIZE',-1]</span></code>: The value of the last occurrence of the LBLSIZE parameter.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">vic.get(('LBLSIZE',2),</span> <span class="pre">99)</span></code>: The value of the third occurrence of the LBLSIZE
+parameter, or 99 if there are fewer than 3 occurrences.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">vic.arg('LBLSIZE')</span></code>: The numeric index of “LBLSIZE” among the VICAR parameters.</p></li>
+</ul>
+<p>You can also use dictionary-like syntax to modify and insert header values:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">vic['SOLDIST']</span> <span class="pre">=</span> <span class="pre">1.e9</span></code>: Set SOLDICT to this value.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">del</span> <span class="pre">vic['SOLDIST',0]</span></code>: Remove the first occurrence of SOLDIST from the label.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">vic['LBLSIZE+']</span> <span class="pre">=</span> <span class="pre">2000</span></code>: Insert a new LBLSIZE parameter instead of modifying an
+existing one.</p></li>
+</ul>
+<p>Note that certain required VICAR parameters contain structural information about the file;
+these cannot generally be modified directly.</p>
+<p>Numerous methods are available to iterate over the VICAR label parameters:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="n">value</span><span class="p">)</span> <span class="ow">in</span> <span class="n">vic</span><span class="o">.</span><span class="n">items</span><span class="p">():</span> <span class="o">...</span>
+<span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">vic</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span> <span class="o">...</span>
+<span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">vic</span><span class="o">.</span><span class="n">names</span><span class="p">():</span> <span class="o">...</span>
+<span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">vic</span><span class="o">.</span><span class="n">values</span><span class="p">():</span> <span class="o">...</span>
+</pre></div>
+</div>
+<p>Iterators can take a regular expression as input to restrict the items returned:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">vic</span><span class="o">.</span><span class="n">values</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;LAB\d\d&#39;</span><span class="p">):</span> <span class="o">...</span>
+</pre></div>
+</div>
+<p>Use <code class="docutils literal notranslate"><span class="pre">str(vic)</span></code> to get the VICAR label content represented as a string.</p>
+<p>Here are the steps to create and write a VICAR image file:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">vicar</span>
+<span class="n">vic</span> <span class="o">=</span> <span class="n">vicar</span><span class="o">.</span><span class="n">VicarImage</span><span class="p">()</span>
+<span class="n">vic</span><span class="o">.</span><span class="n">array</span> <span class="o">=</span> <span class="n">array</span>
+<span class="n">vic</span><span class="o">.</span><span class="n">prefix</span> <span class="o">=</span> <span class="n">prefix</span>
+<span class="n">vic</span><span class="o">.</span><span class="n">binheader</span> <span class="o">=</span> <span class="n">binheader</span>
+<span class="n">vic</span><span class="p">[</span><span class="s1">&#39;NOTES&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;add as many more VICAR parameters&#39;</span><span class="p">,</span> <span class="s1">&#39;as you wish&#39;</span><span class="p">]</span>
+<span class="n">vic</span><span class="o">.</span><span class="n">write_file</span><span class="p">(</span><span class="s2">&quot;path/to/file&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="contributing">
+<h2>Contributing<a class="headerlink" href="#contributing" title="Link to this heading"></a></h2>
+<p>Information on contributing to this package can be found in the
+<a class="reference external" href="https://github.com/SETI/rms-vicar/blob/main/CONTRIBUTING.md">Contributing Guide</a>.</p>
+</section>
+<section id="links">
+<h2>Links<a class="headerlink" href="#links" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><a class="reference external" href="https://rms-vicar.readthedocs.io">Documentation</a></p></li>
+<li><p><a class="reference external" href="https://github.com/SETI/rms-vicar">Repository</a></p></li>
+<li><p><a class="reference external" href="https://github.com/SETI/rms-vicar/issues">Issue tracker</a></p></li>
+<li><p><a class="reference external" href="https://pypi.org/project/rms-vicar">PyPi</a></p></li>
+</ul>
+</section>
+<section id="licensing">
+<h2>Licensing<a class="headerlink" href="#licensing" title="Link to this heading"></a></h2>
+<p>This code is licensed under the <a class="reference external" href="https://github.com/SETI/rms-vicar/blob/main/LICENSE">Apache License v2.0</a>.</p>
+</section>
+<div class="toctree-wrapper compound">
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="module.html"><code class="docutils literal notranslate"><span class="pre">vicar</span></code> Module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="module.html#vicar.VicarError"><code class="docutils literal notranslate"><span class="pre">VicarError</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="module.html#vicar.VicarImage"><code class="docutils literal notranslate"><span class="pre">VicarImage</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="module.html#vicar.VicarLabel"><code class="docutils literal notranslate"><span class="pre">VicarLabel</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="module.html#module-vicar._LABEL_GRAMMAR">vicar._LABEL_GRAMMAR</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="indices-and-tables">
+<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Link to this heading"></a></h1>
+<ul class="simple">
+<li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></p></li>
+<li><p><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></p></li>
+<li><p><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></p></li>
+</ul>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="module.html" class="btn btn-neutral float-right" title="vicar Module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, PDS Ring-Moon Systems Node.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

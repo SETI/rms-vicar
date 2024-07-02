@@ -1,0 +1,1627 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>vicar.vicarimage &mdash; vicar  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            vicar
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../module.html"><code class="docutils literal notranslate"><span class="pre">vicar</span></code> Module</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">vicar</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">vicar.vicarimage</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for vicar.vicarimage</h1><div class="highlight"><pre>
+<span></span><span class="c1">##########################################################################################</span>
+<span class="c1"># vicar/vicarimage.py</span>
+<span class="c1">##########################################################################################</span>
+<span class="sd">&quot;&quot;&quot;Class to support accessing, reading, and modifying VICAR image files.&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">copy</span>
+<span class="kn">import</span> <span class="nn">numbers</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pathlib</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">vax</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">_version</span> <span class="kn">import</span> <span class="n">__version__</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="n">__version__</span> <span class="o">=</span> <span class="s1">&#39;Version unspecified&#39;</span>
+
+<span class="kn">from</span> <span class="nn">vicar.vicarlabel</span> <span class="kn">import</span> <span class="n">VicarLabel</span><span class="p">,</span> <span class="n">VicarError</span><span class="p">,</span> <span class="n">_HOST</span>
+
+<span class="c1">##########################################################################################</span>
+<span class="c1"># Set of keywords that the user cannot modify</span>
+<span class="c1">##########################################################################################</span>
+
+<span class="n">_IMMUTABLE</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([</span><span class="s1">&#39;LBLSIZE&#39;</span> <span class="p">,</span>
+                  <span class="s1">&#39;FORMAT&#39;</span>  <span class="p">,</span>
+                  <span class="s1">&#39;TYPE&#39;</span>    <span class="p">,</span>
+                  <span class="s1">&#39;DIM&#39;</span>     <span class="p">,</span>
+                  <span class="s1">&#39;EOL&#39;</span>     <span class="p">,</span>
+                  <span class="s1">&#39;RECSIZE&#39;</span> <span class="p">,</span>
+                  <span class="s1">&#39;ORG&#39;</span>     <span class="p">,</span>
+                  <span class="s1">&#39;NL&#39;</span>      <span class="p">,</span>
+                  <span class="s1">&#39;NS&#39;</span>      <span class="p">,</span>
+                  <span class="s1">&#39;NB&#39;</span>      <span class="p">,</span>
+                  <span class="s1">&#39;N1&#39;</span>      <span class="p">,</span>
+                  <span class="s1">&#39;N2&#39;</span>      <span class="p">,</span>
+                  <span class="s1">&#39;N3&#39;</span>      <span class="p">,</span>
+                  <span class="s1">&#39;N4&#39;</span>      <span class="p">,</span>
+                  <span class="s1">&#39;NBB&#39;</span>     <span class="p">,</span>
+                  <span class="s1">&#39;NLB&#39;</span>     <span class="p">,</span>
+                  <span class="s1">&#39;INTFMT&#39;</span>  <span class="p">,</span>
+                  <span class="s1">&#39;REALFMT&#39;</span> <span class="p">,</span>
+                  <span class="s1">&#39;BINTFMT&#39;</span> <span class="p">,</span>
+                  <span class="s1">&#39;BREALFMT&#39;</span><span class="p">])</span>
+
+<span class="c1">##########################################################################################</span>
+<span class="c1"># Utilities</span>
+<span class="c1">##########################################################################################</span>
+
+<span class="c1"># [FORMAT] -&gt; dtype</span>
+<span class="n">_DTYPE_FROM_FORMAT</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;BYTE&#39;</span><span class="p">:</span> <span class="s1">&#39;u1&#39;</span><span class="p">,</span>
+                      <span class="s1">&#39;HALF&#39;</span><span class="p">:</span> <span class="s1">&#39;i2&#39;</span><span class="p">,</span>
+                      <span class="s1">&#39;FULL&#39;</span><span class="p">:</span> <span class="s1">&#39;i4&#39;</span><span class="p">,</span>
+                      <span class="s1">&#39;REAL&#39;</span><span class="p">:</span> <span class="s1">&#39;f4&#39;</span><span class="p">,</span>
+                      <span class="s1">&#39;DOUB&#39;</span><span class="p">:</span> <span class="s1">&#39;f8&#39;</span><span class="p">,</span>
+                      <span class="s1">&#39;COMP&#39;</span><span class="p">:</span> <span class="s1">&#39;c8&#39;</span><span class="p">,</span>
+                      <span class="s1">&#39;WORD&#39;</span><span class="p">:</span> <span class="s1">&#39;i2&#39;</span><span class="p">,</span>
+                      <span class="s1">&#39;LONG&#39;</span><span class="p">:</span> <span class="s1">&#39;i4&#39;</span><span class="p">,</span>
+                      <span class="s1">&#39;COMPLEX&#39;</span><span class="p">:</span> <span class="s1">&#39;c8&#39;</span><span class="p">}</span>
+
+<span class="c1"># [dtype.kind + str(dtype.itemsize)] -&gt; (FORMAT, isint)</span>
+<span class="n">_FORMAT_FROM_DTYPE</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;u1&#39;</span><span class="p">:</span> <span class="p">(</span><span class="s1">&#39;BYTE&#39;</span><span class="p">,</span> <span class="kc">True</span> <span class="p">),</span>
+                      <span class="s1">&#39;i2&#39;</span><span class="p">:</span> <span class="p">(</span><span class="s1">&#39;HALF&#39;</span><span class="p">,</span> <span class="kc">True</span> <span class="p">),</span>
+                      <span class="s1">&#39;i4&#39;</span><span class="p">:</span> <span class="p">(</span><span class="s1">&#39;FULL&#39;</span><span class="p">,</span> <span class="kc">True</span> <span class="p">),</span>
+                      <span class="s1">&#39;f4&#39;</span><span class="p">:</span> <span class="p">(</span><span class="s1">&#39;REAL&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
+                      <span class="s1">&#39;f8&#39;</span><span class="p">:</span> <span class="p">(</span><span class="s1">&#39;DOUB&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
+                      <span class="s1">&#39;c8&#39;</span><span class="p">:</span> <span class="p">(</span><span class="s1">&#39;COMP&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)}</span>
+
+<span class="c1">##########################################################################################</span>
+<span class="c1"># Class VicarImage</span>
+<span class="c1">##########################################################################################</span>
+
+<div class="viewcode-block" id="VicarImage">
+<a class="viewcode-back" href="../../module.html#vicar.VicarImage">[docs]</a>
+<span class="k">class</span> <span class="nc">VicarImage</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Constructor for a VicarImage.</span>
+
+<span class="sd">    This class defines the contents of a VICAR data file. It supports methods for reading</span>
+<span class="sd">    and writing files and for accessing header information.</span>
+
+<span class="sd">    **Properties**:</span>
+
+<span class="sd">        * array: The 3-D data array converted to native format.</span>
+<span class="sd">        * array3d: Same as above.</span>
+<span class="sd">        * array2d: Same as above, but with leading dimension (typically, bands) stripped.</span>
+<span class="sd">        * prefix: The array prefix bytes as a 3-D array of unsigned bytes.</span>
+<span class="sd">        * prefix3d: Same as above.</span>
+<span class="sd">        * prefix2d: Same as above, but with the leading dimension stripped.</span>
+<span class="sd">        * binheader: The binary header as a bytes object; use vic.binheader_array() to</span>
+<span class="sd">          extract information.</span>
+<span class="sd">        * label: The internal object that manages the VICAR label information, available</span>
+<span class="sd">          if direct access to it is needed.</span>
+
+<span class="sd">    **Core Methods:**</span>
+
+<span class="sd">        * arg: The index of a parameter name within this label.</span>
+<span class="sd">        * args: Iterator over the numeric indices of the parameters in a label.</span>
+<span class="sd">        * binheader_array: Interpret the content of a binary header.</span>
+<span class="sd">        * copy: A copy of this VicarImage.</span>
+<span class="sd">        * deepcopy: An independent (deep) copy of this VicarImage.</span>
+<span class="sd">        * from_array: Construct a VicarImage object for a NumPy array.</span>
+<span class="sd">        * from_file: Construct a VicarImage object from the content of a VICAR data file.</span>
+<span class="sd">        * get: Retrieve a label parameter value or return a default.</span>
+<span class="sd">        * items: Iterator over the (name, value) tuples in the label.</span>
+<span class="sd">        * keys: Iterator over the parameter names in the label as unique keys.</span>
+<span class="sd">        * names: Iterator over the parameter names in the label.</span>
+<span class="sd">        * values: Iterator over the parameter values in the label.</span>
+<span class="sd">        * write_file: Write this object as a VICAR data file.</span>
+
+<span class="sd">    **Python Syntax Support Methods:**</span>
+
+<span class="sd">        * __contains__: Enables &quot;name in image&quot; syntax for checking a name in the label.</span>
+<span class="sd">        * __delitem__: Enables &quot;del image[name]&quot; syntax to remove a label parameter name.</span>
+<span class="sd">        * __eq__: Enables &quot;a == b&quot;, the test of whether two image objects are equal.</span>
+<span class="sd">        * __getitem__: Enables &quot;image[name]&quot; dictionary-like syntax to get the value of</span>
+<span class="sd">          a label parameter.</span>
+<span class="sd">        * __iter__: Enables &quot;for key in image:&quot; syntax to iterate over the label parameter</span>
+<span class="sd">          keys.</span>
+<span class="sd">        * __len__: Enables &quot;len(image)&quot;, the number of parameters in the image&#39;s label.</span>
+<span class="sd">        * __repr__: Enables &quot;repr(image)&quot;, similar to the &quot;str(label)&quot;, but with the class</span>
+<span class="sd">          name included.</span>
+<span class="sd">        * __setitem__: Enables &quot;image[name] = value&quot; dictionary-like syntax to set the</span>
+<span class="sd">          value of a label parameter.</span>
+<span class="sd">        * __str__: Enables &quot;str(image)&quot;, returning a string representing the content of a</span>
+<span class="sd">          label.</span>
+
+<span class="sd">    **Notes About Dictionary Keys:**</span>
+
+<span class="sd">        When using dictionary-like syntax to reference a parameter in a VICAR label, a</span>
+<span class="sd">        rich set of options are available. For example, if `image` is a VicarImage object,</span>
+<span class="sd">        then:</span>
+
+<span class="sd">            * &quot;image[n]&quot; where `n` is an integer refers to the &quot;nth&quot; parameter in the</span>
+<span class="sd">              label. `n` can be positive or negative.</span>
+<span class="sd">            * &quot;image[name]&quot; where `name` is a string refers to the first occurrence in the</span>
+<span class="sd">              label of a parameter with this name.</span>
+<span class="sd">            * &quot;image[name,n]&quot; refers to the &quot;nth&quot; occurrence in the label of a parameter</span>
+<span class="sd">              with this name. `n` can be positive or negative.</span>
+<span class="sd">            * &quot;image[name, after]&quot; where both items are strings refers to the first</span>
+<span class="sd">              occurrence of parameter `name` after the first occurrence of parameter</span>
+<span class="sd">              `after` and before the second occurrence of `after`.</span>
+<span class="sd">            * &quot;image[name, after, value]&quot; refers to the first occurrence of parameter</span>
+<span class="sd">              `name` after the first location where `after` equals `value` and before the</span>
+<span class="sd">              next occurrence of `after`.</span>
+
+<span class="sd">        The last two options make it easy to reference a VICAR label parameter that is</span>
+<span class="sd">        repeated. For example, &quot;image[&#39;DAT_TIM&#39;, &#39;TASK&#39;, &#39;COPY&#39;]&quot; uniquely identifies the</span>
+<span class="sd">        occurrence of &quot;DAT_TIM&quot; applicable to &quot;TASK=&#39;COPY&#39;&quot; when there might be other</span>
+<span class="sd">        &quot;TASK&quot; sections of the image label containing other values of &quot;DAT_TIM&quot;.</span>
+
+<span class="sd">        Append a &quot;+&quot; to `name` to expand upon the function&#39;s behavior. With &quot;get&quot;</span>
+<span class="sd">        operations, a list is returned identifying all of the occurrences of the selected</span>
+<span class="sd">        name rather than just the first or &quot;nth&quot;. With &quot;set&quot; operations, a new occurrence</span>
+<span class="sd">        of `name` is inserted into the label even if the a parameter of the given name is</span>
+<span class="sd">        already present.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="VicarImage.__init__">
+<a class="viewcode-back" href="../../module.html#vicar.VicarImage.__init__">[docs]</a>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">array</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">binheader</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                       <span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Constructor for a VicarImage object.</span>
+
+<span class="sd">        Parameters:</span>
+<span class="sd">            source (pathlib.Path, str, or VicarLabel, optional):</span>
+<span class="sd">                Source for the VicarImage based on a file path or VicarLabel; if not</span>
+<span class="sd">                specified (equvalent to source=None), a minimal label is created.</span>
+
+<span class="sd">            array (array-like, optional):</span>
+<span class="sd">                Optional data array for this object. If the source is a file path,</span>
+<span class="sd">                this array will override that in the file.</span>
+
+<span class="sd">            prefix (array-like, optional):</span>
+<span class="sd">                Optional prefix bytes for this object. If the source is a file</span>
+<span class="sd">                path, this value will override that in the file. To remove the</span>
+<span class="sd">                prefix array found in the file, use prefix=[].</span>
+
+<span class="sd">            binheader (array-like or bytes, optional):</span>
+<span class="sd">                Optional binary header for this data file. If the source is a</span>
+<span class="sd">                file path, this value will override that in the file. To remove</span>
+<span class="sd">                the binheader found in the file, use binheader=b&#39;&#39;.</span>
+
+<span class="sd">            strict (bool, optional):</span>
+<span class="sd">                True (the default) to require strict conformance to the VICAR standard;</span>
+<span class="sd">                False for a looser version of the standard. If `source` is a VicarLabel,</span>
+<span class="sd">                this input is ignored; the value already assigned to the `source` is used</span>
+<span class="sd">                instead.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_filepath</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">source</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_label</span> <span class="o">=</span> <span class="n">VicarLabel</span><span class="p">([],</span> <span class="n">strict</span><span class="o">=</span><span class="n">strict</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">VicarLabel</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_label</span> <span class="o">=</span> <span class="n">source</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_filepath</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">source</span><span class="p">)</span>
+            <span class="n">info</span> <span class="o">=</span> <span class="n">VicarImage</span><span class="o">.</span><span class="n">_read_file</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">filepath</span><span class="p">,</span> <span class="n">extraneous</span><span class="o">=</span><span class="s1">&#39;ignore&#39;</span><span class="p">,</span>
+                                         <span class="n">strict</span><span class="o">=</span><span class="n">strict</span><span class="p">)</span>
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_label</span><span class="p">,</span> <span class="n">array1</span><span class="p">,</span> <span class="n">prefix1</span><span class="p">,</span> <span class="n">binheader1</span><span class="p">)</span> <span class="o">=</span> <span class="n">info</span>
+
+            <span class="k">if</span> <span class="n">array</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">array</span> <span class="o">=</span> <span class="n">array1</span>
+            <span class="k">if</span> <span class="n">prefix</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">prefix</span> <span class="o">=</span> <span class="n">prefix1</span>
+            <span class="k">if</span> <span class="n">binheader</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">binheader</span> <span class="o">=</span> <span class="n">binheader1</span>
+
+        <span class="c1"># Validate array, prefix, and binheader using setters</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_array</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_prefix</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_binheader</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">array</span> <span class="o">=</span> <span class="n">array</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">prefix</span> <span class="o">=</span> <span class="n">prefix</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">binheader</span> <span class="o">=</span> <span class="n">binheader</span></div>
+
+
+    <span class="c1">######################################################################################</span>
+    <span class="c1"># Properties</span>
+    <span class="c1">######################################################################################</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">filepath</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The path to the associated file.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            pathlib.Path or None: The path to the associated file, if any.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_filepath</span>
+
+    <span class="nd">@filepath</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">filepath</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set the path to the associated file.</span>
+
+<span class="sd">        Parameters:</span>
+<span class="sd">            value (pathlib.Path, str, or None):</span>
+<span class="sd">                The path to the associated file; None to remove a file association.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_filepath</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_filepath</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">label</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The VicarLabel object.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            VicarLabel: The VicarLabel object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_label</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">array2d</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The data array as 2-D.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            np.ndarray or None:</span>
+<span class="sd">                The data array as 2-dimensional if it is present; otherwise, None.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            VicarError: If the array has more than two dimensions.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_array</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_array</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">VicarError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;VICAR array shape </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_array</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s1"> is not 2-D&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_array</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">data_2d</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The data array as 2-D; DEPRECATED name.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            np.ndarray or None:</span>
+<span class="sd">                The data array as 2-dimensional if it is present; otherwise, None.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            VicarError: If the array has more than two dimensions.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">array2d</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">array3d</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The data array as 3-D.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            np.ndarray or None:</span>
+<span class="sd">                The data array as 3-dimensional if it is present; otherwise, None.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_array</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">data_3d</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The data array as 3-D; DEPRECATED name.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            np.ndarray or None:</span>
+<span class="sd">                The data array as 3-dimensional if it is present; otherwise, None.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_array</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">array</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The data array.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            np.ndarray or None: The data array if it is present; otherwise, None.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_array</span>
+
+    <span class="nd">@array</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">array</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set the data array.</span>
+
+<span class="sd">        Parameters:</span>
+<span class="sd">            value (array-like or None):</span>
+<span class="sd">                The prefix array or None to remove the data array.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            VicarError:</span>
+<span class="sd">                If the array shape is incompatible with an existing prefix or binary</span>
+<span class="sd">                header.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_array</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">return</span>
+
+        <span class="n">value</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">3</span><span class="o">-</span><span class="n">value</span><span class="o">.</span><span class="n">ndim</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span><span class="p">,)</span> <span class="o">+</span> <span class="n">value</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>  <span class="c1"># reshape to 3-D</span>
+        <span class="n">VicarImage</span><span class="o">.</span><span class="n">_check_array_vs_prefix</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prefix</span><span class="p">)</span>
+
+        <span class="n">recsize</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_label</span><span class="p">[</span><span class="s1">&#39;NBB&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="n">value</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">value</span><span class="o">.</span><span class="n">itemsize</span>
+        <span class="n">nlb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_label</span><span class="p">[</span><span class="s1">&#39;NLB&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_binheader</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">width</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="nb">bytes</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_binheader</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">width</span> <span class="o">%</span> <span class="n">recsize</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">VicarError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;array shape </span><span class="si">{</span><span class="n">value</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s1"> is incompatible with binary &#39;</span>
+                                 <span class="sa">f</span><span class="s1">&#39;header width </span><span class="si">{</span><span class="n">width</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="n">nlb</span> <span class="o">=</span> <span class="n">width</span> <span class="o">//</span> <span class="n">recsize</span>
+
+        <span class="c1"># Tests passed</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_array</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_label</span><span class="p">[</span><span class="s1">&#39;HOST&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_HOST</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_label</span><span class="p">[</span><span class="s1">&#39;TYPE&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;IMAGE&#39;</span>
+        <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_label</span><span class="p">[</span><span class="s1">&#39;FORMAT&#39;</span><span class="p">],</span> <span class="n">isint</span><span class="p">)</span> <span class="o">=</span> <span class="n">VicarImage</span><span class="o">.</span><span class="n">_format_isint</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">isint</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">value</span><span class="o">.</span><span class="n">itemsize</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_label</span><span class="p">[</span><span class="s1">&#39;INTFMT&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">VicarImage</span><span class="o">.</span><span class="n">_intfmt</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_label</span><span class="p">[</span><span class="s1">&#39;REALFMT&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">VicarImage</span><span class="o">.</span><span class="n">_realfmt</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_label</span><span class="p">[</span><span class="s1">&#39;RECSIZE&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">recsize</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_label</span><span class="p">[</span><span class="s1">&#39;NLB&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">nlb</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_label</span><span class="o">.</span><span class="n">_set_n321</span><span class="p">(</span><span class="o">*</span><span class="n">value</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">prefix2d</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The image prefix as a 2-D array.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            np.ndarray: The image prefix as a 2-dimensional array.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            VicarError: If the prefix array has more than two dimensions.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prefix</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prefix</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">VicarError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;prefix bytes shape </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_prefix</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s1"> is not 2-D&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prefix</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">prefix_2d</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The image prefix as a 2-D array; DEPRECATED name.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            np.ndarray: The image prefix as a 2-dimensional array.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            VicarError: If the prefix array has more than two dimensions.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">prefix2d</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">prefix3d</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The image prefix as a 3-D array.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            np.ndarray: The image prefix as a 3-dimensional array.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prefix</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">prefix_3d</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The image prefix as a 3-D array; DEPRECATED name.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            np.ndarray: The image prefix as a 2-dimensional array.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prefix</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">prefix</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The image prefix object.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            np.ndarray: The image prefix as a 2-dimensional array.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prefix</span>
+
+    <span class="nd">@prefix</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">prefix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set the image prefix array.</span>
+
+<span class="sd">        Parameters:</span>
+<span class="sd">            value (array-like or None):</span>
+<span class="sd">                The prefix array or None to remove the prefix array.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            VicarError:</span>
+<span class="sd">                If the array shape is incompatible with an existing data array or binary</span>
+<span class="sd">                header.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">nbb</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">value</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">nbb</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">3</span><span class="o">-</span><span class="n">value</span><span class="o">.</span><span class="n">ndim</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span><span class="p">,)</span> <span class="o">+</span> <span class="n">value</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+                <span class="n">VicarImage</span><span class="o">.</span><span class="n">_check_array_vs_prefix</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_array</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+                <span class="n">nbb</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">value</span><span class="o">.</span><span class="n">itemsize</span>
+
+        <span class="n">recsize</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;RECSIZE&#39;</span><span class="p">]</span>
+        <span class="n">nlb</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;NLB&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_array</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">recsize</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_array</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_array</span><span class="o">.</span><span class="n">itemsize</span> <span class="o">+</span> <span class="n">nbb</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_binheader</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">width</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="nb">bytes</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_binheader</span><span class="p">))</span>
+                <span class="k">if</span> <span class="n">width</span> <span class="o">%</span> <span class="n">recsize</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">VicarError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;new RECSIZE=</span><span class="si">{</span><span class="n">recsize</span><span class="si">}</span><span class="s1"> is incompatible with binary &#39;</span>
+                                     <span class="sa">f</span><span class="s1">&#39;header length </span><span class="si">{</span><span class="n">width</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+                <span class="n">nlb</span> <span class="o">=</span> <span class="n">width</span> <span class="o">//</span> <span class="n">recsize</span>
+
+        <span class="c1"># Tests passed</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_prefix</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_label</span><span class="p">[</span><span class="s1">&#39;NBB&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">nbb</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_label</span><span class="p">[</span><span class="s1">&#39;NLB&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">nlb</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_label</span><span class="p">[</span><span class="s1">&#39;RECSIZE&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">recsize</span>
+
+        <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_label</span><span class="p">[</span><span class="s1">&#39;HOST&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_HOST</span>
+            <span class="p">(</span><span class="n">fmt</span><span class="p">,</span> <span class="n">isint</span><span class="p">)</span> <span class="o">=</span> <span class="n">VicarImage</span><span class="o">.</span><span class="n">_format_isint</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+
+            <span class="c1"># Prefix defines attributes left undefined by array</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_array</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_label</span><span class="p">[</span><span class="s1">&#39;FORMAT&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">fmt</span>
+
+            <span class="k">if</span> <span class="n">isint</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_array</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_array</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">kind</span> <span class="ow">in</span> <span class="s1">&#39;fc&#39;</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">value</span><span class="o">.</span><span class="n">itemsize</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_label</span><span class="p">[</span><span class="s1">&#39;INTFMT&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">VicarImage</span><span class="o">.</span><span class="n">_intfmt</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_array</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_array</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">kind</span> <span class="ow">in</span> <span class="s1">&#39;ui&#39;</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_label</span><span class="p">[</span><span class="s1">&#39;REALFMT&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">VicarImage</span><span class="o">.</span><span class="n">_realfmt</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">binheader</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The binary header as an array or bytes object.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            np.ndarray, bytes, or None: The binary header if present; otherwise, None.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_binheader</span>
+
+    <span class="nd">@binheader</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">binheader</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set the binary header.</span>
+
+<span class="sd">        Parameters:</span>
+<span class="sd">            value (bytes, np.ndarray, or None):</span>
+<span class="sd">                The binary header or None to remove the binary header.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            VicarError:</span>
+<span class="sd">                If the header length is incompatible with the existing RECSIZE.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_binheader</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_label</span><span class="p">[</span><span class="s1">&#39;NLB&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">return</span>
+
+        <span class="n">nlb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_label</span><span class="p">[</span><span class="s1">&#39;NLB&#39;</span><span class="p">]</span>
+        <span class="n">width</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="nb">bytes</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_array</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">recsize</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_label</span><span class="p">[</span><span class="s1">&#39;RECSIZE&#39;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">width</span> <span class="o">%</span> <span class="n">recsize</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">VicarError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;binary header length </span><span class="si">{</span><span class="n">width</span><span class="si">}</span><span class="s1"> is incompatible with &#39;</span>
+                                 <span class="sa">f</span><span class="s1">&#39;RECSIZE=</span><span class="si">{</span><span class="n">recsize</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="n">nlb</span> <span class="o">=</span> <span class="n">width</span> <span class="o">//</span> <span class="n">recsize</span>
+
+        <span class="c1"># Tests passed</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_binheader</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">width</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">value</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_label</span><span class="p">[</span><span class="s1">&#39;BHOST&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_HOST</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_label</span><span class="p">[</span><span class="s1">&#39;NLB&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">nlb</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">value</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">kind</span> <span class="ow">in</span> <span class="s1">&#39;cf&#39;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_label</span><span class="p">[</span><span class="s1">&#39;BREALFMT&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">VicarImage</span><span class="o">.</span><span class="n">_realfmt</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">value</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">kind</span> <span class="ow">in</span> <span class="s1">&#39;ui&#39;</span> <span class="ow">and</span> <span class="n">value</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">itemsize</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_label</span><span class="p">[</span><span class="s1">&#39;BINTFMT&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">VicarImage</span><span class="o">.</span><span class="n">_intfmt</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+
+    <span class="c1">######################################################################################</span>
+    <span class="c1"># Support for the Standard Python API</span>
+    <span class="c1">######################################################################################</span>
+
+<div class="viewcode-block" id="VicarImage.copy">
+<a class="viewcode-back" href="../../module.html#vicar.VicarImage.copy">[docs]</a>
+    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;A copy of this VicarImage.</span>
+
+<span class="sd">        The copied label is independent of the original, but the data and prefix array</span>
+<span class="sd">        are shared.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            VicarImage: The copy.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="n">VicarImage</span><span class="p">(</span><span class="n">source</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">label</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span> <span class="n">array</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_array</span><span class="p">,</span>
+                          <span class="n">prefix</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_prefix</span><span class="p">,</span> <span class="n">binheader</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_binheader</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="VicarImage.deepcopy">
+<a class="viewcode-back" href="../../module.html#vicar.VicarImage.deepcopy">[docs]</a>
+    <span class="k">def</span> <span class="nf">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">memo</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;An independent (deep) copy of this VicarImage.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            VicarImage: The deep copy.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">vim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">vim</span><span class="o">.</span><span class="n">_array</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_array</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">_array</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">vim</span><span class="o">.</span><span class="n">_prefix</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prefix</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prefix</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">vim</span></div>
+
+
+<div class="viewcode-block" id="VicarImage.__eq__">
+<a class="viewcode-back" href="../../module.html#vicar.VicarImage.__eq__">[docs]</a>
+    <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;True if this VicarImage is equal to the given object.</span>
+
+<span class="sd">        VicarImages are equal if the label content, data array, prefix array, binary</span>
+<span class="sd">        header are all equal. Label formatting hints need not be the same.</span>
+
+<span class="sd">        Parameters:</span>
+<span class="sd">            other (VicarImage): Second VicarImage to compare with this.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            bool: True if the objects are equal.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">VicarImage</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="n">prefix1</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;&#39;</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prefix</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="nb">bytes</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_prefix</span><span class="p">)</span>
+        <span class="n">prefix2</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;&#39;</span> <span class="k">if</span> <span class="n">other</span><span class="o">.</span><span class="n">_prefix</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="nb">bytes</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">_prefix</span><span class="p">)</span>
+
+        <span class="n">binheader1</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;&#39;</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_binheader</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="nb">bytes</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_binheader</span><span class="p">)</span>
+        <span class="n">binheader2</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;&#39;</span> <span class="k">if</span> <span class="n">other</span><span class="o">.</span><span class="n">_binheader</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="nb">bytes</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">_binheader</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_label</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">_label</span>
+                <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_array</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">_array</span><span class="p">)</span>
+                <span class="ow">and</span> <span class="n">prefix1</span> <span class="o">==</span> <span class="n">prefix2</span>
+                <span class="ow">and</span> <span class="n">binheader1</span> <span class="o">==</span> <span class="n">binheader2</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="VicarImage.__str__">
+<a class="viewcode-back" href="../../module.html#vicar.VicarImage.__str__">[docs]</a>
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_label</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="VicarImage.__repr__">
+<a class="viewcode-back" href="../../module.html#vicar.VicarImage.__repr__">[docs]</a>
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s1">&#39;VicarImage(&quot;&quot;&quot;&#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_label</span><span class="o">.</span><span class="n">as_string</span><span class="p">(</span><span class="n">sep</span><span class="o">=</span><span class="s1">&#39;</span><span class="se">\n\n</span><span class="s1">&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;&quot;&quot;&quot;)&#39;</span></div>
+
+
+    <span class="c1">######################################################################################</span>
+    <span class="c1"># Public API</span>
+    <span class="c1">######################################################################################</span>
+
+<div class="viewcode-block" id="VicarImage.from_file">
+<a class="viewcode-back" href="../../module.html#vicar.VicarImage.from_file">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">from_file</span><span class="p">(</span><span class="n">filepath</span><span class="p">,</span> <span class="n">extraneous</span><span class="o">=</span><span class="s1">&#39;ignore&#39;</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;VicarImage object from an existing VICAR image file.</span>
+
+<span class="sd">        Parameters:</span>
+<span class="sd">            filepath (pathlib.Path or str): Path to an existing VICAR data file.</span>
+
+<span class="sd">            extraneous (str, optional):</span>
+<span class="sd">                How to handle the presence of extraneous bytes at the end of the file, one</span>
+<span class="sd">                of:</span>
+
+<span class="sd">                * &quot;error&quot;   to raise VicarError;</span>
+<span class="sd">                * &quot;warn&quot;    to raise a UserWarning;</span>
+<span class="sd">                * &quot;print&quot;   to print a message;</span>
+<span class="sd">                * &quot;ignore&quot;  to ignore;</span>
+<span class="sd">                * &quot;include&quot; to include the extraneous bytes as part of the return.</span>
+
+<span class="sd">            strict (bool, optional):</span>
+<span class="sd">                True (the default) to require strict conformance to the VICAR standard;</span>
+<span class="sd">                False for a looser version of the standard.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            VicarImage or (VicarImage, bytes or None): A VicarImage or a tuple containing:</span>
+
+<span class="sd">            * VicarImage: A new object containing the content of the specified file.</span>
+<span class="sd">            * bytes or None: Any extraneous bytes from the end of the file, included if</span>
+<span class="sd">              if `extraneous` equals &quot;include&quot;.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">info</span> <span class="o">=</span> <span class="n">VicarImage</span><span class="o">.</span><span class="n">_read_file</span><span class="p">(</span><span class="n">filepath</span><span class="p">,</span> <span class="n">extraneous</span><span class="o">=</span><span class="n">extraneous</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="n">strict</span><span class="p">)</span>
+        <span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">prefix</span><span class="p">,</span> <span class="n">binheader</span><span class="p">)</span> <span class="o">=</span> <span class="n">info</span><span class="p">[:</span><span class="mi">4</span><span class="p">]</span>
+        <span class="n">vim</span> <span class="o">=</span> <span class="n">VicarImage</span><span class="p">(</span><span class="n">source</span><span class="o">=</span><span class="n">label</span><span class="p">,</span> <span class="n">array</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="n">prefix</span><span class="p">,</span> <span class="n">binheader</span><span class="o">=</span><span class="n">binheader</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">extraneous</span> <span class="o">==</span> <span class="s1">&#39;include&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">vim</span><span class="p">,</span> <span class="n">info</span><span class="p">[</span><span class="mi">4</span><span class="p">])</span>
+
+        <span class="k">return</span> <span class="n">vim</span></div>
+
+
+<div class="viewcode-block" id="VicarImage.from_array">
+<a class="viewcode-back" href="../../module.html#vicar.VicarImage.from_array">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">from_array</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Construct a VicarImage object for an array.</span>
+
+<span class="sd">        Parameters:</span>
+<span class="sd">            array (array-like): The data array to use in this VicarImage object.</span>
+
+<span class="sd">            strict (bool, optional):</span>
+<span class="sd">                True (the default) to require strict conformance to the VICAR standard;</span>
+<span class="sd">                False for a looser version of the standard.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            VicarImage: A new VicarImage object containing this data array.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="n">VicarImage</span><span class="p">(</span><span class="n">source</span><span class="o">=</span><span class="p">[],</span> <span class="n">array</span><span class="o">=</span><span class="n">array</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="n">strict</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="VicarImage.write_file">
+<a class="viewcode-back" href="../../module.html#vicar.VicarImage.write_file">[docs]</a>
+    <span class="k">def</span> <span class="nf">write_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filepath</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Write the VicarImage object into a file.</span>
+
+<span class="sd">        Parameters:</span>
+<span class="sd">            filepath (path.Pathlib or str, optional):</span>
+<span class="sd">                Optional the path of the file to write. If not specified but this object&#39;s</span>
+<span class="sd">                filepath attribute is defined, it will write to this file.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">filepath</span> <span class="o">=</span> <span class="n">filepath</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">filepath</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_array</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">VicarError</span><span class="p">(</span><span class="s1">&#39;Image array is missing for &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">filepath</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">filepath</span> <span class="o">=</span> <span class="n">filepath</span>
+
+        <span class="c1"># Open the file for binary write</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_filepath</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s1">&#39;wb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+
+            <span class="n">labels</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_label</span><span class="o">.</span><span class="n">export</span><span class="p">(</span><span class="n">resize</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">labels</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;latin8&#39;</span><span class="p">))</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_binheader</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_binheader</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_binheader</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_binheader</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prefix</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_array</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_array</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">n2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_label</span><span class="p">[</span><span class="s1">&#39;N2&#39;</span><span class="p">]</span>
+                <span class="n">n3</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_label</span><span class="p">[</span><span class="s1">&#39;N3&#39;</span><span class="p">]</span>
+                <span class="n">nbb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_label</span><span class="p">[</span><span class="s1">&#39;NBB&#39;</span><span class="p">]</span>
+                <span class="n">recsize</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_label</span><span class="p">[</span><span class="s1">&#39;RECSIZE&#39;</span><span class="p">]</span>
+                <span class="n">array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">n3</span><span class="p">,</span><span class="n">n2</span><span class="p">,</span><span class="n">recsize</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;uint8&#39;</span><span class="p">)</span>
+                <span class="n">array</span><span class="p">[:,:,:</span><span class="n">nbb</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prefix</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;uint8&#39;</span><span class="p">)</span>
+                <span class="n">array</span><span class="p">[:,:,</span><span class="n">nbb</span><span class="p">:]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_array</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;uint8&#39;</span><span class="p">)</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">array</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">labels</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;latin8&#39;</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="VicarImage.binheader_array">
+<a class="viewcode-back" href="../../module.html#vicar.VicarImage.binheader_array">[docs]</a>
+    <span class="k">def</span> <span class="nf">binheader_array</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The numbers embedded in a binary header.</span>
+
+<span class="sd">        This method is capable of reading &quot;ISIS&quot; table files when those tables consist</span>
+<span class="sd">        entirely of a single data format. It uses the FMT_DEFAULT parameter to determine</span>
+<span class="sd">        dtype, and uses the NR and NC values, if present, to determine the number of rows</span>
+<span class="sd">        and columns in the table.</span>
+
+<span class="sd">        Parameters:</span>
+<span class="sd">            kind (str, optional):</span>
+<span class="sd">                Optional single-letter code for the data type: &quot;u&quot; for unsigned int; &quot;i&quot;</span>
+<span class="sd">                for signed int; &quot;f&quot; for float. If not specified, the kind is inferred from</span>
+<span class="sd">                the value of the FMT_DEFAULT parameter.</span>
+
+<span class="sd">            size (int, optional):</span>
+<span class="sd">                Number of bytes per value. If not provided, it is inferred from the</span>
+<span class="sd">                FMT_DEFAULT parameter if present. Otherwise, the default is 1 for kind =</span>
+<span class="sd">                &quot;u&quot;; 2 for kind = &quot;i&quot;; 4 for kind = &quot;f&quot;.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            np.ndarray or None:</span>
+<span class="sd">                The binary header as an array; None if there is no binary header.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_binheader</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_binheader</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_binheader</span>
+
+        <span class="n">label</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_label</span>
+
+        <span class="c1"># Determine kind, size, and dtype</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">kind</span><span class="p">:</span>
+            <span class="n">dpref</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;&gt;&#39;</span> <span class="k">if</span> <span class="n">label</span><span class="p">[</span><span class="s1">&#39;BREALFMT&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;IEEE&#39;</span> <span class="k">else</span> <span class="s1">&#39;&lt;&#39;</span><span class="p">)</span>
+            <span class="n">dtype</span> <span class="o">=</span> <span class="n">dpref</span> <span class="o">+</span> <span class="n">_DTYPE_FROM_FORMAT</span><span class="p">[</span><span class="n">label</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;FMT_DEFAULT&#39;</span><span class="p">,</span> <span class="s1">&#39;REAL&#39;</span><span class="p">)]</span>
+            <span class="n">kind</span> <span class="o">=</span> <span class="n">dtype</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">size</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">dtype</span><span class="p">[</span><span class="mi">2</span><span class="p">:])</span>
+
+        <span class="k">elif</span> <span class="n">kind</span> <span class="ow">in</span> <span class="s1">&#39;ui&#39;</span><span class="p">:</span>
+            <span class="n">size</span> <span class="o">=</span> <span class="n">size</span> <span class="k">if</span> <span class="n">size</span> <span class="k">else</span> <span class="mi">2</span> <span class="k">if</span> <span class="n">kind</span> <span class="o">==</span> <span class="s1">&#39;i&#39;</span> <span class="k">else</span> <span class="mi">1</span>
+            <span class="n">dpref</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;&lt;&#39;</span> <span class="k">if</span> <span class="n">label</span><span class="p">[</span><span class="s1">&#39;BINTFMT&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;LOW&#39;</span> <span class="k">else</span> <span class="s1">&#39;&gt;&#39;</span><span class="p">)</span>
+            <span class="n">dtype</span> <span class="o">=</span> <span class="n">dpref</span> <span class="o">+</span> <span class="n">kind</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">size</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">size</span> <span class="o">=</span> <span class="n">size</span> <span class="k">if</span> <span class="n">size</span> <span class="k">else</span> <span class="mi">4</span>
+            <span class="n">dpref</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;&gt;&#39;</span> <span class="k">if</span> <span class="n">label</span><span class="p">[</span><span class="s1">&#39;BREALFMT&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;IEEE&#39;</span> <span class="k">else</span> <span class="s1">&#39;&lt;&#39;</span><span class="p">)</span>
+            <span class="n">dtype</span> <span class="o">=</span> <span class="n">dpref</span> <span class="o">+</span> <span class="n">kind</span> <span class="o">+</span>  <span class="nb">str</span><span class="p">(</span><span class="n">size</span><span class="p">)</span>
+
+        <span class="c1"># Convert the bytes to an array</span>
+        <span class="n">values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">frombuffer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_binheader</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+
+        <span class="c1"># Check for table dimensions and them if found</span>
+        <span class="k">if</span> <span class="s1">&#39;NR&#39;</span> <span class="ow">in</span> <span class="n">label</span> <span class="ow">and</span> <span class="s1">&#39;NC&#39;</span> <span class="ow">in</span> <span class="n">label</span><span class="p">:</span>
+            <span class="n">nr</span> <span class="o">=</span> <span class="n">label</span><span class="p">[</span><span class="s1">&#39;NR&#39;</span><span class="p">]</span>
+            <span class="n">nc</span> <span class="o">=</span> <span class="n">label</span><span class="p">[</span><span class="s1">&#39;NC&#39;</span><span class="p">]</span>
+            <span class="n">values</span> <span class="o">=</span> <span class="n">values</span><span class="p">[:(</span><span class="n">nr</span><span class="o">*</span><span class="n">nc</span><span class="p">)]</span>
+            <span class="n">values</span> <span class="o">=</span> <span class="n">values</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">nr</span><span class="p">,</span><span class="n">nc</span><span class="p">)</span>
+
+        <span class="c1"># Deal with the possibility of Vax reals</span>
+        <span class="k">if</span> <span class="n">kind</span> <span class="ow">not</span> <span class="ow">in</span> <span class="s1">&#39;ui&#39;</span> <span class="ow">and</span> <span class="n">label</span><span class="p">[</span><span class="s1">&#39;BREALFMT&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;VAX&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">size</span> <span class="o">==</span> <span class="mi">8</span><span class="p">:</span>       <span class="c1"># pragma: no cover</span>
+                <span class="n">values</span> <span class="o">=</span> <span class="n">vax</span><span class="o">.</span><span class="n">from_vax64</span><span class="p">(</span><span class="n">values</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">values</span> <span class="o">=</span> <span class="n">vax</span><span class="o">.</span><span class="n">from_vax32</span><span class="p">(</span><span class="n">values</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">values</span></div>
+
+
+    <span class="c1">######################################################################################</span>
+    <span class="c1"># File I/O</span>
+    <span class="c1">######################################################################################</span>
+
+<div class="viewcode-block" id="VicarImage._read_file">
+<a class="viewcode-back" href="../../module.html#vicar.VicarImage._read_file">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_read_file</span><span class="p">(</span><span class="n">filepath</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">extraneous</span><span class="o">=</span><span class="s1">&#39;ignore&#39;</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The VICAR data array, binary header, and prefix bytes from the specified</span>
+<span class="sd">        data file.</span>
+
+<span class="sd">        Parameters:</span>
+<span class="sd">            filepath (pathlib.Path or str): Path to an existing VICAR data file.</span>
+
+<span class="sd">            extraneous (str, optional):</span>
+<span class="sd">                How to handle the presence of extraneous bytes at the end of the file, one</span>
+<span class="sd">                of:</span>
+
+<span class="sd">                * &quot;error&quot;   to raise VicarError;</span>
+<span class="sd">                * &quot;warn&quot;    to raise a UserWarning;</span>
+<span class="sd">                * &quot;print&quot;   to print a message;</span>
+<span class="sd">                * &quot;ignore&quot;  to ignore;</span>
+<span class="sd">                * &quot;include&quot; to include the extraneous bytes as part of the return.</span>
+
+<span class="sd">            strict (bool, optional): True (the default) to require strict conformance to</span>
+<span class="sd">                the VICAR standard; False for a looser version of the standard.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            (VicarLabel, np.ndarray, np.ndarray or None, bytes[, bytes]):</span>
+<span class="sd">            A tuple containing:</span>
+
+<span class="sd">            * VicarLabel: The label.</span>
+<span class="sd">            * np.ndarray: The data as a 3D array converted to native format.</span>
+<span class="sd">            * np.ndarray or None: The prefix array as a 3D array of unsigned bytes if</span>
+<span class="sd">              present; otherwise, None.</span>
+<span class="sd">            * bytes: The binary header if present; otherwise, None.</span>
+<span class="sd">            * bytes, optional: Any extraneous bytes at the end of the file, included if</span>
+<span class="sd">              `extraneous` equals &quot;include&quot;.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            OSError: If the referenced file could not be read.</span>
+
+<span class="sd">            ValueError: If `extraneous` does not have a valid value.</span>
+
+<span class="sd">            VicarError: If the referenced file does not conform to the VICAR standard.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">extraneous</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;ignore&#39;</span><span class="p">,</span> <span class="s1">&#39;print&#39;</span><span class="p">,</span> <span class="s1">&#39;warn&#39;</span><span class="p">,</span> <span class="s1">&#39;error&#39;</span><span class="p">,</span> <span class="s1">&#39;include&#39;</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;invalid input value for extraneous: &#39;</span> <span class="o">+</span> <span class="nb">repr</span><span class="p">(</span><span class="n">extraneous</span><span class="p">))</span>
+
+        <span class="n">filepath</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">filepath</span><span class="p">)</span>
+        <span class="k">with</span> <span class="n">filepath</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+
+            <span class="c1"># Get the label</span>
+            <span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="n">extra</span><span class="p">)</span> <span class="o">=</span> <span class="n">VicarLabel</span><span class="o">.</span><span class="n">read_label</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">_extra</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+            <span class="c1"># Handle extraneous bytes</span>
+            <span class="k">if</span> <span class="n">extra</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="n">c</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">extra</span><span class="p">):</span>
+                    <span class="n">message</span> <span class="o">=</span> <span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">filepath</span><span class="si">}</span><span class="s1"> has </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">extra</span><span class="p">)</span><span class="si">}</span><span class="s1"> zero-valued trailing bytes&#39;</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>       <span class="c1"># pragma: no cover</span>
+                    <span class="n">message</span> <span class="o">=</span> <span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">filepath</span><span class="si">}</span><span class="s1"> has </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">extra</span><span class="p">)</span><span class="si">}</span><span class="s1"> trailing bytes&#39;</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">extraneous</span> <span class="o">==</span> <span class="s1">&#39;print&#39;</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">extraneous</span> <span class="o">==</span> <span class="s1">&#39;warn&#39;</span><span class="p">:</span>
+                    <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">extraneous</span> <span class="o">==</span> <span class="s1">&#39;error&#39;</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">VicarError</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+
+            <span class="c1"># Extract key label parameters</span>
+            <span class="n">ldict</span> <span class="o">=</span> <span class="n">VicarLabel</span><span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="n">strict</span><span class="p">)</span>
+            <span class="n">lblsize</span> <span class="o">=</span> <span class="n">ldict</span><span class="p">[</span><span class="s1">&#39;LBLSIZE&#39;</span><span class="p">]</span>              <span class="c1"># bytes in header</span>
+            <span class="n">recsize</span> <span class="o">=</span> <span class="n">ldict</span><span class="p">[</span><span class="s1">&#39;RECSIZE&#39;</span><span class="p">]</span>              <span class="c1"># bytes per record</span>
+            <span class="n">nlb</span>     <span class="o">=</span> <span class="n">ldict</span><span class="p">[</span><span class="s1">&#39;NLB&#39;</span><span class="p">]</span>                  <span class="c1"># records of binary header</span>
+            <span class="n">nbb</span>     <span class="o">=</span> <span class="n">ldict</span><span class="p">[</span><span class="s1">&#39;NBB&#39;</span><span class="p">]</span>                  <span class="c1"># number of binary prefix bytes</span>
+            <span class="n">intfmt</span>  <span class="o">=</span> <span class="n">ldict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;INTFMT&#39;</span><span class="p">,</span> <span class="s1">&#39;LOW&#39;</span><span class="p">)</span>    <span class="c1"># LOW or HIGH</span>
+            <span class="n">realfmt</span> <span class="o">=</span> <span class="n">ldict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;REALFMT&#39;</span><span class="p">,</span> <span class="s1">&#39;VAX&#39;</span><span class="p">)</span>   <span class="c1"># IEEE, RIEEE, or VAX</span>
+            <span class="n">format_</span> <span class="o">=</span> <span class="n">ldict</span><span class="p">[</span><span class="s1">&#39;FORMAT&#39;</span><span class="p">]</span>               <span class="c1"># BYTE, HALF, FULL, REAL, etc.</span>
+
+            <span class="c1"># Read the binary header</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">lblsize</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">nlb</span><span class="p">:</span>
+                <span class="n">binheader</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">nlb</span> <span class="o">*</span> <span class="n">recsize</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">binheader</span> <span class="o">=</span> <span class="kc">None</span>
+
+            <span class="c1"># Read the data and prefix bytes</span>
+            <span class="n">ldict</span><span class="o">.</span><span class="n">_n123_from_nbls</span><span class="p">()</span>     <span class="c1"># Sometimes N1, N2, N3 are wrong</span>
+            <span class="n">n2</span> <span class="o">=</span> <span class="n">ldict</span><span class="p">[</span><span class="s1">&#39;N2&#39;</span><span class="p">]</span>
+            <span class="n">n3</span> <span class="o">=</span> <span class="n">ldict</span><span class="p">[</span><span class="s1">&#39;N3&#39;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">n2</span> <span class="ow">and</span> <span class="n">n3</span><span class="p">:</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">frombuffer</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">n3</span> <span class="o">*</span> <span class="n">n2</span> <span class="o">*</span> <span class="n">recsize</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;uint8&#39;</span><span class="p">)</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">n3</span><span class="p">,</span> <span class="n">n2</span><span class="p">,</span> <span class="n">recsize</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># Separate the prefix bytes from the data</span>
+        <span class="k">if</span> <span class="n">nbb</span> <span class="ow">and</span> <span class="n">data</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">array</span> <span class="o">=</span> <span class="n">data</span><span class="p">[:,:,</span><span class="n">nbb</span><span class="p">:]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="n">prefix</span> <span class="o">=</span> <span class="n">data</span><span class="p">[:,:,:</span><span class="n">nbb</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">array</span> <span class="o">=</span> <span class="n">data</span>
+            <span class="n">prefix</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># Convert the array to native format</span>
+        <span class="k">if</span> <span class="n">array</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">dtype</span> <span class="o">=</span> <span class="n">_DTYPE_FROM_FORMAT</span><span class="p">[</span><span class="n">format_</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">dtype</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">in</span> <span class="s1">&#39;ui&#39;</span><span class="p">:</span>
+                <span class="n">dtype</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;&gt;&#39;</span> <span class="k">if</span> <span class="n">intfmt</span> <span class="o">==</span> <span class="s1">&#39;HIGH&#39;</span> <span class="k">else</span> <span class="s1">&#39;&lt;&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="n">dtype</span>
+            <span class="k">else</span><span class="p">:</span>       <span class="c1"># &quot;fc&quot;</span>
+                <span class="k">if</span> <span class="n">realfmt</span> <span class="o">==</span> <span class="s1">&#39;VAX&#39;</span><span class="p">:</span>        <span class="c1"># pragma: no cover</span>
+                    <span class="k">if</span> <span class="n">dtype</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;8&#39;</span><span class="p">:</span>
+                        <span class="n">array</span> <span class="o">=</span> <span class="n">vax</span><span class="o">.</span><span class="n">from_vax64</span><span class="p">(</span><span class="n">array</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">array</span> <span class="o">=</span> <span class="n">vax</span><span class="o">.</span><span class="n">from_vax32</span><span class="p">(</span><span class="n">array</span><span class="p">)</span>
+                    <span class="n">dtype</span> <span class="o">=</span> <span class="s1">&#39;&lt;&#39;</span> <span class="o">+</span> <span class="n">dtype</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">dtype</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;&gt;&#39;</span> <span class="k">if</span> <span class="n">realfmt</span> <span class="o">==</span> <span class="s1">&#39;IEEE&#39;</span> <span class="k">else</span> <span class="s1">&#39;&lt;&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="n">dtype</span>
+
+            <span class="n">array</span> <span class="o">=</span> <span class="n">array</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>                     <span class="c1"># define actual format</span>
+            <span class="n">array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;=&#39;</span> <span class="o">+</span> <span class="n">dtype</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>    <span class="c1"># convert to native format</span>
+
+        <span class="k">if</span> <span class="n">extraneous</span> <span class="o">==</span> <span class="s1">&#39;include&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">ldict</span><span class="p">,</span> <span class="n">array</span><span class="p">,</span> <span class="n">prefix</span><span class="p">,</span> <span class="n">binheader</span><span class="p">,</span> <span class="n">extra</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="p">(</span><span class="n">ldict</span><span class="p">,</span> <span class="n">array</span><span class="p">,</span> <span class="n">prefix</span><span class="p">,</span> <span class="n">binheader</span><span class="p">)</span></div>
+
+
+    <span class="c1">######################################################################################</span>
+    <span class="c1"># Public methods inherited from the VicarLabel object</span>
+    <span class="c1">######################################################################################</span>
+
+<div class="viewcode-block" id="VicarImage.__len__">
+<a class="viewcode-back" href="../../module.html#vicar.VicarImage.__len__">[docs]</a>
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The number of keywords in the label of this VicarImage.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            int: Number of parameters in the VICAR label</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_label</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="VicarImage.__getitem__">
+<a class="viewcode-back" href="../../module.html#vicar.VicarImage.__getitem__">[docs]</a>
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Retrieve the value or values of the VICAR parameter defined by key, using</span>
+<span class="sd">        various indexing options.</span>
+
+<span class="sd">        Parameters:</span>
+<span class="sd">            key (int, name, or tuple): The indexing key, interpreted as follows:</span>
+
+<span class="sd">                * *int* = `n`: The &quot;nth&quot; parameter in the label. `n` can be positive or</span>
+<span class="sd">                  negative.</span>
+<span class="sd">                * *str* = `name`: The first occurrence in the label of a parameter with</span>
+<span class="sd">                  this name.</span>
+<span class="sd">                * (*str*, *int*) = (`name`, `n`): The &quot;nth&quot; occurrence in the label of a</span>
+<span class="sd">                  parameter with this name. `n` can be positive or negative.</span>
+<span class="sd">                * (*str*, *str*) = (`name`, `after`): The first occurrence of parameter</span>
+<span class="sd">                  `name` after the first occurrence of parameter `after` and before the</span>
+<span class="sd">                  second occurrence of `after`.</span>
+<span class="sd">                * (*str*, *str*, *any*) = (`name`, `after`, `value`): The first occurrence</span>
+<span class="sd">                  of parameter `name` after the first location where `after` equals</span>
+<span class="sd">                  `value` and before the next occurrence of `after`.</span>
+
+<span class="sd">                The last two options make it easy to reference a VICAR label parameter</span>
+<span class="sd">                that is repeated. For example, if image is a VicarImage, then</span>
+<span class="sd">                image[&quot;DAT_TIM&quot;, &quot;TASK&quot;, &quot;COPY&quot;] uniquely identifies the occurrence of</span>
+<span class="sd">                &quot;DAT_TIM&quot; applicable to &quot;TASK=&#39;COPY&#39;&quot; when there might be other &quot;TASK&quot;</span>
+<span class="sd">                sections of the image label containing other values of &quot;DAT_TIM&quot;.</span>
+
+<span class="sd">                Append a &quot;+&quot; to the name to return a list of all values where the</span>
+<span class="sd">                constraints are satisfied, starting with the first or &quot;nth&quot;.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            int, float, string, or list:</span>
+<span class="sd">                The value of the indexed parameter if there is no name ending in &quot;+&quot;;</span>
+<span class="sd">                otherwise, a list of all the parameter values starting with the &quot;nth&quot;.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            IndexError: If any numeric component of the key is out of range.</span>
+
+<span class="sd">            KeyError: If the parameter name is not present in the label (or the section of</span>
+<span class="sd">                the label defined by `after_name` and `after_value`), or if the key format</span>
+<span class="sd">                is unrecognized.</span>
+
+<span class="sd">            TypeError: If the key is not a recognized type or contains a component that is</span>
+<span class="sd">                not of a recognized type.</span>
+
+<span class="sd">            ValueError: If no identified parameter equals `value` or if no occurrence of</span>
+<span class="sd">                `after_name` equals `after_value`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_label</span><span class="o">.</span><span class="fm">__getitem__</span><span class="p">(</span><span class="n">key</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="VicarImage.get">
+<a class="viewcode-back" href="../../module.html#vicar.VicarImage.get">[docs]</a>
+    <span class="k">def</span> <span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">default</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Retrieve the value of the VICAR parameter defined by the given key, using</span>
+<span class="sd">        various indexing options.</span>
+
+<span class="sd">        If the key is not found, return a specified default value.</span>
+
+<span class="sd">        Parameters:</span>
+<span class="sd">            key (int, str, or tuple): The indexing key, interpreted as follows:</span>
+
+<span class="sd">                * *int* = `n`: The &quot;nth&quot; parameter in the label. `n` can be positive or</span>
+<span class="sd">                  negative.</span>
+<span class="sd">                * *str* = `name`: The first occurrence in the label of a parameter with</span>
+<span class="sd">                  this name.</span>
+<span class="sd">                * (*str*, *int*) = (`name`, `n`): The &quot;nth&quot; occurrence in the label of a</span>
+<span class="sd">                  parameter with this name. `n` can be positive or negative.</span>
+<span class="sd">                * (*str*, *str*) = (`name`, `after`): The first occurrence of parameter</span>
+<span class="sd">                  `name` after the first occurrence of parameter `after` and before the</span>
+<span class="sd">                  second occurrence of `after`.</span>
+<span class="sd">                * (*str*, *str*, *any*) = (`name`, `after`, `value`): The first occurrence</span>
+<span class="sd">                  of parameter `name` after the first location where `after` equals</span>
+<span class="sd">                  `value` and before the next occurrence of `after`.</span>
+
+<span class="sd">                The last two options make it easy to reference a VICAR label parameter</span>
+<span class="sd">                that is repeated. For example, if image is a VicarImage, then</span>
+<span class="sd">                image[&quot;DAT_TIM&quot;, &quot;TASK&quot;, &quot;COPY&quot;] uniquely identifies the occurrence of</span>
+<span class="sd">                &quot;DAT_TIM&quot; applicable to &quot;TASK=&#39;COPY&#39;&quot; when there might be other &quot;TASK&quot;</span>
+<span class="sd">                sections of the image label containing other values of &quot;DAT_TIM&quot;.</span>
+
+<span class="sd">                Append a &quot;+&quot; to the name to return a list of all values where the</span>
+<span class="sd">                constraints are satisfied, starting with the first or &quot;nth&quot;.</span>
+
+<span class="sd">            default (int, float, str, or list): The value to return if the key is not</span>
+<span class="sd">                found.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            int, float, str, or list:</span>
+<span class="sd">                If a name is provided that ends in a plus, the returned value will be the</span>
+<span class="sd">                list of all values of the selected key, or else `[default]` if the list</span>
+<span class="sd">                would be empty or the key would raise an error.</span>
+
+<span class="sd">                Otherwise, the returned value is that of the key if present, or `default`</span>
+<span class="sd">                if it is not.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            IndexError: If any numeric component of the key is out of range.</span>
+
+<span class="sd">            KeyError: If the parameter name is not present in the label (or the section of</span>
+<span class="sd">                the label defined by `after_name` and `after_value`), or if the key format</span>
+<span class="sd">                is unrecognized.</span>
+
+<span class="sd">            TypeError: If the key is not a recognized type or contains a component that is</span>
+<span class="sd">                not of a recognized type.</span>
+
+<span class="sd">            ValueError: If no identified parameter equals `value` or if no occurrence of</span>
+<span class="sd">                `after_name` equals `after_value`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_label</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">default</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="VicarImage.__setitem__">
+<a class="viewcode-back" href="../../module.html#vicar.VicarImage.__setitem__">[docs]</a>
+    <span class="k">def</span> <span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set the value of the VICAR parameter defined by the given key; define a new</span>
+<span class="sd">        parameter name and value if necessary.</span>
+
+<span class="sd">        Parameters:</span>
+<span class="sd">            key (int, str, or tuple): The indexing key, interpreted as follows:</span>
+
+<span class="sd">                * *int* = `n`: The &quot;nth&quot; parameter in the label. `n` can be positive or</span>
+<span class="sd">                  negative.</span>
+<span class="sd">                * *str* = `name`: The first occurrence in the label of a parameter with</span>
+<span class="sd">                  this name.</span>
+<span class="sd">                * (*str*, *int*) = (`name`, `n`): The &quot;nth&quot; occurrence in the label of a</span>
+<span class="sd">                  parameter with this name. `n` can be positive or negative.</span>
+<span class="sd">                * (*str*, *str*) = (`name`, `after`): The first occurrence of parameter</span>
+<span class="sd">                  `name` after the first occurrence of parameter `after` and before the</span>
+<span class="sd">                  second occurrence of `after`.</span>
+<span class="sd">                * (*str*, *str*, *any*) = (`name`, `after`, `value`): The first occurrence</span>
+<span class="sd">                  of parameter `name` after the first location where `after` equals</span>
+<span class="sd">                  `value` and before the next occurrence of `after`.</span>
+
+<span class="sd">                The last two options make it easy to reference a VICAR label parameter</span>
+<span class="sd">                that is repeated. For example, if image is a VicarImage, then</span>
+<span class="sd">                image[&quot;DAT_TIM&quot;, &quot;TASK&quot;, &quot;COPY&quot;] uniquely identifies the occurrence of</span>
+<span class="sd">                &quot;DAT_TIM&quot; applicable to &quot;TASK=&#39;COPY&#39;&quot; when there might be other &quot;TASK&quot;</span>
+<span class="sd">                sections of the image label containing other values of &quot;DAT_TIM&quot;.</span>
+
+<span class="sd">                Append a &quot;+&quot; to the name to force a new occurrence of the key to be</span>
+<span class="sd">                inserted, even if the key already exists.</span>
+
+<span class="sd">            value (int, float, string, list, or tuple): Value to assign to the indexed</span>
+<span class="sd">                entry in the label.</span>
+
+<span class="sd">                Optional formatting can be included if a user wants additional control</span>
+<span class="sd">                over how this value will be formatted in the label string will be</span>
+<span class="sd">                formatted, by replacing the value with a tuple (value, hints...). See</span>
+<span class="sd">                ``Notes`` for details about formatting hints.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            IndexError: If any numeric component of the key is out of range.</span>
+
+<span class="sd">            KeyError: If the parameter name is not present in the label (or the section of</span>
+<span class="sd">                the label defined by `after_name` and `after_value`), or if the key format</span>
+<span class="sd">                is unrecognized.</span>
+
+<span class="sd">            TypeError: If the key is not a recognized type or contains a component that is</span>
+<span class="sd">                not of a recognized type.</span>
+
+<span class="sd">            ValueError: If no identified parameter equals `value` or if no occurrence of</span>
+<span class="sd">                `after_name` equals `after_value`.</span>
+
+<span class="sd">        Notes:</span>
+<span class="sd">            Formatting hints can be included wherever a VICAR parameter value is</span>
+<span class="sd">            specified; simply replace the value by a tuple (value, hints...).</span>
+
+<span class="sd">            Hints can be specified using up to four items:</span>
+
+<span class="sd">                ([`format`][[[, `name_blanks`], `val_blanks`], `sep_blanks`])</span>
+
+<span class="sd">            where:</span>
+
+<span class="sd">                * `format` is a format string, e.g., &quot;%+7d&quot; or &quot;%7.3f&quot;.</span>
+<span class="sd">                * `name_blanks` is the number of blank characters after the name and</span>
+<span class="sd">                  before the equal sign; zero by default.</span>
+<span class="sd">                * `val_blanks` is the number of blank characters after the equal sign and</span>
+<span class="sd">                  before the value; zero by default.</span>
+<span class="sd">                * `sep_blanks` is the number of blanks after the value and before the next</span>
+<span class="sd">                  label parameter or the label&#39;s end; two by default.</span>
+
+<span class="sd">            Note the use of square brackets in the tuple expression above. If the first</span>
+<span class="sd">            hint value is a string, it is interpreted as `format`; otherwise, the `format`</span>
+<span class="sd">            is unspecified. After the optional format, values are interpreted as numbers</span>
+<span class="sd">            of blanks. If only one int is provided, it defines `sep_blanks`, with</span>
+<span class="sd">            `val_blanks` and `name_blanks` set to zero. If two trailing ints are provided,</span>
+<span class="sd">            they define `val_blanks` and `sep_blanks`, with `name_blanks` set to zero.</span>
+
+<span class="sd">            For example, if the name is &quot;TEXP&quot; and the value is 1.5, this is how hint</span>
+<span class="sd">            values are interpreted::</span>
+
+<span class="sd">                &lt;no hints&gt;        = (&quot;&quot;, 0, 0, 0)     -&gt; &quot;TEXP=1.5  &quot;</span>
+<span class="sd">                &quot;%.3f&quot;            = (&quot;%.3f&quot;, 0, 0, 0) -&gt; &quot;TEXP=1.500  &quot;</span>
+<span class="sd">                (&quot;%.3f&quot;, 4)       = (&quot;%.3f&quot;, 0, 0, 4) -&gt; &quot;TEXP=1.500    &quot;</span>
+<span class="sd">                (&quot;%.3f&quot;, 1, 4)    = (&quot;%.3f&quot;, 0, 1, 4) -&gt; &quot;TEXP= 1.500    &quot;</span>
+<span class="sd">                (&quot;%.3f&quot;, 2, 1, 4) = (&quot;%.3f&quot;, 2, 1, 4) -&gt; &quot;TEXP  = 1.500    &quot;</span>
+<span class="sd">                4                 = (&quot;&quot;, 0, 0, 4)     -&gt; &quot;TEXP=1.5    &quot;</span>
+<span class="sd">                (1, 4)            = (&quot;&quot;, 0, 1, 4)     -&gt; &quot;TEXP= 1.5    &quot;</span>
+<span class="sd">                (2, 1, 4)         = (&quot;&quot;, 2, 1, 4)     -&gt; &quot;TEXP  = 1.5    &quot;</span>
+
+<span class="sd">            When the parameter value is a list, it is also possible to embed formatting</span>
+<span class="sd">            information on an item by item basis. Replace any item value by a tuple:</span>
+
+<span class="sd">                (`item`[, `format`][[, `blanks_before`], `blanks_after`])</span>
+
+<span class="sd">            where:</span>
+
+<span class="sd">                * `format` is a format string, e.g., &quot;%+07d&quot;, &quot;%12.3e&quot; or &quot;%.4f&quot;.</span>
+<span class="sd">                * `blanks_before` is the number of blanks before the value, after the left</span>
+<span class="sd">                  parenthesis or comma; zero is the default.</span>
+<span class="sd">                * `blanks_after` is the number of blanks after the value and before the</span>
+<span class="sd">                  next comma or the right parenthesis; zero is the default.</span>
+
+<span class="sd">            Here are some examples of a list with embedded formatting for a parameter</span>
+<span class="sd">            named &quot;XY&quot; with a value [7,6]::</span>
+
+<span class="sd">                [(7, &quot;%+02d&quot;), 6]       = [(7, &quot;%+02d&quot;, 0, 0), 6] -&gt; &quot;XY=[+07, 6]  &quot;</span>
+<span class="sd">                [(7, 2), 6]             = [(7, &quot;&quot;, 0, 2), 6]      -&gt; &quot;XY=[7  , 6]  &quot;</span>
+<span class="sd">                [(7, 1, 2), 6])         = [(7, &quot;&quot;, 1, 2), 6]      -&gt; &quot;XY=[ 7  , 6]  &quot;</span>
+<span class="sd">                [(7, &quot;%02d&quot;, 2), 6])    = [(7, &quot;%02d&quot;, 0, 2), 6]  -&gt; &quot;XY=[07  , 6]  &quot;</span>
+<span class="sd">                [(7, &quot;%02d&quot;, 1, 2), 6]) = [(7, &quot;%02d&quot;, 1, 2), 6]  -&gt; &quot;XY=[ 07  , 6]  &quot;</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_label</span><span class="o">.</span><span class="fm">__setitem__</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="VicarImage.__delitem__">
+<a class="viewcode-back" href="../../module.html#vicar.VicarImage.__delitem__">[docs]</a>
+    <span class="k">def</span> <span class="fm">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Delete the value of the VICAR parameter identified by the given key.</span>
+
+<span class="sd">        Parameters:</span>
+<span class="sd">            key (int, str, or tuple): The indexing key, interpreted as follows:</span>
+
+<span class="sd">                * *int* = `n`: The &quot;nth&quot; parameter in the label. `n` can be positive or</span>
+<span class="sd">                  negative.</span>
+<span class="sd">                * *str* = `name`: The first occurrence in the label of a parameter with</span>
+<span class="sd">                  this name.</span>
+<span class="sd">                * (*str*, *int*) = (`name`, `n`): The &quot;nth&quot; occurrence in the label of a</span>
+<span class="sd">                  parameter with this name. `n` can be positive or negative.</span>
+<span class="sd">                * (*str*, *str*) = (`name`, `after`): The first occurrence of parameter</span>
+<span class="sd">                  `name` after the first occurrence of parameter `after` and before the</span>
+<span class="sd">                  second occurrence of `after`.</span>
+<span class="sd">                * (*str*, *str*, *any*) = (`name`, `after`, `value`): The first occurrence</span>
+<span class="sd">                  of parameter `name` after the first location where `after` equals</span>
+<span class="sd">                  `value` and before the next occurrence of `after`.</span>
+
+<span class="sd">                The last two options make it easy to reference a VICAR label parameter</span>
+<span class="sd">                that is repeated. For example, if image is a VicarImage, then</span>
+<span class="sd">                image[&quot;DAT_TIM&quot;, &quot;TASK&quot;, &quot;COPY&quot;] uniquely identifies the occurrence of</span>
+<span class="sd">                &quot;DAT_TIM&quot; applicable to &quot;TASK=&#39;COPY&#39;&quot; when there might be other &quot;TASK&quot;</span>
+<span class="sd">                sections of the image label containing other values of &quot;DAT_TIM&quot;.</span>
+
+<span class="sd">                Append a &quot;+&quot; to `name` to delete all of the label parameters whose names</span>
+<span class="sd">                match the constraints, starting with the first or &quot;nth&quot;.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            IndexError: If any numeric component of the key is out of range.</span>
+
+<span class="sd">            KeyError: If the parameter name is not present in the label (or the section</span>
+<span class="sd">                of the label defined by `after_name` and `after_value`), or if the key</span>
+<span class="sd">                format is unrecognized.</span>
+
+<span class="sd">            TypeError: If the key is not a recognized type or contains a component that is</span>
+<span class="sd">                not of a recognized type.</span>
+
+<span class="sd">            ValueError: If no identified parameter equals `value` or if no occurrence of</span>
+<span class="sd">                `after_name` equals `after_value`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_label</span><span class="o">.</span><span class="fm">__delitem__</span><span class="p">(</span><span class="n">key</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="VicarImage.__contains__">
+<a class="viewcode-back" href="../../module.html#vicar.VicarImage.__contains__">[docs]</a>
+    <span class="k">def</span> <span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;True if the given key can is found in the label of this VicarImage.</span>
+
+<span class="sd">        Parameters:</span>
+<span class="sd">            key (int, str, or tuple): The key identifying the label parameter to check.</span>
+
+<span class="sd">                * *int* = `n`: The &quot;nth&quot; parameter in the label. `n` can be positive or</span>
+<span class="sd">                  negative.</span>
+<span class="sd">                * *str* = `name`: The first occurrence in the label of a parameter with</span>
+<span class="sd">                  this name.</span>
+<span class="sd">                * (*str*, *int*) = (`name`, `n`): The &quot;nth&quot; occurrence in the label of a</span>
+<span class="sd">                  parameter with this name. `n` can be positive or negative.</span>
+<span class="sd">                * (*str*, *str*) = (`name`, `after`): The first occurrence of parameter</span>
+<span class="sd">                  `name` after the first occurrence of parameter `after` and before the</span>
+<span class="sd">                  second occurrence of `after`.</span>
+<span class="sd">                * (*str*, *str*, *any*) = (`name`, `after`, `value`): The first occurrence</span>
+<span class="sd">                  of parameter `name` after the first location where `after` equals</span>
+<span class="sd">                  `value` and before the next occurrence of `after`.</span>
+
+<span class="sd">                The last two options make it easy to reference a VICAR label parameter</span>
+<span class="sd">                that is repeated. For example, if image is a VicarImage, then</span>
+<span class="sd">                image[&quot;DAT_TIM&quot;, &quot;TASK&quot;, &quot;COPY&quot;] uniquely identifies the occurrence of</span>
+<span class="sd">                &quot;DAT_TIM&quot; applicable to &quot;TASK=&#39;COPY&#39;&quot; when there might be other &quot;TASK&quot;</span>
+<span class="sd">                sections of the image label containing other values of &quot;DAT_TIM&quot;.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            bool: True if the key is found within the label.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_label</span><span class="o">.</span><span class="fm">__contains__</span><span class="p">(</span><span class="n">key</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="VicarImage.arg">
+<a class="viewcode-back" href="../../module.html#vicar.VicarImage.arg">[docs]</a>
+    <span class="k">def</span> <span class="nf">arg</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The index or indices of the keyed item in the label of this VicarImage.</span>
+
+<span class="sd">        Parameters:</span>
+<span class="sd">            key (int, name, or tuple): The indexing key, interpreted as follows:</span>
+
+<span class="sd">                * *int* = `n`: The &quot;nth&quot; parameter in the label. `n` can be positive or</span>
+<span class="sd">                  negative.</span>
+<span class="sd">                * *str* = `name`: The first occurrence in the label of a parameter with</span>
+<span class="sd">                  this name.</span>
+<span class="sd">                * (*str*, *int*) = (`name`, `n`): The &quot;nth&quot; occurrence in the label of a</span>
+<span class="sd">                  parameter with this name. `n` can be positive or negative.</span>
+<span class="sd">                * (*str*, *str*) = (`name`, `after`): The first occurrence of parameter</span>
+<span class="sd">                  `name` after the first occurrence of parameter `after` and before the</span>
+<span class="sd">                  second occurrence of `after`.</span>
+<span class="sd">                * (*str*, *str*, *any*) = (`name`, `after`, `value`): The first occurrence</span>
+<span class="sd">                  of parameter `name` after the first location where `after` equals</span>
+<span class="sd">                  `value` and before the next occurrence of `after`.</span>
+
+<span class="sd">                The last two options make it easy to reference parameter in a label that</span>
+<span class="sd">                is re-used, such as to find the value of &quot;DAT_TIM&quot; applicable to</span>
+<span class="sd">                &quot;TASK=&#39;COPY&#39;&quot; when there might be other &quot;TASK&quot; sections of the label</span>
+<span class="sd">                containing other values of &quot;DAT_TIM&quot;.</span>
+
+<span class="sd">                Append a &quot;+&quot; to the name to return a list of all indices where the</span>
+<span class="sd">                constraints are satisfied, starting with the first or &quot;nth&quot;.</span>
+
+<span class="sd">            value (int, float, or string, optional):</span>
+<span class="sd">                If provided, the identified parameter must equal this value. For an</span>
+<span class="sd">                integer key, if the indexed parameter does not have this value, ValueError</span>
+<span class="sd">                is raised. For any key involving a name, values of the named parameter</span>
+<span class="sd">                that do not match `value` are skipped over until the one(s) with the</span>
+<span class="sd">                correct value are found.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            int or list[int]:</span>
+<span class="sd">                If &quot;+&quot; is appended to `name`, the list of all positive indices that</span>
+<span class="sd">                identify matching parameters, starting with the &quot;nth&quot;. Otherwise, the</span>
+<span class="sd">                single positive index into the label identifying the parameter.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            IndexError: If any numeric component of the key is out of range.</span>
+
+<span class="sd">            KeyError: If the parameter name is not present in the label (or the section of</span>
+<span class="sd">                the label defined by `after_name` and `after_value`), or if the key format</span>
+<span class="sd">                is unrecognized.</span>
+
+<span class="sd">            TypeError: If the key is not a recognized type or contains a component that is</span>
+<span class="sd">                not of a recognized type.</span>
+
+<span class="sd">            ValueError: If no identified parameter equals `value` or if no occurrence of</span>
+<span class="sd">                `after_name` equals `after_value`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_label</span><span class="o">.</span><span class="n">arg</span><span class="p">(</span><span class="n">key</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="VicarImage.__iter__">
+<a class="viewcode-back" href="../../module.html#vicar.VicarImage.__iter__">[docs]</a>
+    <span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Iterator over the unique names or (name, occurrence) pairs in the label of</span>
+<span class="sd">        this VicarImage.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            iterator:</span>
+<span class="sd">                The parameter keys within this label, in order. The key is the parameter</span>
+<span class="sd">                name if it is unique or (name, occurrence number) otherwise.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_label</span><span class="o">.</span><span class="fm">__iter__</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="VicarImage.names">
+<a class="viewcode-back" href="../../module.html#vicar.VicarImage.names">[docs]</a>
+    <span class="k">def</span> <span class="nf">names</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pattern</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Iterator for the VICAR parameter name strings in the label of this VicarImage.</span>
+
+<span class="sd">        Parameters:</span>
+<span class="sd">            pattern (str or re.Pattern, optional):</span>
+<span class="sd">                Regular expression that can be used to filter the label parameter names.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            list: The matching parameter names within this label, in order.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_label</span><span class="o">.</span><span class="n">names</span><span class="p">(</span><span class="n">pattern</span><span class="o">=</span><span class="n">pattern</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="VicarImage.keys">
+<a class="viewcode-back" href="../../module.html#vicar.VicarImage.keys">[docs]</a>
+    <span class="k">def</span> <span class="nf">keys</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pattern</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Iterator over the keys in the label of this VicarImage. The key is the</span>
+<span class="sd">        parameter name if it is unique or (name, occurrence number) otherwise.</span>
+
+<span class="sd">        Parameters:</span>
+<span class="sd">            pattern (str or re.Pattern, optional):</span>
+<span class="sd">                Regular expression that can be used to filter the label parameter names.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            list:</span>
+<span class="sd">                The parameter keys within this label, in order. Each key is the parameter</span>
+<span class="sd">                name if it is unique or (name, occurrence number) otherwise.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_label</span><span class="o">.</span><span class="n">keys</span><span class="p">(</span><span class="n">pattern</span><span class="o">=</span><span class="n">pattern</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="VicarImage.values">
+<a class="viewcode-back" href="../../module.html#vicar.VicarImage.values">[docs]</a>
+    <span class="k">def</span> <span class="nf">values</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pattern</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Iterator over the values in the label of this VicarImage.</span>
+
+<span class="sd">        Parameters:</span>
+<span class="sd">            pattern (str or re.Pattern, optional):</span>
+<span class="sd">                Regular expression that can be used to filter the label parameter names.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            iterator: The values of the matching parameters within this label, in order.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_label</span><span class="o">.</span><span class="n">values</span><span class="p">(</span><span class="n">pattern</span><span class="o">=</span><span class="n">pattern</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="VicarImage.items">
+<a class="viewcode-back" href="../../module.html#vicar.VicarImage.items">[docs]</a>
+    <span class="k">def</span> <span class="nf">items</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pattern</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">unique</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Iterator over the (key, value) pairs in the label of this VicarImage.</span>
+
+<span class="sd">        Parameters:</span>
+<span class="sd">            pattern (str or re.Pattern, optional):</span>
+<span class="sd">                Regular expression that can be used to filter the label parameter names.</span>
+
+<span class="sd">            unique (bool, optional):</span>
+<span class="sd">                True to return unique keys, in which non-unique names are replaced by</span>
+<span class="sd">                tuples (name, occurrence). If False, all keys are name strings, and a name</span>
+<span class="sd">                may appear multiple times.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            iterator:</span>
+<span class="sd">                Tuples (name, value) of the matching parameter names within this label, in</span>
+<span class="sd">                order.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_label</span><span class="o">.</span><span class="n">items</span><span class="p">(</span><span class="n">pattern</span><span class="o">=</span><span class="n">pattern</span><span class="p">,</span> <span class="n">unique</span><span class="o">=</span><span class="n">unique</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="VicarImage.args">
+<a class="viewcode-back" href="../../module.html#vicar.VicarImage.args">[docs]</a>
+    <span class="k">def</span> <span class="nf">args</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pattern</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Iterator over the numerical indices of the keywords in the label of this</span>
+<span class="sd">        VicarImage.</span>
+
+<span class="sd">        Parameters:</span>
+<span class="sd">            pattern (str or re.Pattern, optional):</span>
+<span class="sd">                Regular expression that can be used to filter the label parameter names.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            iterator:</span>
+<span class="sd">                The indices of the matching parameter names within this label, in order.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_label</span><span class="o">.</span><span class="n">args</span><span class="p">(</span><span class="n">pattern</span><span class="o">=</span><span class="n">pattern</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="VicarImage.as_dict">
+<a class="viewcode-back" href="../../module.html#vicar.VicarImage.as_dict">[docs]</a>
+    <span class="k">def</span> <span class="nf">as_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The VicarLabel object.</span>
+
+<span class="sd">        DEPRECATED, provided primarily for backward compatibility. Use the `label`</span>
+<span class="sd">        property instead, because it behaves as a dictionary.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            VicarLabel: The VicarLabel object associated with this VicarImage.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_label</span></div>
+
+
+    <span class="c1">######################################################################################</span>
+    <span class="c1"># Utilities</span>
+    <span class="c1">######################################################################################</span>
+
+<div class="viewcode-block" id="VicarImage._intfmt">
+<a class="viewcode-back" href="../../module.html#vicar.VicarImage._intfmt">[docs]</a>
+    <span class="k">def</span> <span class="nf">_intfmt</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Determine the INTFMT based on the dtype of an array.&quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">byteorder</span> <span class="o">==</span> <span class="s1">&#39;&lt;&#39;</span><span class="p">:</span>    <span class="c1"># pragma: no cover</span>
+                <span class="k">return</span> <span class="s1">&#39;LOW&#39;</span>
+            <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">byteorder</span> <span class="o">==</span> <span class="s1">&#39;&gt;&#39;</span><span class="p">:</span>    <span class="c1"># pragma: no cover</span>
+                <span class="k">return</span> <span class="s1">&#39;HIGH&#39;</span>
+
+        <span class="k">return</span> <span class="s1">&#39;LOW&#39;</span> <span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">byteorder</span> <span class="o">==</span> <span class="s1">&#39;little&#39;</span> <span class="k">else</span> <span class="s1">&#39;HIGH&#39;</span></div>
+
+
+<div class="viewcode-block" id="VicarImage._realfmt">
+<a class="viewcode-back" href="../../module.html#vicar.VicarImage._realfmt">[docs]</a>
+    <span class="k">def</span> <span class="nf">_realfmt</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Determine the REALFMT value based on the dtype of an array.&quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">byteorder</span> <span class="o">==</span> <span class="s1">&#39;&gt;&#39;</span><span class="p">:</span>    <span class="c1"># pragma: no cover</span>
+                <span class="k">return</span> <span class="s1">&#39;IEEE&#39;</span>
+            <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">byteorder</span> <span class="o">==</span> <span class="s1">&#39;&lt;&#39;</span><span class="p">:</span>    <span class="c1"># pragma: no cover</span>
+                <span class="k">return</span> <span class="s1">&#39;RIEEE&#39;</span>
+
+        <span class="k">return</span> <span class="s1">&#39;RIEEE&#39;</span> <span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">byteorder</span> <span class="o">==</span> <span class="s1">&#39;little&#39;</span> <span class="k">else</span> <span class="s1">&#39;IEEE&#39;</span></div>
+
+
+<div class="viewcode-block" id="VicarImage._format_isint">
+<a class="viewcode-back" href="../../module.html#vicar.VicarImage._format_isint">[docs]</a>
+    <span class="k">def</span> <span class="nf">_format_isint</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;True if this array contains integer values.&quot;&quot;&quot;</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">key</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">kind</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">itemsize</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">_FORMAT_FROM_DTYPE</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">VicarError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;array dtype &quot;</span><span class="si">{</span><span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="si">}</span><span class="s1">&quot; is not supported by VICAR&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="VicarImage._check_array_vs_prefix">
+<a class="viewcode-back" href="../../module.html#vicar.VicarImage._check_array_vs_prefix">[docs]</a>
+    <span class="k">def</span> <span class="nf">_check_array_vs_prefix</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">prefix</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Raise an exception if the given image array and prefix byte array are not</span>
+<span class="sd">        compatible.</span>
+
+<span class="sd">        Parameters:</span>
+<span class="sd">            array (np.ndarray or None): A data array.</span>
+
+<span class="sd">            prefix (np.ndarray or None): A prefix array.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            VicarError: If the arrays are invalid or inconsistent with one another.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">array</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">array</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">VicarError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;data array shape </span><span class="si">{</span><span class="n">array</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s1"> is not 2-D or 3-D&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">prefix</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">prefix</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">VicarError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;prefix array shape </span><span class="si">{</span><span class="n">prefix</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s1"> is not 2-D or 3-D&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">array</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">prefix</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="k">if</span> <span class="n">array</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="n">prefix</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="n">VicarError</span><span class="p">(</span><span class="s1">&#39;data and prefix arrays have incompatible shapes: &#39;</span>
+                             <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">array</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s1">, </span><span class="si">{</span><span class="n">prefix</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+        <span class="p">(</span><span class="n">format1</span><span class="p">,</span> <span class="n">isint1</span><span class="p">)</span> <span class="o">=</span> <span class="n">VicarImage</span><span class="o">.</span><span class="n">_format_isint</span><span class="p">(</span><span class="n">array</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">isint1</span><span class="p">:</span>
+            <span class="n">intfmt1</span> <span class="o">=</span> <span class="n">VicarImage</span><span class="o">.</span><span class="n">_intfmt</span><span class="p">(</span><span class="n">array</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">realfmt1</span> <span class="o">=</span> <span class="n">VicarImage</span><span class="o">.</span><span class="n">_realfmt</span><span class="p">(</span><span class="n">array</span><span class="p">)</span>
+
+        <span class="p">(</span><span class="n">format2</span><span class="p">,</span> <span class="n">isint2</span><span class="p">)</span> <span class="o">=</span> <span class="n">VicarImage</span><span class="o">.</span><span class="n">_format_isint</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">isint2</span><span class="p">:</span>
+            <span class="n">intfmt2</span> <span class="o">=</span> <span class="n">VicarImage</span><span class="o">.</span><span class="n">_intfmt</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">realfmt2</span> <span class="o">=</span> <span class="n">VicarImage</span><span class="o">.</span><span class="n">_realfmt</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">isint1</span> <span class="ow">and</span> <span class="n">isint2</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">format1</span> <span class="o">!=</span> <span class="s1">&#39;BYTE&#39;</span> <span class="ow">and</span> <span class="n">format2</span> <span class="o">!=</span> <span class="s1">&#39;BYTE&#39;</span> <span class="ow">and</span> <span class="n">intfmt1</span> <span class="o">!=</span> <span class="n">intfmt2</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">VicarError</span><span class="p">(</span><span class="s1">&#39;data and prefix array formats are incompatible: &#39;</span>
+                                 <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">intfmt1</span><span class="si">}</span><span class="s1">, </span><span class="si">{</span><span class="n">intfmt2</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">isint1</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">isint2</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">realfmt1</span> <span class="o">!=</span> <span class="n">realfmt2</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">VicarError</span><span class="p">(</span><span class="s1">&#39;data and prefix array formats are incompatible: &#39;</span>
+                                 <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">realfmt1</span><span class="si">}</span><span class="s1">, </span><span class="si">{</span><span class="n">realfmt2</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span></div>
+</div>
+
+
+<span class="c1">##########################################################################################</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, PDS Ring-Moon Systems Node.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

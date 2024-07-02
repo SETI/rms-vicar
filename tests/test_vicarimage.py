@@ -8,11 +8,9 @@ import os
 import pathlib
 import unittest
 import sys
-from vicar.vicarimage import VicarImage
-from vicar.vicarimage import _intfmt, _realfmt, _format_isint, _check_array_vs_prefix
-from vicar.vicarlabel import VicarError
-
 from contextlib import redirect_stdout
+from vicar.vicarimage import VicarImage
+from vicar.vicarlabel import VicarError
 
 
 class Test_VicarImage(unittest.TestCase):
@@ -21,60 +19,64 @@ class Test_VicarImage(unittest.TestCase):
 
         # _intfmt
         sysval = 'LOW' if sys.byteorder == 'little' else 'HIGH'
-        self.assertEqual(_intfmt(np.arange(10, dtype='<i8')), 'LOW')
-        self.assertEqual(_intfmt(np.arange(10, dtype='>i8')), 'HIGH')
-        self.assertEqual(_intfmt(np.arange(10, dtype='<f8')), 'LOW')
-        self.assertEqual(_intfmt(np.arange(10, dtype='>f8')), 'HIGH')
-        self.assertEqual(_intfmt(np.arange(10)), sysval)
-        self.assertEqual(_intfmt(np.arange(10, dtype='uint8')), sysval)
+        self.assertEqual(VicarImage._intfmt(np.arange(10, dtype='<i8')), 'LOW')
+        self.assertEqual(VicarImage._intfmt(np.arange(10, dtype='>i8')), 'HIGH')
+        self.assertEqual(VicarImage._intfmt(np.arange(10, dtype='<f8')), 'LOW')
+        self.assertEqual(VicarImage._intfmt(np.arange(10, dtype='>f8')), 'HIGH')
+        self.assertEqual(VicarImage._intfmt(np.arange(10)), sysval)
+        self.assertEqual(VicarImage._intfmt(np.arange(10, dtype='uint8')), sysval)
 
         # _realfmt
         sysval = 'RIEEE' if sys.byteorder == 'little' else 'IEEE'
-        self.assertEqual(_realfmt(np.arange(10, dtype='<i8')), 'RIEEE')
-        self.assertEqual(_realfmt(np.arange(10, dtype='>i8')), 'IEEE')
-        self.assertEqual(_realfmt(np.arange(10, dtype='<f8')), 'RIEEE')
-        self.assertEqual(_realfmt(np.arange(10, dtype='>f8')), 'IEEE')
-        self.assertEqual(_realfmt(np.arange(10.)), sysval)
-        self.assertEqual(_realfmt(np.arange(10, dtype='uint8')), sysval)
+        self.assertEqual(VicarImage._realfmt(np.arange(10, dtype='<i8')), 'RIEEE')
+        self.assertEqual(VicarImage._realfmt(np.arange(10, dtype='>i8')), 'IEEE')
+        self.assertEqual(VicarImage._realfmt(np.arange(10, dtype='<f8')), 'RIEEE')
+        self.assertEqual(VicarImage._realfmt(np.arange(10, dtype='>f8')), 'IEEE')
+        self.assertEqual(VicarImage._realfmt(np.arange(10.)), sysval)
+        self.assertEqual(VicarImage._realfmt(np.arange(10, dtype='uint8')), sysval)
 
         # _format_isint
-        self.assertEqual(_format_isint(np.arange(10, dtype='uint8')), ('BYTE', True))
-        self.assertEqual(_format_isint(np.arange(10., dtype='<f4')), ('REAL', False))
-        self.assertEqual(_format_isint(np.arange(10., dtype='>f4')), ('REAL', False))
-        self.assertRaises(VicarError, _format_isint, np.arange(10., dtype='c16'))
+        self.assertEqual(VicarImage._format_isint(np.arange(10, dtype='uint8')), ('BYTE', True))
+        self.assertEqual(VicarImage._format_isint(np.arange(10., dtype='<f4')), ('REAL', False))
+        self.assertEqual(VicarImage._format_isint(np.arange(10., dtype='>f4')), ('REAL', False))
+        self.assertRaises(VicarError, VicarImage._format_isint, np.arange(10., dtype='c16'))
 
         # _check_array_vs_prefix
-        _check_array_vs_prefix(None, None)
-        _check_array_vs_prefix(np.zeros((1,100,200)), None)
-        _check_array_vs_prefix(np.zeros((100,200,300)), None)
-        _check_array_vs_prefix(None, np.zeros((100,200,300)))
-        _check_array_vs_prefix(np.zeros((1,100,200)), np.zeros((1,100,20)))
-        _check_array_vs_prefix(np.zeros((100,200,30)), np.zeros((100,200,30)))
-        _check_array_vs_prefix(np.zeros((1,200,100), dtype='uint8'),
-                               np.zeros((1,200,20), dtype='<i4'))
-        _check_array_vs_prefix(np.zeros((1,200,100), dtype='<i4'),
-                               np.zeros((1,200,20), dtype='uint8'))
-        _check_array_vs_prefix(np.zeros((1,200,100), dtype='<f4'),
-                               np.zeros((1,200,20), dtype='uint8'))
-        _check_array_vs_prefix(np.zeros((1,200,100), dtype='<f4'),
-                               np.zeros((1,200,20), dtype='>i2'))
-        _check_array_vs_prefix(np.zeros((1,200,100), dtype='<f8'),
-                               np.zeros((1,200,20), dtype='<f4'))
-        _check_array_vs_prefix(np.zeros((1,200,100), dtype='<i4'),
-                               np.zeros((1,200,20), dtype='<i2'))
+        VicarImage._check_array_vs_prefix(None, None)
+        VicarImage._check_array_vs_prefix(np.zeros((1,100,200)), None)
+        VicarImage._check_array_vs_prefix(np.zeros((100,200,300)), None)
+        VicarImage._check_array_vs_prefix(None, np.zeros((100,200,300)))
+        VicarImage._check_array_vs_prefix(np.zeros((1,100,200)), np.zeros((1,100,20)))
+        VicarImage._check_array_vs_prefix(np.zeros((100,200,30)), np.zeros((100,200,30)))
+        VicarImage._check_array_vs_prefix(np.zeros((1,200,100), dtype='uint8'),
+                                          np.zeros((1,200,20), dtype='<i4'))
+        VicarImage._check_array_vs_prefix(np.zeros((1,200,100), dtype='<i4'),
+                                          np.zeros((1,200,20), dtype='uint8'))
+        VicarImage._check_array_vs_prefix(np.zeros((1,200,100), dtype='<f4'),
+                                          np.zeros((1,200,20), dtype='uint8'))
+        VicarImage._check_array_vs_prefix(np.zeros((1,200,100), dtype='<f4'),
+                                          np.zeros((1,200,20), dtype='>i2'))
+        VicarImage._check_array_vs_prefix(np.zeros((1,200,100), dtype='<f8'),
+                                          np.zeros((1,200,20), dtype='<f4'))
+        VicarImage._check_array_vs_prefix(np.zeros((1,200,100), dtype='<i4'),
+                                          np.zeros((1,200,20), dtype='<i2'))
 
-        self.assertRaises(VicarError, _check_array_vs_prefix, np.arange(10), None)
-        self.assertRaises(VicarError, _check_array_vs_prefix, None, np.arange(10))
-        self.assertRaises(VicarError, _check_array_vs_prefix, np.zeros((10,10)), None)
-        self.assertRaises(VicarError, _check_array_vs_prefix, None, np.zeros((10,10)))
-        self.assertRaises(VicarError, _check_array_vs_prefix, np.zeros((10,10,10,10)),
-                          None)
-        self.assertRaises(VicarError, _check_array_vs_prefix,
-                          np.zeros((1,100,100)), np.zeros((1,200,10)))
-        self.assertRaises(VicarError, _check_array_vs_prefix,
+        self.assertRaises(VicarError, VicarImage._check_array_vs_prefix,
+                          np.arange(10), None)
+        self.assertRaises(VicarError, VicarImage._check_array_vs_prefix,
+                          None, np.arange(10))
+        self.assertRaises(VicarError, VicarImage._check_array_vs_prefix,
+                          np.zeros((10,10)), None)
+        self.assertRaises(VicarError, VicarImage._check_array_vs_prefix,
+                          None, np.zeros((10,10)))
+        self.assertRaises(VicarError, VicarImage._check_array_vs_prefix,
+                          np.zeros((10,10,10,10)), None)
+        self.assertRaises(VicarError, VicarImage._check_array_vs_prefix,
+                          np.zeros((1,100,100)),np.zeros((1,200,10)))
+        self.assertRaises(VicarError, VicarImage._check_array_vs_prefix,
                           np.zeros((1,200,100), dtype='>i4'),
                           np.zeros((1,200,20), dtype='<i4'))
-        self.assertRaises(VicarError, _check_array_vs_prefix,
+        self.assertRaises(VicarError, VicarImage._check_array_vs_prefix,
                           np.zeros((1,200,100), dtype='>f4'),
                           np.zeros((1,200,20), dtype='<f4'))
 
@@ -141,12 +143,12 @@ class Test_VicarImage(unittest.TestCase):
 
         # binheader
         test = VicarImage(test_dir / 'C2069302_GEOMA.DAT')
-        self.assertIsNone(test.array)
-        self.assertIsNone(test.array2d)
-        self.assertIsNone(test.array3d)
-        self.assertIsNone(test.prefix)
-        self.assertIsNone(test.prefix2d)
-        self.assertIsNone(test.prefix3d)
+        self.assertTrue(test.array is None)
+        self.assertTrue(test.array2d is None)
+        self.assertTrue(test.array3d is None)
+        self.assertTrue(test.prefix is None)
+        self.assertTrue(test.prefix2d is None)
+        self.assertTrue(test.prefix3d is None)
         array = test.binheader_array()
         self.assertEqual(array.shape, (552,4))
         self.assertEqual(array.dtype, np.dtype('=f4'))
@@ -199,6 +201,14 @@ class Test_VicarImage(unittest.TestCase):
         self.assertEqual(str(test), str(test._label))
         self.assertEqual(repr(test)[10:], repr(test._label)[10:])
         self.assertEqual(len(test), len([key for key in test]))
+
+        test['RECSIZE+'] = 77
+        self.assertRaises(VicarError, test.__setitem__, 'RECSIZE', 100)
+        self.assertRaises(VicarError, test.__delitem__, 'RECSIZE')
+        test['RECSIZE',1] = 99
+        del test['RECSIZE',1]
+        self.assertRaises(VicarError, test.__setitem__, 'RECSIZE', 100)
+        self.assertRaises(VicarError, test.__delitem__, 'RECSIZE')
 
         # iterators
         self.assertEqual(list(test)[:3], ['LBLSIZE', 'FORMAT', ('TYPE',0)])
@@ -416,14 +426,11 @@ class Test_VicarImage(unittest.TestCase):
         self.assertEqual(vim['FORMAT'], 'DOUB')     # unchanged
 
         # Start from int array
-        vim = VicarImage.from_array(
-            np.random.randint(-1000, 1000, (100,100)).astype('<i4'))
+        vim = VicarImage.from_array(np.random.randint(-1000, 1000, (100,100)).astype('<i4'))
         self.assertEqual(vim['INTFMT'], 'LOW')
-        vim = VicarImage.from_array(
-            np.random.randint(-1000, 1000, (100,100)).astype('>i4'))
+        vim = VicarImage.from_array(np.random.randint(-1000, 1000, (100,100)).astype('>i4'))
         self.assertEqual(vim['INTFMT'], 'HIGH')
-        vim = VicarImage.from_array(
-            np.random.randint(-1000, 1000, (100,100)).astype('<i4'))
+        vim = VicarImage.from_array(np.random.randint(-1000, 1000, (100,100)).astype('<i4'))
         self.assertEqual(vim['INTFMT'], 'LOW')
         self.assertEqual(vim['NB'], 1)
         self.assertEqual(vim['NL'], 100)
@@ -443,20 +450,29 @@ class Test_VicarImage(unittest.TestCase):
         vim.prefix = np.random.randint(0, 32000, (100,100)).astype('<i2')
         self.assertEqual(vim['FORMAT'], 'FULL')     # unchanged
 
-        # copy
+        # copy, eq
         filepath = test_dir / 'C2069302_GEOMED.IMG'
         vim = VicarImage(filepath)
         vim2 = vim.copy()
         self.assertEqual(vim, vim2)
+        self.assertIs(vim.array, vim2.array)
+        self.assertIsNot(vim, vim2)
 
         vim2.array = None
-        self.assertTrue(vim2.array is None)
-        self.assertFalse(vim.array is None)
+        self.assertIs(vim2.array, None)
+        self.assertIsNot(vim.array, None)
 
         vim3 = VicarImage(vim2.label)
         vim2.prefix = None
         vim2.binheader = None
         self.assertEqual(vim2, vim3)
+
+        vim2 = vim.deepcopy()
+        self.assertIsNot(vim, vim2)
+        self.assertIsNot(vim.array, vim2.array)
+        self.assertTrue(np.all(vim.array == vim2.array))
+
+        self.assertNotEqual(vim, set())
 
         # Reading image file C0532836239R.IMG, with overrides
         filepath = test_dir / 'C0532836239R.IMG'
@@ -506,10 +522,18 @@ class Test_VicarImage(unittest.TestCase):
         self.assertTrue(vim.prefix2d is None)
         self.assertTrue(vim.binheader is None)
 
-        # Add some COISS tests
+        # Add some "strict" tests
 
         filepath = test_dir / 'N1536633072_1_CALIB.IMG'
+        self.assertRaises(VicarError, VicarImage, filepath)
 
-        vim = VicarImage(filepath)
-
+        vim = VicarImage(filepath, strict=False)
         self.assertEqual(vim['UNEVEN_BIT_WEIGHT_CORRECTION_FLAG'], 1)
+
+        filepath = test_dir / 'C0003061900R.IMG'
+        self.assertRaises(VicarError, VicarImage, filepath)
+
+        vim = VicarImage(filepath, strict=False)
+        self.assertEqual(vim['BARC'], 'IP\x80')
+
+##########################################################################################

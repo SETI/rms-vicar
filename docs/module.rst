@@ -2,7 +2,9 @@
 ================
 
 .. automodule:: vicar
-    :member-order: groupwise
+    :member-order: alphabetical
     :members:
     :undoc-members:
-    :special-members: __init__
+    :special-members:
+    :show-inheritance:
+

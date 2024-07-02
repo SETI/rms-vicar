@@ -18,34 +18,34 @@ class Test_VicarLabel(unittest.TestCase):
         vicar_dir = pathlib.Path(sys.modules['vicar'].__file__)
         test_dir = vicar_dir.parent.parent / 'test_files'
 
-        text = """LBLSIZE=1536            FORMAT='BYTE'  TYPE='TABULAR'  BUFSIZ=20480  \
-DIM=3  EOL=1  RECSIZE=512  ORG='BSQ'    NS=512  NB=1  N1=512  N2=1  \
-N3=1  N4=0  NBB=0    HOST='AXP-VMS'  INTFMT='LOW'  \
-REALFMT='VAX'          NL=0            NLB=18  BHOST='AXP-VMS'  \
-BINTFMT='LOW'  BREALFMT='VAX'  BLTYPE='IBIS'  \
-PROPERTY='IBIS'                TYPE='TIEPOINT'  NR=552  NC=4  ORG='ROW'  \
-FMT_DEFAULT='REAL'  GROUPS=('LINE','SAMP','C_POS_IMAGE','INPUT','POSITION',\
-'C_POSITION','PIXEL','C_PIXEL','OUTPUT','C_POINT','C_ROOT')  GROUP_1=(3,1)  \
-GROUP_2=(4,2)  GROUP_3=(3,4,1,2)  GROUP_4=(3,4)  GROUP_5=(1,2,3,4)  \
-GROUP_6=(3,4,1,2)  GROUP_7=(1,2,3,4)  GROUP_8=(1,2,3,4)  GROUP_9=(1,2)  \
-GROUP_10=(1,2,3,4)  GROUP_11=(3,4,1,2)  SEGMENT=16  BLOCKSIZE=512  \
-COFFSET=(0,4,8,12)  PROPERTY='TIEPOINT'  NUMBER_OF_AREAS_HORIZONTAL=23  \
-NUMBER_OF_AREAS_VERTICAL=22  TASK='TASK'  USER='SHOWALTER'  \
-DAT_TIM='Sun Oct  2 05:05:17 2011'  \
-LAB01='                     800     800 800 800 L 1                          SC'  \
-LAB02='VGR-2   FDS 20693.02   PICNO 0215J2+001   SCET 79.192 01:19:58         C'  \
-LAB03='WA CAMERA  EXP   15360.0 MSEC FILT 2(CLEAR )  LO GAIN  SCAN RATE  5:1  C'  \
-LAB04='ERT 79.192 02:11:56   1/ 2 FULL    RES   VIDICON TEMP  -80.00 DEG C    C'  \
-LAB05='IN/205140/14 OUT/xxxxxx/xx     J_RINGS     DSS #14   BIT SNR    6.273  C'  \
-LAB06=' xxxxx A/xxxxxxxx B/xxxx C/xxxx D/xxxxxxxx ETLM/xxxxxxxxxxxxxxxxxxxxS AC'  \
-LBLSIZE=1024            \
-LAB07='NA OPCAL xx(015360.0*MSEC)PIXAVG 032/0 OPERATIONAL MODE 3(WAONLY)     AC'  \
-LAB08='CAM ECAL CYCLE BEAM  RESET OPEN  CLOSE FLOOD AEXPM  FIL G1 SHUT MODE  AC'  \
-LAB09='NA   NO   PREP  NO    YES   NO    NO    NO    NO    0 P  * NORMAL     AC'  \
-LAB10='WA   NO   READ  YES   NO    NO    NO    NO    NO    2 P  7 NORMAL     AC'  \
-LAB11='LSB_TRUNC=OFF  TLM_MODE=IM-2D COMPRESSION=OFF                          L'  \
-NLABS=11    TASK='VGRFILLI'  USER='SHOWALTER'  DAT_TIM='Sun Oct  2 05:05:17 2011' \
-LIN_CNT=0  TASK='RESLOC'  USER='SHOWALTER'  DAT_TIM='Sun Oct  2 05:05:18 2011'    """
+        text = ("LBLSIZE=1536            FORMAT='BYTE'  TYPE='TABULAR'  BUFSIZ=20480  "
+        "DIM=3  EOL=1  RECSIZE=512  ORG='BSQ'    NS=512  NB=1  N1=512  N2=1  "
+        "N3=1  N4=0  NBB=0    HOST='AXP-VMS'  INTFMT='LOW'  "
+        "REALFMT='VAX'          NL=0            NLB=18  BHOST='AXP-VMS'  "
+        "BINTFMT='LOW'  BREALFMT='VAX'  BLTYPE='IBIS'  "
+        "PROPERTY='IBIS'                TYPE='TIEPOINT'  NR=552  NC=4  ORG='ROW'  "
+        "FMT_DEFAULT='REAL'  GROUPS=('LINE','SAMP','C_POS_IMAGE','INPUT','POSITION',"
+        "'C_POSITION','PIXEL','C_PIXEL','OUTPUT','C_POINT','C_ROOT')  GROUP_1=(3,1)  "
+        "GROUP_2=(4,2)  GROUP_3=(3,4,1,2)  GROUP_4=(3,4)  GROUP_5=(1,2,3,4)  "
+        "GROUP_6=(3,4,1,2)  GROUP_7=(1,2,3,4)  GROUP_8=(1,2,3,4)  GROUP_9=(1,2)  "
+        "GROUP_10=(1,2,3,4)  GROUP_11=(3,4,1,2)  SEGMENT=16  BLOCKSIZE=512  "
+        "COFFSET=(0,4,8,12)  PROPERTY='TIEPOINT'  NUMBER_OF_AREAS_HORIZONTAL=23  "
+        "NUMBER_OF_AREAS_VERTICAL=22  TASK='TASK'  USER='SHOWALTER'  "
+        "DAT_TIM='Sun Oct  2 05:05:17 2011'  "
+        "LAB01='                     800     800 800 800 L 1                          SC'  "
+        "LAB02='VGR-2   FDS 20693.02   PICNO 0215J2+001   SCET 79.192 01:19:58         C'  "
+        "LAB03='WA CAMERA  EXP   15360.0 MSEC FILT 2(CLEAR )  LO GAIN  SCAN RATE  5:1  C'  "
+        "LAB04='ERT 79.192 02:11:56   1/ 2 FULL    RES   VIDICON TEMP  -80.00 DEG C    C'  "
+        "LAB05='IN/205140/14 OUT/xxxxxx/xx     J_RINGS     DSS #14   BIT SNR    6.273  C'  "
+        "LAB06=' xxxxx A/xxxxxxxx B/xxxx C/xxxx D/xxxxxxxx ETLM/xxxxxxxxxxxxxxxxxxxxS AC'  "
+        "LBLSIZE=1024            "
+        "LAB07='NA OPCAL xx(015360.0*MSEC)PIXAVG 032/0 OPERATIONAL MODE 3(WAONLY)     AC'  "
+        "LAB08='CAM ECAL CYCLE BEAM  RESET OPEN  CLOSE FLOOD AEXPM  FIL G1 SHUT MODE  AC'  "
+        "LAB09='NA   NO   PREP  NO    YES   NO    NO    NO    NO    0 P  * NORMAL     AC'  "
+        "LAB10='WA   NO   READ  YES   NO    NO    NO    NO    NO    2 P  7 NORMAL     AC'  "
+        "LAB11='LSB_TRUNC=OFF  TLM_MODE=IM-2D COMPRESSION=OFF                          L'  "
+        "NLABS=11    TASK='VGRFILLI'  USER='SHOWALTER'  DAT_TIM='Sun Oct  2 05:05:17 2011'  "
+        "LIN_CNT=0  TASK='RESLOC'  USER='SHOWALTER'  DAT_TIM='Sun Oct  2 05:05:18 2011'    ")
 
         def test_vic(source):
 
@@ -58,7 +58,7 @@ LIN_CNT=0  TASK='RESLOC'  USER='SHOWALTER'  DAT_TIM='Sun Oct  2 05:05:18 2011'  
             self.assertEqual(vic['LBLSIZE+'], [1536,1024])
             self.assertRaises(KeyError, vic.__getitem__, 'FOO')
             self.assertRaises(KeyError, vic.__getitem__, 'FOO+')
-            self.assertRaises(KeyError, vic.__getitem__, 3.14159)
+            self.assertRaises(TypeError, vic.__getitem__, 3.14159)
             self.assertRaises(IndexError, vic.__getitem__, ('LBLSIZE',2))
             self.assertRaises(TypeError, vic.__getitem__, set())
 
@@ -149,6 +149,11 @@ LIN_CNT=0  TASK='RESLOC'  USER='SHOWALTER'  DAT_TIM='Sun Oct  2 05:05:18 2011'  
         test_vic(test_dir / 'C2069302_GEOMA.DAT')
         test_vic(str(test_dir / 'C2069302_GEOMA.DAT'))
 
+        with open(test_dir / 'C2069302_GEOMA.DAT', 'rb') as f:
+            test_vic(f)
+            self.assertFalse(f.closed)
+        self.assertTrue(f.closed)
+
         params = _LABEL_GRAMMAR.parse_string(text).as_list()
         test_vic(params)
 
@@ -158,6 +163,7 @@ LIN_CNT=0  TASK='RESLOC'  USER='SHOWALTER'  DAT_TIM='Sun Oct  2 05:05:18 2011'  
         self.assertEqual(reference, VicarLabel(str(test_dir / 'C2069302_GEOMA.DAT')))
         self.assertEqual(reference, VicarLabel.from_file(test_dir / 'C2069302_GEOMA.DAT'))
         self.assertEqual(reference, VicarLabel(params))
+        self.assertNotEqual(reference, set())
 
         # append
         parts = text.partition('LBLSIZE=1024')
@@ -211,15 +217,15 @@ LIN_CNT=0  TASK='RESLOC'  USER='SHOWALTER'  DAT_TIM='Sun Oct  2 05:05:18 2011'  
         test.append("LBLSIZE=100  NOTE='more stuff'")
         # Fails on platforms other than Mac
 #     self.assertEqual(test.as_string(),
-# "LBLSIZE=0             FORMAT='BYTE'  TYPE='IMAGE'  BUFSIZ=20480  "
-# "DIM=3  EOL=0  RECSIZE=0  ORG='BSQ'  NL=0  NS=0  NB=0  N1=0  N2=0  "
-# "N3=0  N4=0  NBB=0  NLB=0  HOST='MAC-OSX'  INTFMT='LOW'  "
-# "REALFMT='RIEEE'  BHOST='MAC-OSX'  BINTFMT='LOW'  BREALFMT='RIEEE'  "
-# "BLTYPE=''  LBLSIZE=100           NOTE='more stuff'  ")
+#                      "LBLSIZE=0             FORMAT='BYTE'  TYPE='IMAGE'  BUFSIZ=20480  "
+#                      "DIM=3  EOL=0  RECSIZE=0  ORG='BSQ'  NL=0  NS=0  NB=0  N1=0  N2=0  "
+#                      "N3=0  N4=0  NBB=0  NLB=0  HOST='MAC-OSX'  INTFMT='LOW'  "
+#                      "REALFMT='RIEEE'  BHOST='MAC-OSX'  BINTFMT='LOW'  BREALFMT='RIEEE'  "
+#                      "BLTYPE=''  LBLSIZE=100           NOTE='more stuff'  ")
         self.assertEqual(test.as_string(stop=17),
-                         "LBLSIZE=0             FORMAT='BYTE'  TYPE='IMAGE'  "
-                         "BUFSIZ=20480  DIM=3  EOL=0  RECSIZE=0  ORG='BSQ'  NL=0  NS=0  "
-                         "NB=0  N1=0  N2=0  N3=0  N4=0  NBB=0  NLB=0  ")
+                         "LBLSIZE=0             FORMAT='BYTE'  TYPE='IMAGE'  BUFSIZ=20480  "
+                         "DIM=3  EOL=0  RECSIZE=0  ORG='BSQ'  NL=0  NS=0  NB=0  N1=0  N2=0  "
+                         "N3=0  N4=0  NBB=0  NLB=0  ")
         self.assertEqual(test.as_string(start='BLTYPE'),
                          "BLTYPE=''  LBLSIZE=100           NOTE='more stuff'  ")
         self.assertEqual(test.as_string(start='BLTYPE', sep='xxx'),
@@ -276,8 +282,7 @@ LIN_CNT=0  TASK='RESLOC'  USER='SHOWALTER'  DAT_TIM='Sun Oct  2 05:05:18 2011'  
         altvic = VicarLabel(dest)
         self.assertEqual(vic, altvic)
         self.assertEqual(len(vic['LBLSIZE+']), 1)
-        self.assertEqual(os.path.getsize(dest), vic['LBLSIZE'] +
-                         vic['RECSIZE'] * vic['NLB'])
+        self.assertEqual(os.path.getsize(dest), vic['LBLSIZE'] + vic['RECSIZE'] * vic['NLB'])
         self.assertEqual(altvic.filepath, dest)
 
         vic2 = VicarLabel(text)
@@ -289,9 +294,8 @@ LIN_CNT=0  TASK='RESLOC'  USER='SHOWALTER'  DAT_TIM='Sun Oct  2 05:05:18 2011'  
         altvic = VicarLabel(dest)
         self.assertEqual(vic, altvic)
         self.assertEqual(len(vic['LBLSIZE+']), 2)
-        self.assertEqual(os.path.getsize(dest),
-                         vic['LBLSIZE'] + vic['RECSIZE'] * vic['NLB']
-                         + vic[('LBLSIZE',1)])
+        self.assertEqual(os.path.getsize(dest), vic['LBLSIZE'] + vic['RECSIZE'] * vic['NLB']
+                                                + vic[('LBLSIZE',1)])
 
         altvic.filepath = None
         self.assertRaises(ValueError, altvic.write_label)
@@ -306,6 +310,63 @@ LIN_CNT=0  TASK='RESLOC'  USER='SHOWALTER'  DAT_TIM='Sun Oct  2 05:05:18 2011'  
         empty = VicarLabel()
         self.assertEqual(len(empty), len(_REQUIRED))
 
+        # Single tuple
+        almost_empty = VicarLabel(('SEVEN', 7.0))
+        self.assertEqual(len(almost_empty), len(_REQUIRED) + 1)
+        almost_empty2 = VicarLabel({'SEVEN': (7.,)})
+        self.assertEqual(almost_empty, almost_empty2)
+        almost_empty2 = VicarLabel({'SEVEN': (7.,'')})
+        self.assertEqual(almost_empty, almost_empty2)
+
+        # Dict
+        almost_empty2 = VicarLabel({'SEVEN': 7.})
+        self.assertEqual(almost_empty, almost_empty2)
+        almost_empty2 = VicarLabel({'SEVEN': (7.,)})
+        self.assertEqual(almost_empty, almost_empty2)
+
+        # Invalid inputs
+        self.assertRaises(VicarError, VicarLabel,
+                          "FORMAT='BYTE'  SEVEN=7.0  LBLSIZE=100  MORE=xyz")
+        self.assertRaises(TypeError, VicarLabel, set([1,2,3]))
+        self.assertRaises(TypeError, VicarLabel, [('LBLSIZE',100), set()])
+        self.assertRaises(TypeError, VicarLabel, [('LBLSIZE',100), ('RECSIZE',)])
+        self.assertRaises(TypeError, VicarLabel, [('LBLSIZE',100), 'RECSIZE'])
+        self.assertRaises(VicarError, VicarLabel, [('LBLSIZE',100), ('TWO',2.,'',4,5,6,7)])
+        self.assertRaises(VicarError, VicarLabel, [('LBLSIZE',100), ('TWO',2.,3,4,5,6)])
+        self.assertRaises(VicarError, VicarLabel, [('LBLSIZE',100), ('TWO',2.,3,'')])
+        self.assertRaises(VicarError, VicarLabel, [('LBLSIZE',100), (1,2.)])
+        self.assertRaises(VicarError, VicarLabel, [('LBLSIZE',100), ('TWo',2.)])
+        self.assertRaises(VicarError, VicarLabel, [('LBLSIZE',100), ('CR','\n')])
+        self.assertRaises(VicarError, VicarLabel, [('LBLSIZE',100), ('LIST1',[])])
+        self.assertRaises(VicarError, VicarLabel, [('LBLSIZE',100), ('LIST2',[1,2.])])
+        self.assertRaises(VicarError, VicarLabel, [('LBLSIZE',100), ('SET',set())])
+        self.assertRaises(VicarError, VicarLabel, [('LBLSIZE',100), ('SET',[set()])])
+        self.assertRaises(VicarError, VicarLabel, [('A23456789012345678901234567890123',7)])
+        test = VicarLabel([('A2345678901234567890123456789012',7)])
+        test = VicarLabel([('LBLSIZE',100), ('TWo',2.), ('CR','\n'),('LIST1',[]),
+                           ('LIST2',[1,2.]), ('A23456789012345678901234567890123',7)],
+                          strict=False)
+        self.assertRaises(VicarError, VicarLabel, [('LBLSIZE',100), ('SET',[1,2,set()])],
+                                                  strict=False)
+
+        # Invalid formats
+        self.assertRaises(TypeError, VicarLabel, [('ABC', 4, '%.4f')])
+        self.assertRaises(TypeError, VicarLabel, [('ABC', 4, '%.4g')])
+        self.assertRaises(TypeError, VicarLabel, [('ABC', 4, '%.4e')])
+        self.assertRaises(TypeError, VicarLabel, [('ABC', 4., '%4d')])
+        self.assertRaises(TypeError, VicarLabel, [('ABC', 4., '%4i')])
+        self.assertRaises(TypeError, VicarLabel, [('ABC', 'abc', '%4i')])
+        self.assertRaises(TypeError, VicarLabel, [('ABC', 'abc', '%s')])
+
+        self.assertRaises(TypeError, VicarLabel, [('ABC', [(4, '%.4f')])])
+        self.assertRaises(TypeError, VicarLabel, [('ABC', [(4, '%.4g')])])
+        self.assertRaises(TypeError, VicarLabel, [('ABC', [(4, '%.4e')])])
+        self.assertRaises(TypeError, VicarLabel, [('ABC', [(4., '%4d')])])
+        self.assertRaises(TypeError, VicarLabel, [('ABC', [(4., '%4i')])])
+        self.assertRaises(TypeError, VicarLabel, [('ABC', [('abc', '%4i')])])
+        self.assertRaises(TypeError, VicarLabel, [('ABC', [('abc', '%s')])])
+        self.assertRaises(VicarError, VicarLabel, [('ABC', [(7, '%02d', 1, 2, 3)])])
+
         # Moving LBLSIZE to front
         vic = VicarLabel("FORMAT='BYTE'  SEVEN=7.0  LBLSIZE=100  MORE='LESS'")
         self.assertEqual(vic.items()[0], ('LBLSIZE', 100))
@@ -319,14 +380,13 @@ LIN_CNT=0  TASK='RESLOC'  USER='SHOWALTER'  DAT_TIM='Sun Oct  2 05:05:18 2011'  
         self.assertRaises(VicarError, vic.__setitem__, 'LIST', ['ONE', set()])
         self.assertRaises(VicarError, vic.__setitem__, 'LIST', [set(), 2])
 
-        self.assertRaises(VicarError, vic.__setitem__, set(), 7)
+        self.assertRaises(TypeError, vic.__setitem__, set(), 7)
+        self.assertRaises(TypeError, vic.__setitem__, 3.14, 'pi')
         self.assertRaises(VicarError, vic.__setitem__, 0, set())
-        self.assertRaises(VicarError, vic.__setitem__, 3.14, 'pi')
 
         self.assertRaises(VicarError, vic.__setitem__, 'ORG', 'whatever')
         self.assertRaises(VicarError, vic.__setitem__, 'NL', 'whatever')
         self.assertRaises(VicarError, vic.__setitem__, 'NL', -1)
-        self.assertRaises(VicarError, vic.__setitem__, 'NL+', -1)
 
         # __setitem__, value_str
         vic['A'] = 1
@@ -500,7 +560,7 @@ LIN_CNT=0  TASK='RESLOC'  USER='SHOWALTER'  DAT_TIM='Sun Oct  2 05:05:18 2011'  
         self.assertEqual((vic['NB'], vic['NL'], vic['NS']), (101, 201, 301))
         self.assertEqual((vic['N1'], vic['N3'], vic['N2']), (101, 201, 301))
 
-        # Reading image file C0532836239R.IMG
+        #### Reading image file C0532836239R.IMG
         filepath = test_dir / 'C0532836239R.IMG'
 
         vic = VicarLabel(filepath)
@@ -530,8 +590,8 @@ LIN_CNT=0  TASK='RESLOC'  USER='SHOWALTER'  DAT_TIM='Sun Oct  2 05:05:18 2011'  
         lbl = VicarLabel()
         lbl['NEW1', 0] = 1
         lbl['NEW2+', 0] = 2
-        lbl['NEW3', -1] = 3
-        lbl['NEW4+', -1] = 4
+        lbl['NEW3', 0] = 3
+        lbl['NEW4+', 0] = 4
         lbl['NEW5'] = 5
         lbl['NEW5', 1] = 6
         self.assertEqual(lbl['NEW1'], 1)
@@ -540,8 +600,8 @@ LIN_CNT=0  TASK='RESLOC'  USER='SHOWALTER'  DAT_TIM='Sun Oct  2 05:05:18 2011'  
         self.assertEqual(lbl['NEW4'], 4)
         self.assertEqual(lbl['NEW5+'], [5,6])
 
-        self.assertRaises(IndexError, lbl.__setitem__, ('NEW6', 1), 7)
-        self.assertRaises(IndexError, lbl.__setitem__, ('NEW6',-2), 8)
+        self.assertRaises(KeyError, lbl.__setitem__, ('NEW6', 1), 7)
+        self.assertRaises(KeyError, lbl.__setitem__, ('NEW6',-2), 8)
 
         # New features 2/29/24
         # append() using a dictionary
@@ -557,7 +617,6 @@ LIN_CNT=0  TASK='RESLOC'  USER='SHOWALTER'  DAT_TIM='Sun Oct  2 05:05:18 2011'  
         lbl.append({'TASK':'FICOR77', 'FOO':1})
         lbl.append({'TASK':'RESLOC', 'BAR':2})
         lbl.append({'TASK':'GEOMA', 'FOO':3, 'BAR':4})
-        print(lbl)
 
         self.assertEqual(lbl.arg('TASK', 'GEOMA'), len(lbl) - 3)
         self.assertEqual(lbl.arg('TASK', 'FICOR77'), len(lbl) - 7)
@@ -594,6 +653,12 @@ LIN_CNT=0  TASK='RESLOC'  USER='SHOWALTER'  DAT_TIM='Sun Oct  2 05:05:18 2011'  
         self.assertRaises(KeyError, lbl.__getitem__, ('FOO', 'TASKX', 'whatever'))
         self.assertRaises(ValueError, lbl.__getitem__, ('FOO', 'TASK', 'RESSAR77'))
 
+        # get() with a new key
+        test = VicarLabel()
+        self.assertEqual(test.get('FOO', 7), 7)
+        self.assertEqual(test.get('FOO+', 7), [7])
+        self.assertEqual(test.get(set(), 7), 7)
+
         # __setitem__() with a new key, existing
         lbl['FOO', 'TASK', 'FICOR77'] = 77
         self.assertEqual(lbl['FOO', 'TASK', 'FICOR77'], 77)
@@ -602,6 +667,11 @@ LIN_CNT=0  TASK='RESLOC'  USER='SHOWALTER'  DAT_TIM='Sun Oct  2 05:05:18 2011'  
         lbl['FOO', 'TASK', 'GEOMA'] = 88
         self.assertEqual(lbl['FOO', 'TASK', 'GEOMA'], 88)
         self.assertEqual(lbl[len(lbl) - 2], 88)
+
+        lbl['FOO+', 'TASK', 'GEOMA'] = 33
+        self.assertEqual(lbl['FOO+', 'TASK', 'GEOMA'], [88,33])
+        del lbl['FOO', 'TASK', 'GEOMA']
+        self.assertEqual(lbl['FOO+', 'TASK', 'GEOMA'], [33])
 
         # __contains__() with an integer key
         self.assertTrue(-len(lbl) in lbl)
@@ -628,7 +698,7 @@ LIN_CNT=0  TASK='RESLOC'  USER='SHOWALTER'  DAT_TIM='Sun Oct  2 05:05:18 2011'  
         self.assertTrue(('BAR', 'TASK', 'FICOR77') in lbl)
         names = list(lbl.names())
         self.assertEqual(names[-8:], ['TASK', 'FOO', 'BAR', 'TASK', 'BAR',
-                                      'TASK', 'FOO', 'BAR'])
+                                      'TASK', 'BAR', 'FOO'])
 
         indx = len(lbl)
         lbl['NEW', 'TASK', 'GEOMA'] = 99
@@ -636,9 +706,28 @@ LIN_CNT=0  TASK='RESLOC'  USER='SHOWALTER'  DAT_TIM='Sun Oct  2 05:05:18 2011'  
         self.assertTrue(('NEW', 'TASK', 'GEOMA') in lbl)
         names = list(lbl.names())
         self.assertEqual(names[-9:], ['TASK', 'FOO', 'BAR', 'TASK', 'BAR',
-                                      'TASK', 'FOO', 'BAR', 'NEW'])
+                                      'TASK', 'BAR', 'FOO', 'NEW'])
 
         # __delitem__() with new key
         del lbl['FOO', 'TASK', 'GEOMA']
         names = list(lbl.names())
         self.assertEqual(names[-3:], ['TASK', 'BAR', 'NEW'])
+
+        # __delitem__(), insert()
+        test = VicarLabel()
+        ltest = len(test)
+        test.insert('FOO=1', 1)
+        test.append('FOO=2')
+        test.append('FOO=3')
+        self.assertEqual(len(test), ltest+3)
+        del test['FOO+',1]
+        self.assertEqual(len(test), ltest+1)
+        self.assertEqual(test[1], 1)
+
+        self.assertRaises(VicarError, test.insert, 'BAR=7', 0)
+        self.assertRaises(VicarError, test.__setitem__, 'LBLSIZE', [1,2])
+        self.assertRaises(VicarError, test.__setitem__, 'LBLSIZE', 77.)
+        self.assertRaises(VicarError, test.__setitem__, 0, [1,2])
+        self.assertRaises(VicarError, test.__setitem__, 0, 77.)
+
+##########################################################################################
