@@ -1,10 +1,16 @@
 [flake8]
 max-line-length: 90
 extend-ignore = 
+    # E203 Whitespace before ':'
+    # E221 Multiple spaces before operator
     # E231 Missing whitespace after ',', ';', or ':'
-    E231
+    E203, E221, E231
 
 per-file-ignores =
+    # E202 Whitespace before ')'
+    # E211 Whitespace before '('
+    _DEFINITIONS.py: E202, E211
+
     # E302 Expected 2 blank lines, found 1
     # E305 expected 2 blank lines after class or function definition, found 1
     # E741 Do not use variables named 'I', 'O', or 'l'
