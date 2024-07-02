@@ -10,11 +10,13 @@
     :exclude-members: __dict__, __hash__, __module__, __weakref__
     :show-inheritance:
 
+vicar._DEFINITIONS
+------------------
+
+.. automodule:: vicar._DEFINITIONS
+
 vicar._LABEL_GRAMMAR
 --------------------
 
 .. automodule:: vicar._LABEL_GRAMMAR
-   :members:
-   :undoc-members:
-   :show-inheritance:
 

@@ -154,7 +154,7 @@ class Test_VicarImage(unittest.TestCase):
         self.assertEqual(array.dtype, np.dtype('=f4'))
         self.assertTrue(np.all(array[0] == np.array([25.11, 25.29, 24.076107, 11.095002],
                                                     dtype='float32')))
-        self.assertTrue(np.all(array[2] == np.array([20.33, 85.48, 14.932872, 57.43326 ],
+        self.assertTrue(np.all(array[2] == np.array([20.33, 85.48, 14.932872, 57.43326],
                                                     dtype='float32')))
 
         # Messing around with arrays, write_file

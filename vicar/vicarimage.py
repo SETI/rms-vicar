@@ -3,8 +3,6 @@
 ##########################################################################################
 """Class to support accessing, reading, and modifying VICAR image files."""
 
-import copy
-import numbers
 import numpy as np
 import pathlib
 import sys
@@ -16,59 +14,9 @@ try:
 except ImportError:
     __version__ = 'Version unspecified'
 
-from vicar.vicarlabel import VicarLabel, VicarError, _HOST
+from vicar.vicarlabel import VicarLabel, VicarError
+from vicar._DEFINITIONS import _DTYPE_FROM_FORMAT, _FORMAT_FROM_DTYPE, _HOST, _IMMUTABLE
 
-##########################################################################################
-# Set of keywords that the user cannot modify
-##########################################################################################
-
-_IMMUTABLE = set(['LBLSIZE' ,
-                  'FORMAT'  ,
-                  'TYPE'    ,
-                  'DIM'     ,
-                  'EOL'     ,
-                  'RECSIZE' ,
-                  'ORG'     ,
-                  'NL'      ,
-                  'NS'      ,
-                  'NB'      ,
-                  'N1'      ,
-                  'N2'      ,
-                  'N3'      ,
-                  'N4'      ,
-                  'NBB'     ,
-                  'NLB'     ,
-                  'INTFMT'  ,
-                  'REALFMT' ,
-                  'BINTFMT' ,
-                  'BREALFMT'])
-
-##########################################################################################
-# Utilities
-##########################################################################################
-
-# [FORMAT] -> dtype
-_DTYPE_FROM_FORMAT = {'BYTE': 'u1',
-                      'HALF': 'i2',
-                      'FULL': 'i4',
-                      'REAL': 'f4',
-                      'DOUB': 'f8',
-                      'COMP': 'c8',
-                      'WORD': 'i2',
-                      'LONG': 'i4',
-                      'COMPLEX': 'c8'}
-
-# [dtype.kind + str(dtype.itemsize)] -> (FORMAT, isint)
-_FORMAT_FROM_DTYPE = {'u1': ('BYTE', True ),
-                      'i2': ('HALF', True ),
-                      'i4': ('FULL', True ),
-                      'f4': ('REAL', False),
-                      'f8': ('DOUB', False),
-                      'c8': ('COMP', False)}
-
-##########################################################################################
-# Class VicarImage
-##########################################################################################
 
 class VicarImage():
     """Constructor for a VicarImage.
@@ -154,7 +102,7 @@ class VicarImage():
     """
 
     def __init__(self, source=None, array=None, *, prefix=None, binheader=None,
-                       strict=True):
+                 strict=True):
         """Constructor for a VicarImage object.
 
         Parameters:
@@ -738,7 +686,7 @@ class VicarImage():
         else:
             size = size if size else 4
             dpref = ('>' if label['BREALFMT'] == 'IEEE' else '<')
-            dtype = dpref + kind +  str(size)
+            dtype = dpref + kind + str(size)
 
         # Convert the bytes to an array
         values = np.frombuffer(self._binheader, dtype=dtype)

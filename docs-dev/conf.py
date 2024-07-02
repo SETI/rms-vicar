@@ -30,3 +30,13 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 html_theme = 'sphinx_rtd_theme'
 html_static_path = ['_static']
+
+# https://www.sphinx-doc.org/en/master/usage/extensions/linkcode.html#
+
+def linkcode_resolve(domain, info):
+    if domain != 'py':
+        return None
+    if not info['module']:
+        return None
+    filename = info['module'].replace('.', '/')
+    return f'https://github.com/SETI/rms-{project}/blob/master/{project}/{filename}.py'

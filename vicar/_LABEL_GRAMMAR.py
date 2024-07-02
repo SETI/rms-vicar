@@ -72,6 +72,8 @@ In other words, the possible items in a parsed list are these:
 Most users will only care about the name and value, but the remaining information in each
 tuple is included in case the user wants to write out a label string that preserves the
 formatting of the original source.
+
+Source: https://github.com/SETI/rms-vicar/blob/main/vicar/_LABEL_GRAMMAR.py
 """
 ##########################################################################################
 
@@ -172,11 +174,11 @@ _EXPO = Combine(Suppress(oneOf('e E d D')) + _OPT_SIGN + _INT)
 _EXPO.set_parse_action(lambda s,l,t: 'e' + t[0])
 _OPT_EXPO = Optional(_EXPO)
 
-_FLOAT_W_INT  = Combine(_OPT_WHITE + _OPT_SIGN + _INT + _DOT + _OPT_INT + _OPT_EXPO
-                        + _BREAK)
+_FLOAT_W_INT = Combine(_OPT_WHITE + _OPT_SIGN + _INT + _DOT + _OPT_INT + _OPT_EXPO
+                       + _BREAK)
 _FLOAT_WO_INT = Combine(_OPT_WHITE + _OPT_SIGN + _DOT + _INT + _OPT_EXPO + _BREAK)
 _FLOAT_WO_DOT = Combine(_OPT_WHITE + _OPT_SIGN + _INT + _EXPO + _BREAK)
-_FLOAT        = _FLOAT_W_INT | _FLOAT_WO_INT | _FLOAT_WO_DOT
+_FLOAT = _FLOAT_W_INT | _FLOAT_WO_INT | _FLOAT_WO_DOT
 _FLOAT.set_name('_FLOAT')
 _FLOAT.set_parse_action(lambda s,l,t: _float_info(t[0]))
 
@@ -207,7 +209,7 @@ _STRING.set_parse_action(lambda s,l,t: _str_info(t[0]))
 
 def _list_info(tokens):
     before = len(tokens[0])
-    after  = len(tokens[-1])
+    after = len(tokens[-1])
 
     return (tokens[1:-1], '', before, after)
 
@@ -215,7 +217,7 @@ _SCALAR = _INTEGER | _FLOAT | _STRING
 
 _LPAREN = Combine(_OPT_WHITE + Suppress(Literal('(')))
 _RPAREN = Combine(Suppress(Literal(')')) + _BREAK)
-_COMMA  = Suppress(Literal(','))
+_COMMA = Suppress(Literal(','))
 
 _LIST = _LPAREN + _SCALAR + ZeroOrMore(_COMMA + _SCALAR) + _RPAREN
 _LIST.set_name('_LIST')

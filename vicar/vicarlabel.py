@@ -3,91 +3,23 @@
 ##########################################################################################
 """Class to support accessing, reading, and modifying VICAR labels."""
 
-import copy
 import io
 import numbers
 import os
 import pathlib
 import pyparsing
 import re
-import sys
 
 from collections import namedtuple
 from vicar._LABEL_GRAMMAR import _LABEL_GRAMMAR, _NAME
+from vicar._DEFINITIONS import (_ENUMERATED_VALUES, _LBLSIZE_WIDTH, _REQUIRED,
+                                _REQUIRED_INTS, _REQUIRED_NAMES)
 
-_LBLSIZE = re.compile(r'LBLSIZE *= *(\d+)')
+_LBLSIZE_PATTERN = re.compile(r'LBLSIZE *= *(\d+)')
 
 _ValueFormat = namedtuple('_ValueFormat', ['fmt', 'name_blanks', 'val_blanks',
                                            'sep_blanks', 'listfmts'])
-_ListFormat  = namedtuple('_ListFormat',  ['fmt', 'blanks_before', 'blanks_after'])
-
-# [(sys.byteorder,sys.platform)] -> HOST
-_HOST_DICT = {('big'   , 'sunos3'): 'SUN-3',
-              ('big'   , 'sunos4'): 'SUN-4',
-              ('big'   , 'sunos5'): 'SUN-SOLR',
-              ('little', 'sunos5'): 'X86-LINUX',
-              ('big'   , 'darwin'): 'MAC-OSX',
-              ('little', 'darwin'): 'MAC-OSX',
-              ('little', 'linux2'): 'X86-LINUX',
-              ('little', 'linux3'): 'X86-LINUX',
-              ('little', 'linux' ): 'X86-LINUX',
-              ('little', 'win32' ): 'WIN-XP'     }
-
-try:
-    _HOST = _HOST_DICT[(sys.byteorder, sys.platform)]
-except KeyError:                # pragma: no cover
-    if sys.platform.startswith('linux'):
-        _HOST = 'X86-LINUX'     # could be "linux4" I guess
-    else:
-        _HOST = sys.platform.upper()
-
-# [sys.byteorder] -> INTFMT, REALFMT
-_INTFMT_DICT  = {'little': 'LOW'  , 'big': 'HIGH'}
-_REALFMT_DICT = {'little': 'RIEEE', 'big': 'IEEE'}
-
-# Required keywords, default values
-_REQUIRED = [('LBLSIZE' , 0,     ),
-             ('FORMAT'  , 'BYTE' ),     # Guess
-             ('TYPE'    , 'IMAGE'),     # Guess
-             ('BUFSIZ'  , 20480  ),     # Always ignored
-             ('DIM'     , 3      ),     # Always
-             ('EOL'     , 0      ),
-             ('RECSIZE' , 0      ),
-             ('ORG'     , 'BSQ'  ),
-             ('NL'      , 0      ),
-             ('NS'      , 0      ),
-             ('NB'      , 0      ),
-             ('N1'      , 0      ),
-             ('N2'      , 0      ),
-             ('N3'      , 0      ),
-             ('N4'      , 0      ),     # Always
-             ('NBB'     , 0      ),
-             ('NLB'     , 0      ),
-             ('HOST'    , _HOST  ),
-             ('INTFMT'  , _INTFMT_DICT [sys.byteorder]),
-             ('REALFMT' , _REALFMT_DICT[sys.byteorder]),
-             ('BHOST'   , _HOST  ),
-             ('BINTFMT' , _INTFMT_DICT [sys.byteorder]),
-             ('BREALFMT', _REALFMT_DICT[sys.byteorder]),
-             ('BLTYPE'  , ''),]
-_REQUIRED_NAMES = set([t[0] for t in _REQUIRED])
-
-_LBLSIZE_WIDTH = 16     # fixed space between "LBLSIZE=" and the next parameter name
-
-_ENUMERATED_VALUES = {
-    'FORMAT'  : {'BYTE', 'HALF', 'FULL', 'REAL', 'DOUB', 'COMP',
-                 'WORD', 'LONG', 'COMPLEX'},
-    'ORG'     : {'BSQ', 'BIL', 'BIP'},
-    'INTFMT'  : {'HIGH', 'LOW'},
-    'REALFMT' : {'IEEE', 'RIEEE', 'VAX'},
-    'BINTFMT' : {'HIGH', 'LOW'},
-    'BREALFMT': {'IEEE', 'RIEEE', 'VAX'},
-    'DIM'     : {3},
-    'EOL'     : {0, 1},
-    'N4'      : {0},
-}
-
-_REQUIRED_INTS = {'LBLSIZE', 'RECSIZE', 'NL', 'NS', 'NB', 'N1', 'N2', 'N3', 'NBB', 'NLB'}
+_ListFormat = namedtuple('_ListFormat', ['fmt', 'blanks_before', 'blanks_after'])
 
 
 class VicarError(ValueError):
@@ -828,8 +760,8 @@ class VicarLabel():
             ints = (0,) + ints
 
         if (len(ints) > 3
-            or not all(isinstance(i, numbers.Integral) and i >= 0 for i in ints)):
-                raise VicarError('invalid value formatting hints: ' + repr(hints))
+                or not all(isinstance(i, numbers.Integral) and i >= 0 for i in ints)):
+            raise VicarError('invalid value formatting hints: ' + repr(hints))
 
         return _ValueFormat(fmt, *ints, listfmts)
 
@@ -854,8 +786,8 @@ class VicarLabel():
             ints = (0,) + ints
 
         if (len(ints) > 2
-            or not all(isinstance(i, numbers.Integral) and i >= 0 for i in ints)):
-                raise VicarError('invalid value formatting hints: ' + repr(hints))
+                or not all(isinstance(i, numbers.Integral) and i >= 0 for i in ints)):
+            raise VicarError('invalid value formatting hints: ' + repr(hints))
 
         return _ListFormat(fmt, *ints)
 
@@ -1975,7 +1907,9 @@ class VicarLabel():
             tail = fmt % (int(before) + 1)
             return sign + head + dot + tail + e + expo
 
-        #### Active code...
+        ################
+        # Active code...
+        ################
 
         self._finish_update()
 
@@ -2396,7 +2330,7 @@ class VicarLabel():
             # Read the beginning of the VICAR file to get the label size
             f.seek(0)
             snippet = f.read(40).decode('latin8')
-            match = _LBLSIZE.match(snippet)
+            match = _LBLSIZE_PATTERN.match(snippet)
             if not match:       # pragma: no cover
                 raise VicarError('Missing LBLSIZE keyword in file ' + str(filepath))
 
@@ -2423,7 +2357,7 @@ class VicarLabel():
 
             # Try to read the EOF label
             snippet = str(f.read(40).decode('latin8'))
-            match = _LBLSIZE.match(snippet)
+            match = _LBLSIZE_PATTERN.match(snippet)
             if match:
                 eolsize = int(match.group(1))
                 f.seek(skip)
@@ -2484,7 +2418,7 @@ class VicarLabel():
         with self._filepath.open('r+b') as f:
 
             snippet = f.read(40).decode('latin8')
-            match = _LBLSIZE.match(snippet)
+            match = _LBLSIZE_PATTERN.match(snippet)
             if not match:       # pragma: no cover
                 raise VicarError('Missing LBLSIZE keyword in file ' + str(self._filepath))
 

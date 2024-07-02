@@ -89,7 +89,7 @@ from vicar.vicarimage import VicarImage
 
 try:
     from ._version import __version__
-except ImportError as err:
+except ImportError:
     __version__ = 'Version unspecified'
 
 ##########################################################################################
