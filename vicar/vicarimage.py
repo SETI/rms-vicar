@@ -72,8 +72,8 @@ class VicarImage():
           class name included.
         * `__setitem__`: Enables "`image[name] = value`" dictionary-like syntax to set the
           value of a label parameter.
-        * `__str__`: Enables "`str(image)`", returning a string representing the content of
-          a label.
+        * `__str__`: Enables "`str(image)`", returning a string representing the content
+          of a label.
 
     **Notes About Dictionary Keys:**
 

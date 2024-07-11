@@ -42,7 +42,8 @@ class VicarLabel():
         * `as_string`: A string representing all or part of this label.
         * `copy`: An independent (deep) copy of this VicarLabel.
         * `export`: Returns a label parameter string of the form `NAME=VALUE`.
-        * `from_file`: Construct a VicarLabel object from the content of a VICAR data file.
+        * `from_file`: Construct a VicarLabel object from the content of a VICAR data
+          file.
         * `get`: Retrieve a label parameter value or return a default.
         * `insert`: Insert one or more parameters into this label.
         * `items`: Iterator over the `(name, value)` tuples in this label.
@@ -90,8 +91,8 @@ class VicarLabel():
               next occurrence of `after`.
 
         The last two options make it easy to reference a VICAR label parameter that is
-        repeated. For example, "`label['DAT_TIM', 'TASK', 'COPY']`" uniquely identifies the
-        occurrence of `DAT_TIM` applicable to `TASK='COPY'` when there might be other
+        repeated. For example, "`label['DAT_TIM', 'TASK', 'COPY']`" uniquely identifies
+        the occurrence of `DAT_TIM` applicable to `TASK='COPY'` when there might be other
         `TASK` sections of the label containing other values of `DAT_TIM`.
 
         Append a "+" to `name` to expand upon the function's behavior. With "get"
