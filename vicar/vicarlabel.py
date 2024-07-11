@@ -1,225 +1,304 @@
 ##########################################################################################
 # vicar/vicarlabel.py
 ##########################################################################################
-""""Class to support accessing, reading, and modifying VICAR labels."""
+"""Class to support accessing, reading, and modifying VICAR labels."""
 
-import copy
 import io
 import numbers
 import os
 import pathlib
+import pyparsing
 import re
-import sys
 
 from collections import namedtuple
-from vicar._LABEL_GRAMMAR import _LABEL_GRAMMAR
+from vicar._LABEL_GRAMMAR import _LABEL_GRAMMAR, _NAME
+from vicar._DEFINITIONS import (_ENUMERATED_VALUES, _LBLSIZE_WIDTH, _REQUIRED,
+                                _REQUIRED_INTS, _REQUIRED_NAMES)
 
-_NAME = re.compile(r'[A-Z][A-Z0-9_]*$')
-_LBLSIZE = re.compile(r'LBLSIZE *= *(\d+)')
+_LBLSIZE_PATTERN = re.compile(r'LBLSIZE *= *(\d+)')
 
 _ValueFormat = namedtuple('_ValueFormat', ['fmt', 'name_blanks', 'val_blanks',
                                            'sep_blanks', 'listfmts'])
-_ListFormat  = namedtuple('_ListFormat',  ['fmt', 'blanks_before', 'blanks_after'])
-
-# [(sys.byteorder,sys.platform)] -> HOST
-_HOST_DICT = {('big'   , 'sunos3'): 'SUN-3',
-              ('big'   , 'sunos4'): 'SUN-4',
-              ('big'   , 'sunos5'): 'SUN-SOLR',
-              ('little', 'sunos5'): 'X86-LINUX',
-              ('big'   , 'darwin'): 'MAC-OSX',
-              ('little', 'darwin'): 'MAC-OSX',
-              ('little', 'linux2'): 'X86-LINUX',
-              ('little', 'linux3'): 'X86-LINUX',
-              ('little', 'linux' ): 'X86-LINUX',
-              ('little', 'win32' ): 'WIN-XP'     }
-
-try:
-    _HOST = _HOST_DICT[(sys.byteorder, sys.platform)]
-except KeyError:                # pragma: no cover
-    if sys.platform.startswith('linux'):
-        _HOST = 'X86-LINUX'     # could be "linux4" I guess
-    else:
-        _HOST = sys.platform.upper()
-
-# [sys.byteorder] -> INTFMT, REALFMT
-_INTFMT_DICT  = {'little': 'LOW'  , 'big': 'HIGH'}
-_REALFMT_DICT = {'little': 'RIEEE', 'big': 'IEEE'}
-
-# Required keywords, default values
-_REQUIRED = [('LBLSIZE' , 0,     ),
-             ('FORMAT'  , 'BYTE' ),     # Guess
-             ('TYPE'    , 'IMAGE'),     # Guess
-             ('BUFSIZ'  , 20480  ),     # Always ignored
-             ('DIM'     , 3      ),     # Always
-             ('EOL'     , 0      ),
-             ('RECSIZE' , 0      ),
-             ('ORG'     , 'BSQ'  ),
-             ('NL'      , 0      ),
-             ('NS'      , 0      ),
-             ('NB'      , 0      ),
-             ('N1'      , 0      ),
-             ('N2'      , 0      ),
-             ('N3'      , 0      ),
-             ('N4'      , 0      ),     # Always
-             ('NBB'     , 0      ),
-             ('NLB'     , 0      ),
-             ('HOST'    , _HOST  ),
-             ('INTFMT'  , _INTFMT_DICT[sys.byteorder]),
-             ('REALFMT' , _REALFMT_DICT[sys.byteorder]),
-             ('BHOST'   , _HOST  ),
-             ('BINTFMT' , _INTFMT_DICT[sys.byteorder]),
-             ('BREALFMT', _REALFMT_DICT[sys.byteorder]),
-             ('BLTYPE'  , ''),]
-_REQUIRED_NAMES = set([t[0] for t in _REQUIRED])
-
-_LBLSIZE_WIDTH = 16     # fixed space between "LBLSIZE=" and the next parameter name
-
-_VALID_VALUES = {
-    'FORMAT'  : {'BYTE', 'HALF', 'FULL', 'REAL', 'DOUB', 'COMP',
-                 'WORD', 'LONG', 'COMPLEX'},
-    'ORG'     : {'BSQ', 'BIL', 'BIP'},
-    'INTFMT'  : {'HIGH', 'LOW'},
-    'REALFMT' : {'IEEE', 'RIEEE', 'VAX'},
-    'BINTFMT' : {'HIGH', 'LOW'},
-    'BREALFMT': {'IEEE', 'RIEEE', 'VAX'},
-    'DIM'     : {3},
-    'EOL'     : {0, 1},
-    'N4'      : {0},
-}
-
-_REQUIRED_INTS = {'LBLSIZE', 'RECSIZE', 'NL', 'NS', 'NB', 'N1', 'N2', 'N3', 'NBB', 'NLB'}
+_ListFormat = namedtuple('_ListFormat', ['fmt', 'blanks_before', 'blanks_after'])
 
 
 class VicarError(ValueError):
-    """A general exception raised by the vicar module; see the string for details."""
+    """ValueError subclass for violations of the VICAR format standard."""
     pass
 
 
 class VicarLabel():
-    """Class to support accessing, reading, modifying, and writing VICAR labels."""
+    """Class to support accessing, reading, modifying, and writing VICAR labels.
 
-    def __init__(self, source=None):
-        """Constructor.
+    **Properties:**
 
-        Args:
-            source (str or Path): The path to a VICAR data file, a VICAR label text
-                string, or a list of tuples. If a str is provided and does not point to a
-                valid file, it is assumed to be VICAR label text. If no input is provided,
-                a VicarLabel is returned containing only the mandatory parameters with
-                default values.
+        * `filepath`: The file path associated with this VicarLabel.
 
-                If a list of tuples is provided, each tuple must contain a parameter name
-                and a value, where the value is represented by an int, float, str, or
-                list. Optional formatting can be provided if a user wants additional
-                control over how the associated label string will be formatted. The tuple
-                contains up to six values in total:
+    **Core Methods:**
 
-                    (name, value[, format][[[, name_blanks], val_blanks], sep_blanks])
+        * `append`: Append one or more parameters to the end of this label.
+        * `arg`: The index of a parameter name within this label.
+        * `args`: Iterator over the numeric indices of the parameters in this label.
+        * `as_string`: A string representing all or part of this label.
+        * `copy`: An independent (deep) copy of this VicarLabel.
+        * `export`: Returns a label parameter string of the form `NAME=VALUE`.
+        * `from_file`: Construct a VicarLabel object from the content of a VICAR data
+          file.
+        * `get`: Retrieve a label parameter value or return a default.
+        * `insert`: Insert one or more parameters into this label.
+        * `items`: Iterator over the `(name, value)` tuples in this label.
+        * `keys`: Iterator over the parameter names in this label as unique keys.
+        * `name_value_str`: Returns a label parameter string of the form `NAME=VALUE`.
+        * `names`: Iterator over the parameter names in this label.
+        * `read_label`: Read the label string(s) from a file.
+        * `reorder`: Reorder the parameters in this label.
+        * `value_str`: Formats a label parameter value.
+        * `values`: Iterator over the parameter values in this label.
+        * `write_label`: Write this label into a data file, replacing an existing label.
 
-                The name and value are required. Optional subsequent items are:
+    **Python Syntax Support Methods:**
 
-                    format: a format string, e.g., "%+7d" or "%7.3f".
+        * `__contains__`: Enables "`name in label`" syntax.
+        * `__delitem__`: Enables "`del label[name]`" syntax.
+        * `__eq__`: Enables "`a == b`", the test of whether two labels are equal.
+        * `__getitem__`: Enables "`label[name]`" dictionary-like syntax.
+        * `__iter__`: Enables "`for key in label:`" syntax.
+        * `__len__`: Enables "`len(label)`", the number of parameters in the given
+          VicarLabel.
+        * `__repr__`: Enables "`repr(label)`", similar to the "`str(label)`", but with the
+          class name included.
+        * `__setitem__`: Enables "`label[name] = value`" dictionary-like syntax.
+        * `__str__`: Enables "`str(label)`", returning a string representing the content
+          of a label.
 
-                    name_blanks: number of blank characters after the name and before the
-                    equal sign; zero is the default.
+    **Notes About Dictionary Keys:**
 
-                    val_blanks: number of blank characters after the equal sign and before
-                    the value; zero is the default.
+        When using dictionary-like syntax to reference a parameter in a VICAR label, a
+        rich set of options are available. For example, if `label` is a VicarLabel object,
+        then:
 
-                    sep_blanks: number of blanks after the value and before the next label
-                    parameter or the label's end; a default value of zero means that the
-                    standard padding (two blanks) will be used when the text string is
-                    generated.
+            * `label[n]` where `n` is an integer refers to the "nth" parameter in the
+              label. `n` can be positive or negative.
+            * `label[name]` where `name` is a string refers to the first occurrence in the
+              label of a parameter with this name.
+            * `label[name,n]` refers to the "nth" occurrence in the label of a parameter
+              with this name. `n` can be positive or negative.
+            * `label[name, after]` where both items are strings refers to the first
+              occurrence of parameter `name` after the first occurrence of parameter
+              `after` and before the second occurrence of `after`.
+            * `label[name, after, value]` refers to the first occurrence of parameter
+              `name` after the first location where `after` equals `value` and before the
+              next occurrence of `after`.
 
-                If the value is a list, then each item in the list must be either a
-                parameter value (int, float, or string) or else a tuple of up to four
-                values:
+        The last two options make it easy to reference a VICAR label parameter that is
+        repeated. For example, "`label['DAT_TIM', 'TASK', 'COPY']`" uniquely identifies
+        the occurrence of `DAT_TIM` applicable to `TASK='COPY'` when there might be other
+        `TASK` sections of the label containing other values of `DAT_TIM`.
 
-                    (value[, format][[, blanks_before], blanks_after])
+        Append a "+" to `name` to expand upon the function's behavior. With "get"
+        operations, a list is returned identifying all of the occurrences of the selected
+        name rather than just the first or "nth". With "set" operations, a new occurrence
+        of `name` is inserted into the label even if the a parameter of the given name is
+        already present.
 
-                After the value, the optional items are:
+    **Notes About VICAR Label Formatting Hints:**
 
-                    format: a format string, e.g., "%+07d", "%12.3e" or "%.4f".
+        Formatting hints can be included wherever a VICAR parameter value is specified.
+        When defining label parameters using a list of tuples, use (name, value, hints...)
+        instead of (name, value). Elsewhere, simply replace the value by a tuple (value,
+        hints...).
 
-                    blanks_before: the number of blanks before the value, after the left
-                    parenthesis or comma; zero is the default.
+        Hints can be specified using up to four items:
 
-                    blanks_after: the number of blanks after the value and before the next
-                    comma or the right parenthesis; zero is the default.
+            ([`format`][[[, `name_blanks`], `val_blanks`], `sep_blanks`])
+
+        where:
+
+            * `format` is a format string, e.g., "%+7d" or "%7.3f".
+            * `name_blanks` is the number of blank characters after the name and before
+              the equal sign; zero by default.
+            * `val_blanks` is the number of blank characters after the equal sign and
+              before the value; zero by default.
+            * `sep_blanks` is the number of blanks after the value and before the next
+              label parameter or the label's end; two by default.
+
+        Note the use of square brackets in the tuple expression above. If the first hint
+        value is a string, it is interpreted as `format`; otherwise, the `format` is
+        unspecified. After the optional format, values are interpreted as numbers of
+        blanks. If only one int is provided, it defines `sep_blanks`, with `val_blanks`
+        and `name_blanks` set to zero. If two trailing ints are provided, they define
+        `val_blanks` and `sep_blanks`, with `name_blanks` set to zero.
+
+        For example, if the name is "TEXP" and the value is 1.5, this is how hint values
+        are interpreted::
+
+                <no hints>        = ("", 0, 0, 0)     -> "TEXP=1.5  "
+                "%.3f"            = ("%.3f", 0, 0, 0) -> "TEXP=1.500  "
+                ("%.3f", 4)       = ("%.3f", 0, 0, 4) -> "TEXP=1.500    "
+                ("%.3f", 1, 4)    = ("%.3f", 0, 1, 4) -> "TEXP= 1.500    "
+                ("%.3f", 2, 1, 4) = ("%.3f", 2, 1, 4) -> "TEXP  = 1.500    "
+                4                 = ("", 0, 0, 4)     -> "TEXP=1.5    "
+                (1, 4)            = ("", 0, 1, 4)     -> "TEXP= 1.5    "
+                (2, 1, 4)         = ("", 2, 1, 4)     -> "TEXP  = 1.5    "
+
+        When the parameter value is a list, it is also possible to embed formatting
+        information on an item by item basis. Replace any item value by a tuple:
+
+            (`item` [, `format`][[, `blanks_before`], `blanks_after`])
+
+        where:
+
+            * `format` is a format string, e.g., "%+07d", "%12.3e" or "%.4f".
+            * `blanks_before` is the number of blanks before the value, after the left
+              parenthesis or comma; zero is the default.
+            * `blanks_after` is the number of blanks after the value and before the next
+              next comma or the right parenthesis; zero is the default.
+
+        Here are some examples of a list with embedded formatting for a parameter named
+        "XY" with a value [7,6]::
+
+            [(7, "%+02d"), 6]       = [(7, "%+02d", 0, 0), 6] -> "XY=[+07, 6]  "
+            [(7, 2), 6]             = [(7, "", 0, 2), 6]      -> "XY=[7  , 6]  "
+            [(7, 1, 2), 6])         = [(7, "", 1, 2), 6]      -> "XY=[ 7  , 6]  "
+            [(7, "%02d", 2), 6])    = [(7, "%02d", 0, 2), 6]  -> "XY=[07  , 6]  "
+            [(7, "%02d", 1, 2), 6]) = [(7, "%02d", 1, 2), 6]  -> "XY=[ 07  , 6]  "
+    """
+
+    def __init__(self, source=None, strict=True):
+        """Constructor for a VicarLabel.
+
+        Parameters:
+            source (file, pathlib.Path, str, None, dict, or list):
+                A representation of a VICAR label:
+
+                * *file*: The label string is read from the given, open file.
+                * *pathlib.Path*: The label string is read from the referenced file.
+                * *str*: First, a check is performed to see if it is path to an existing
+                  file. If so, the label is read from that file; otherwise, the string is
+                  itself interpreted as a VICAR label string.
+                * *None*: The returned VicarLabel only contains the required parameters
+                  with their default values.
+                * *dict*: The label parameters are the names of the dictionary keys, given
+                  in the order they were entered into the dictionary. Each dictionary
+                  value is either the VICAR parameter value or a tuple(value, formatting
+                  hints).
+                * *list*: The label is derived from the given sequence of (name, value) or
+                  (name, value, formatting hints) tuples.
+
+                See ``Notes`` for details about formatting hints.
+
+            strict (bool, optional):
+                True (the default) to require strict conformance to the VICAR standard;
+                False for a looser version of the standard. The standard is described
+                here:
+
+                    https://pds-rings.seti.org/help/VICAR_file_fmt.pdf
+
+                When `strict` is False:
+
+                    * names can exceed 32 characters and contain lower case letters.
+                    * string values need not be pure 7-bit ASCII.
+                    * lists can contain a mixture of types.
+                    * lists can be empty.
+
+        Raises:
+            OSError: If the source is given as a file path that cannot be read.
+            TypeError: If the source is an unrecognized type or contains an unrecognized
+                type.
+            VicarError: If the source violates the VICAR standard or a required VICAR
+                parameter has an invalid value.
+
+        Notes:
+            Formatting hints can be included wherever a VICAR parameter value is
+            specified. When defining label parameters using a list of tuples, use (name,
+            value, hints...) instead of (name, value). Elsewhere, simply replace the value
+            by a tuple (value, hints...).
+
+            Hints can be specified using up to four items:
+
+                ([`format`][[[, `name_blanks`], `val_blanks`], `sep_blanks`])
+
+            where:
+
+                * `format` is a format string, e.g., "%+7d" or "%7.3f".
+                * `name_blanks` is the number of blank characters after the name and
+                  before the equal sign; zero by default.
+                * `val_blanks` is the number of blank characters after the equal sign and
+                  before the value; zero by default.
+                * `sep_blanks` is the number of blanks after the value and before the next
+                  label parameter or the label's end; two by default.
+
+            Note the use of square brackets in the tuple expression above. If the first
+            hint value is a string, it is interpreted as `format`; otherwise, the `format`
+            is unspecified. After the optional format, values are interpreted as numbers
+            of blanks. If only one int is provided, it defines `sep_blanks`, with
+            `val_blanks` and `name_blanks` set to zero. If two trailing ints are provided,
+            they define `val_blanks` and `sep_blanks`, with `name_blanks` set to zero.
+
+            For example, if the name is "TEXP" and the value is 1.5, this is how hint
+            values are interpreted::
+
+                <no hints>        = ("", 0, 0, 0)     -> "TEXP=1.5  "
+                "%.3f"            = ("%.3f", 0, 0, 0) -> "TEXP=1.500  "
+                ("%.3f", 4)       = ("%.3f", 0, 0, 4) -> "TEXP=1.500    "
+                ("%.3f", 1, 4)    = ("%.3f", 0, 1, 4) -> "TEXP= 1.500    "
+                ("%.3f", 2, 1, 4) = ("%.3f", 2, 1, 4) -> "TEXP  = 1.500    "
+                4                 = ("", 0, 0, 4)     -> "TEXP=1.5    "
+                (1, 4)            = ("", 0, 1, 4)     -> "TEXP= 1.5    "
+                (2, 1, 4)         = ("", 2, 1, 4)     -> "TEXP  = 1.5    "
+
+            When the parameter value is a list, it is also possible to embed formatting
+            information on an item by item basis. Replace any item value by a tuple:
+
+                (`item` [, `format`][[, `blanks_before`], `blanks_after`])
+
+            where:
+
+                * `format` is a format string, e.g., "%+07d", "%12.3e" or "%.4f".
+                * `blanks_before` is the number of blanks before the value, after the left
+                  parenthesis or comma; zero is the default.
+                * `blanks_after` is the number of blanks after the value and before the
+                  next comma or the right parenthesis; zero is the default.
+
+            Here are some examples of a list with embedded formatting for a parameter
+            named "XY" with a value [7,6]::
+
+                [(7, "%+02d"), 6]       = [(7, "%+02d", 0, 0), 6] -> "XY=[+07, 6]  "
+                [(7, 2), 6]             = [(7, "", 0, 2), 6]      -> "XY=[7  , 6]  "
+                [(7, 1, 2), 6])         = [(7, "", 1, 2), 6]      -> "XY=[ 7  , 6]  "
+                [(7, "%02d", 2), 6])    = [(7, "%02d", 0, 2), 6]  -> "XY=[07  , 6]  "
+                [(7, "%02d", 1, 2), 6]) = [(7, "%02d", 1, 2), 6]  -> "XY=[ 07  , 6]  "
         """
 
-        # Interpret the input
-        if not source:
-            self._filepath = None
-            params = []
-        elif isinstance(source, list):
-            self._filepath = None
-            params = source
-        elif isinstance(source, str):
-            if os.path.exists(source) or '=' not in source:
-                self._filepath = pathlib.Path(source)
-                label = VicarLabel.read_label(self._filepath)
-                params = _LABEL_GRAMMAR.parse_string(label).as_list()
-            else:
-                self._filepath = None
-                params = _LABEL_GRAMMAR.parse_string(source).as_list()
-        else:
-            self._filepath = pathlib.Path(source)
-            label = VicarLabel.read_label(self._filepath)
-            params = _LABEL_GRAMMAR.parse_string(label).as_list()
+        self._strict = bool(strict)
 
-        # Insert a missing LBLSIZE or move it to the front if necessary
-        names = [t[0] for t in params]
-        if 'LBLSIZE' not in names:
-            params = _REQUIRED[:1] + params
-        elif names[0] != 'LBLSIZE':
-            k = names.index('LBLSIZE')
-            tuple_ = params.pop(k)
-            params = [tuple_] + params
+        names, vals, fmts, self._filepath = self._interpret_source(source, required=True,
+                                                                   fileio=True)
+        self._update(names, vals, fmts)
 
-        # Insert any other required parameters at the end
-        names = set(t[0] for t in params)
-        req_params = []
-        for tuple_ in _REQUIRED[1:]:
-            name = tuple_[0]
-            if name not in names:
-                req_params.append(tuple_)
+    def _update(self, names, vals, fmts):
+        """Internal method to define or re-define the label's content.
 
-        params += req_params
-
-        # Extract names, values, formats in correct order
-        names = [t[0] for t in params]
-        values = []
-        formats = []
-        name_set = set()
-        for tuple_ in params:
-            (value, valfmt) = VicarLabel._interpret_value_format(tuple_[1:])
-
-            # Check types and values of required parameters
-            name = tuple_[0]
-            is_first = tuple_[0] not in name_set
-            name_set.add(name)
-            VicarLabel._check_type(name, value, is_first)
-
-            values.append(value)
-            formats.append(valfmt)
-
-        self._update(names, values, formats)
-
-    def _update(self, names, values, formats):
-        """Internal method to define or re-define the label's content."""
-
-        for name in names:
-            if not VicarLabel._validate_name(name):
-                raise VicarError('Invalid VICAR parameter name: ' + repr(name))
-
-        for value in values:
-            if not VicarLabel._validate_value(value):
-                raise VicarError('Invalid VICAR parameter value: ' + repr(value))
+        Parameters:
+            names (list[str]): List of names, already validated.
+            vals (list): List of values, already validated.
+            fmts (list[_ValueFormat or None]): List of formatting hints, validated.
+        """
 
         self._names = names
-        self._values = values
-        self._formats = formats
+        self._values = vals
+        self._formats = fmts
+        self._waiting_to_update = True      # defer indexing during updates
+
+    def _finish_update(self):
+        """Internal method to finish defining or re-defining the label's content.
+
+        This must be called before any operation on the object.
+        """
+
+        if not self._waiting_to_update:
+            return
+
         self._len = len(self._names)
 
         # Dictionary keyed by name, returning list of indices
@@ -240,238 +319,783 @@ class VicarLabel():
             self._key_index[(name, k)] = [i]
             self._key_index[(name, k - occs)] = [i]
 
+        self._waiting_to_update = False
+
+    ######################################################################################
+    # Properties
+    ######################################################################################
+
+    @property
+    def filepath(self):
+        """The file path associated with this VicarLabel.
+
+        Returns:
+            pathlib.Path or None:
+                The Path if this object is associated with a file; None otherwise.
+        """
+
+        return self._filepath
+
+    @filepath.setter
+    def filepath(self, value):
+        """Set the file path associated with this VicarLabel.
+
+        Parameters:
+            value (pathlib.Path or None):
+                The Path to the file associated with this object; None if this object is
+                not associated with a file.
+        """
+
+        if value:
+            self._filepath = pathlib.Path(value)
+        else:
+            self._filepath = None
+
+    ######################################################################################
+    # Support for the Standard Python API
+    ######################################################################################
+
+    def copy(self):
+        """An independent (deep) copy of this VicarLabel.
+
+        Returns:
+            VicarLabel: The copy.
+        """
+
+        label = VicarLabel(source=[], strict=self._strict)
+        label._filepath = self._filepath
+        vals = [list(v) if isinstance(v, list) else v for v in self._values]  # new lists
+        label._update(list(self._names), vals, list(self._formats))
+        return label
+
+    def __len__(self):
+        """The number of keywords in the VICAR label.
+
+        Returns:
+            int: Number of keywords.
+        """
+
+        self._finish_update()
+        return self._len
+
+    def __eq__(self, other):
+        """VicarLabels are equal if they have the same parameter names in the same order.
+        Formatting and filepath are ignored.
+
+        VicarLabels are equal if their parameters and values are all the same; formatting
+        hints need not be the same.
+
+        Parameters:
+            other (VicarLabel): Second VicarLabel to compare with this.
+
+        Returns:
+            bool: True if the names and values are equal.
+        """
+
+        if not isinstance(other, VicarLabel):
+            return False
+
+        return self._names == other._names and self._values == other._values
+
+    def __str__(self):
+        return self.as_string()
+
+    def __repr__(self):
+        return 'VicarLabel("""' + self.as_string(sep='\n\n') + '""")'
+
+    ######################################################################################
+    # Validation Utililties
+    ######################################################################################
+
+    def _interpret_source(self, source, required=False, fileio=False):
+        """Interpret and validate a source object.
+
+        Parameters:
+            source (file, pathlib.Path, str, None, dict, list, or tuple):
+                A representation of VICAR label content:
+
+                * *file*: The label string is read from the given, open file.
+                * *pathlib.Path*: The label string is read from the referenced file.
+                * *str*: First, a check is performed to see if it is path to an existing
+                  file. If so, the label is read from that file; otherwise, the string is
+                  itself interpreted as a VICAR label string.
+                * *None*: The returned VicarLabel only contains the required parameters
+                  with their default values.
+                * *dict*: The label parameters are the names of the dictionary keys, given
+                  in the order they were entered into the dictionary. Each dictionary
+                  value is either the VICAR parameter value or a tuple(value, formatting
+                  hints).
+                * *list*: The label is derived from the given sequence of (name, value) or
+                  (name, value, formatting hints) tuples.
+                * *tuple*: A single parameter defined by (name, value) or (name, value,
+                  formatting hints).
+
+                See ``Notes`` for details about formatting hints.
+
+            required (bool, optional):
+                True to insert any required VICAR parameters that are missing.
+
+            fileio (bool, optional):
+                True to allow the source to be read from a file, file path string, or
+                pathlib.Path object. In this case, the file path is returned in addition
+                to the lists.
+
+        Returns:
+            (list, list, list[, pathlib.Path or None]): A tuple containing:
+
+            * list[str]: List of names.
+            * list[int, float, str, or list]: List of values.
+            * list[_ValueFormat or None]: List of formatting hints.
+            * pathlib.Path or None, optional: The pathlib.Path of the file if the label
+              was read from a file; otherwise, None. Included only if `fileio` is True.
+
+        Raises:
+            OSError: If `fileio` is True but a file could not be read.
+            TypeError: If the source is an unrecognized type or contains an unrecognized
+                type, or if a format string is incompatible with a parameter value.
+            VicarError: If the source violates the VICAR standard or a required VICAR
+                parameter has an invalid value.
+
+        Notes:
+            Formatting hints can be included wherever a VICAR parameter value is
+            specified. When defining label parameters using a list of tuples, use (name,
+            value, hints...) instead of (name, value). Elsewhere, simply replace the value
+            by a tuple (value, hints...).
+
+            Hints can be specified using up to four items:
+
+                ([`format`][[[, `name_blanks`], `val_blanks`], `sep_blanks`])
+
+            where:
+
+                * `format` is a format string, e.g., "%+7d" or "%7.3f".
+                * `name_blanks` is the number of blank characters after the name and
+                  before the equal sign; zero by default.
+                * `val_blanks` is the number of blank characters after the equal sign and
+                  before the value; zero by default.
+                * `sep_blanks` is the number of blanks after the value and before the next
+                  label parameter or the label's end; two by default.
+
+            Note the use of square brackets in the tuple expression above. If the first
+            hint value is a string, it is interpreted as `format`; otherwise, the `format`
+            is unspecified. After the optional format, values are interpreted as numbers
+            of blanks. If only one int is provided, it defines `sep_blanks`, with
+            `val_blanks` and `name_blanks` set to zero. If two trailing ints are provided,
+            they define `val_blanks` and `sep_blanks`, with `name_blanks` set to zero.
+
+            For example, if the name is "TEXP" and the value is 1.5, this is how hint
+            values are interpreted::
+
+                <no hints>        = ("", 0, 0, 0)     -> "TEXP=1.5  "
+                "%.3f"            = ("%.3f", 0, 0, 0) -> "TEXP=1.500  "
+                ("%.3f", 4)       = ("%.3f", 0, 0, 4) -> "TEXP=1.500    "
+                ("%.3f", 1, 4)    = ("%.3f", 0, 1, 4) -> "TEXP= 1.500    "
+                ("%.3f", 2, 1, 4) = ("%.3f", 2, 1, 4) -> "TEXP  = 1.500    "
+                4                 = ("", 0, 0, 4)     -> "TEXP=1.5    "
+                (1, 4)            = ("", 0, 1, 4)     -> "TEXP= 1.5    "
+                (2, 1, 4)         = ("", 2, 1, 4)     -> "TEXP  = 1.5    "
+
+            When the parameter value is a list, it is also possible to embed formatting
+            information on an item by item basis. Replace any item value by a tuple:
+
+                (`item` [, `format`][[, `blanks_before`], `blanks_after`])
+
+            where:
+
+                * `format` is a format string, e.g., "%+07d", "%12.3e" or "%.4f".
+                * `blanks_before` is the number of blanks before the value, after the left
+                  parenthesis or comma; zero is the default.
+                * `blanks_after` is the number of blanks after the value and before the
+                  next comma or the right parenthesis; zero is the default.
+
+            Here are some examples of a list with embedded formatting for a parameter
+            named "XY" with a value [7,6]::
+
+                [(7, "%+02d"), 6]       = [(7, "%+02d", 0, 0), 6] -> "XY=[+07, 6]  "
+                [(7, 2), 6]             = [(7, "", 0, 2), 6]      -> "XY=[7  , 6]  "
+                [(7, 1, 2), 6])         = [(7, "", 1, 2), 6]      -> "XY=[ 7  , 6]  "
+                [(7, "%02d", 2), 6])    = [(7, "%02d", 0, 2), 6]  -> "XY=[07  , 6]  "
+                [(7, "%02d", 1, 2), 6]) = [(7, "%02d", 1, 2), 6]  -> "XY=[ 07  , 6]  "
+        """
+
+        # Handle files
+        if fileio:
+            filepath = None
+            if isinstance(source, io.IOBase):
+                filepath = pathlib.Path(source.name)
+                source = VicarLabel.read_label(source)
+            elif isinstance(source, pathlib.Path):
+                filepath = source
+                source = VicarLabel.read_label(source)
+            elif isinstance(source, str) and os.path.exists(source):
+                filepath = pathlib.Path(source)
+                source = VicarLabel.read_label(filepath)
+
+        # Convert to list of tuples
+        if isinstance(source, tuple):
+            source = [source]   # a single tuple becomes a list of tuples
+        elif source is None:
+            source = []
+        elif isinstance(source, dict):
+            source = [(k,) + (v if isinstance(v, tuple) else (v,))
+                      for k,v in source.items()]
+        elif isinstance(source, str):
+            try:
+                source = _LABEL_GRAMMAR.parse_string(source).as_list()
+            except pyparsing.ParseException as e:
+                raise VicarError('VICAR parsing failure: ' + str(e))
+        elif not isinstance(source, list):
+            raise TypeError('Not a recognized source type: ' + type(source).__name__)
+
+        # Validate list element types
+        for item in source:
+            if not isinstance(item, tuple) or len(item) < 2:
+                raise TypeError('Not a valid (name, value) tuple: ' + repr(item))
+
+        # Extract names, values, formats and validate
+        names = []
+        vals = []
+        fmts = []
+        for item in source:
+            VicarLabel._validate_name(item[0], strict=self._strict)
+            (val, fmt) = VicarLabel._interpret_value_format(item[1:])
+            VicarLabel._validate_value(val, item[0], strict=self._strict)
+            names.append(item[0])
+            vals.append(val)
+            fmts.append(fmt)
+
+        # Insert required parameters if necessary
+        if required:
+            names, vals, fmts = VicarLabel._validate_required(names, vals, fmts,
+                                                              append=True)
+
+        if fileio:
+            return (names, vals, fmts, filepath)
+
+        return (names, vals, fmts)
+
     @staticmethod
-    def _validate_value(value):
-        """Return True if this is a valid value for a VICAR label parameter."""
+    def _validate_name(name, strict=True):
+        """Raise a VicarError if this is not valid name for a VICAR label parameter.
+
+        Parameters:
+            name (str): VICAR parameter name.
+            strict (bool, optional): True for strict VICAR conformance, False for loose.
+
+        Raises:
+            VicarError: If this is not a valid VICAR parameter name.
+        """
+
+        if not isinstance(name, str):
+            raise VicarError('VICAR name is not a string: ' + repr(name))
+
+        try:
+            _ = _NAME.parse_string(name)
+        except pyparsing.ParseException:
+            raise VicarError('Invalid VICAR name string: ' + repr(name))
+
+        if strict:
+            if len(name) > 32:
+                raise VicarError('VICAR name exceeds 32 characters: ' + repr(name))
+            if not name.isupper():
+                raise VicarError('VICAR name is not upper case: ' + repr(name))
+
+    @staticmethod
+    def _validate_value(value, name, strict=True):
+        """Raise a VicarError if this is not valid value for a VICAR label parameter.
+
+        Parameters:
+            value (int, float, string, or list): VICAR parameter value.
+            name (str): Name of the VICAR parameter.
+            strict (bool, optional): True for strict VICAR conformance, False for loose.
+
+        Raises:
+            VicarError: If this is not a valid VICAR parameter value.
+        """
 
         if isinstance(value, numbers.Real):
-            return True
+            return
 
         if isinstance(value, str):
-            return value.isascii()
+            if strict and not all(32 <= ord(c) <= 126 for c in value):
+                raise VicarError(f'{name} string value is not ASCII: ' + repr(value))
+            return
 
-        if isinstance(value, (list, tuple)):
+        if isinstance(value, list):
             if len(value) == 0:
-                return False
+                if strict:
+                    raise VicarError(f'{name} list value is empty: ' + repr(value))
+                return
 
-            if isinstance(value[0], numbers.Integral):
-                types = numbers.Integral
-            elif isinstance(value[0], numbers.Real):
-                types = numbers.Real
-            elif isinstance(value[0], str):
-                types = str
-            else:
-                return False
+            if strict:
+                # Make sure all the list elements have the same type
+                if isinstance(value[0], numbers.Integral):
+                    type_ = numbers.Integral
+                elif isinstance(value[0], numbers.Real):
+                    type_ = numbers.Real
+                elif isinstance(value[0], str):
+                    type_ = str
+                else:
+                    type_name = type(value[0]).__name__
+                    raise VicarError(f'{name} list item has invalid type {type_name}: '
+                                     + repr(value))
 
-            return all(isinstance(v, types) for v in value[1:])
+                if all(isinstance(v, type_) for v in value[1:]):
+                    return
 
-        return False
+                type_name = type(value[0]).__name__
+                raise VicarError(f'{name} list items are not all of type {type_name}')
 
-    @staticmethod
-    def _validate_name(name):
-        """Return True if this is a valid name for a VICAR label parameter."""
+            for v in value:
+                if not isinstance(v, (numbers.Real, str)):
+                    type_name = type(v).__name__
+                    raise VicarError(f'{name} list item has invalid type {type_name}: '
+                                     + repr(v))
 
-        return bool(_NAME.match(name))
+            return
 
-    @staticmethod
-    def _check_type(name, value, is_first):
-        """Raise an exception for an invalid value of a required VICAR parameter."""
-
-        if name in _VALID_VALUES:
-            # Only the first occurrence of these is constrained; for example,
-            # ORG='ROW' exists in some files, but only after ORG='BSQ'.
-            if value not in _VALID_VALUES[name] and is_first:
-                raise VicarError(f'Invalid value for {name}: {repr(value)}; '
-                                 f'must be in {_VALID_VALUES[name]}')
-        elif name in _REQUIRED_INTS:
-            # This constraint applies to every occurrence, not just the first
-            if not isinstance(value, numbers.Integral) or value < 0:
-                raise VicarError(f'Invalid value for {name}: {repr(value)}; '
-                                 f'must be a non-negative integer')
+        type_ = type(value)
+        raise VicarError(f'{name} value type {type_.__name__} is invalid: ' + repr(value))
 
     @staticmethod
-    def _interpret_value_format(tuple_):
+    def _interpret_value_format(item):
+        """Get the value and optional format from a (value, optional format info) tuple.
+
+        Parameters:
+            item (tuple): VICAR parameter value followed by optional formatting hints.
+
+        Returns:
+            (any, _ValueFormat or None): A tuple containing:
+
+            * int, float, string, or list: The interpreted value.
+            * _ValueFormat or None: Formatting hints if provided; None otherwise.
+
+        Raises:
+            TypeError: If the format string is incompatible with the value.
+            VicarError: If this is not a valid tuple of formatting hints or is
+                incompatible with the value type.
         """
-        Get the value and optional format from a (value, optional format info) tuple.
-        """
 
-        # If this is not a tuple, the input is a standalone value with no format
-        if not isinstance(tuple_, tuple):
-            tuple_ = (tuple_,)
+        def validate_tuplefmt(value, tuplefmt):
+            if not tuplefmt or not tuplefmt.fmt:
+                return
+
+            fmt = tuplefmt.fmt
+            _ = fmt % value     # TypeError on failure
+            if isinstance(value, numbers.Integral):
+                if fmt[-1] not in 'di':
+                    raise TypeError('invalid format for int: ' + repr(fmt))
+            elif isinstance(value, numbers.Real):
+                if fmt[-1] not in 'eEfFgG':
+                    raise TypeError('invalid format for float: ' + repr(fmt))
+            elif isinstance(value, str):    # pragma: no branch
+                raise TypeError('formats for strings are disallowed: ' + repr(fmt))
 
         # If this parameter value is a list, interpret its values and formatting
-        if isinstance(tuple_[0], list):
+        if isinstance(item[0], list):
             value = []
             listfmts = []
-            for subval in tuple_[0]:
+            for subval in item[0]:
 
                 # Tuple case: (value[, format][[, blanks_before], blanks_after])
                 if isinstance(subval, tuple):
+                    listfmt = VicarLabel._interpret_listfmt(subval[1:])
+                    validate_tuplefmt(subval[0], listfmt)
                     value.append(subval[0])
-
-                    if isinstance(subval[1], str):
-                        listfmt = subval[1]
-                        blanks = list(subval[2:])
-                    else:
-                        listfmt = ''
-                        blanks = list(subval[1:])
-
-                    while len(blanks) < 2:
-                        blanks = [0] + blanks
-
-                    listfmt = _ListFormat(listfmt, *blanks)
+                    listfmts.append(listfmt)
                 else:
                     value.append(subval)
-                    listfmt = None
-
-                listfmts.append(listfmt)
+                    listfmts.append(None)
 
             if not any(listfmts):
                 listfmts = []
 
         # Otherwise, the value is easy and there are no list formats
         else:
-            value = tuple_[0]
+            value = item[0]
             listfmts = []
 
         # Interpret the rest of the tuple
-        if len(tuple_) > 1:
-            if isinstance(tuple_[1], str):
-                fmt = tuple_[1]
-                blanks = list(tuple_[2:])
-            else:
-                fmt = ''
-                blanks = list(tuple_[1:])
-
-            while len(blanks) < 3:
-                blanks = [0] + blanks
-
-            valfmt = _ValueFormat(fmt, *blanks, listfmts)
-
-        elif listfmts:
-            valfmt = _ValueFormat('', 0, 0, 0, listfmts)
-
-        else:
-            valfmt = None
-
+        valfmt = VicarLabel._interpret_valfmt(item[1:], listfmts)
+        validate_tuplefmt(value, valfmt)
         return (value, valfmt)
 
-    ########################################
+    def _interpret_valfmt(hints, listfmts=[]):
+        """Get the _ValueFormat from a value or tuple.
 
-    @property
-    def filepath(self):
-        """Get the label's filepath.
+        Parameters:
+            hints (tuple): Value format hints.
+            listfmt (list[_ListFormat[, optional): Formats for list elements.
 
         Returns:
-            Path: The path of the VicarImage file."""
-        return self._filepath
+            _ValueFormat or None:
+                Interpreted _ValueFormat; None if no formatting hints were provided.
 
-    @filepath.setter
-    def filepath(self, value):
-        if value:
-            self._filepath = pathlib.Path(value)
+        Raises:
+            VicarError: If this is not a valid tuple of formatting hints.
+        """
+
+        if not hints:
+            if listfmts:
+                return _ValueFormat('', 0, 0, 0, listfmts)
+            return None
+
+        if isinstance(hints[0], str):
+            fmt = hints[0]
+            ints = hints[1:]
         else:
-            self._filepath = None
+            fmt = ''
+            ints = hints
 
-    def copy(self):
-        """Create an independent (deep) copy of this VicarLabel.
+        while len(ints) < 3:
+            ints = (0,) + ints
+
+        if (len(ints) > 3
+                or not all(isinstance(i, numbers.Integral) and i >= 0 for i in ints)):
+            raise VicarError('invalid value formatting hints: ' + repr(hints))
+
+        return _ValueFormat(fmt, *ints, listfmts)
+
+    def _interpret_listfmt(hints):
+        """Get the _ListFormat from a value or tuple.
+
+        Parameters:
+            hints (tuple): List element format hints.
 
         Returns:
-            VicarLabel: The copied label.
+            _ListFormat or None: Interpreted _ListFormat; None if there is no format.
         """
 
-        return copy.deepcopy(self)
+        if isinstance(hints[0], str):
+            fmt = hints[0]
+            ints = hints[1:]
+        else:
+            fmt = ''
+            ints = hints
 
-    def __eq__(self, other):
-        """Test for equality.
+        while len(ints) < 2:
+            ints = (0,) + ints
 
-        VicarLabels are equal if they have the same parameter names in the same order.
-        Formatting and filepath are ignored.
+        if (len(ints) > 2
+                or not all(isinstance(i, numbers.Integral) and i >= 0 for i in ints)):
+            raise VicarError('invalid value formatting hints: ' + repr(hints))
+
+        return _ListFormat(fmt, *ints)
+
+    @staticmethod
+    def _validate_required(names, vals, fmts, append=False):
+        """Validate that the required VICAR parameters are all present and valid.
+
+        Parameters:
+            names (list[str]): List of names.
+            vals (list[int, float, str, or list]): List of values.
+            fmts (list[_ValueFormat or None]): List of formatting hints.
+            append (bool, optional): True to append any missing required VICAR parameters.
+
+        Returns:
+            (list, list, list): A tuple containing:
+
+            * list[str]: List of names.
+            * list[int, float, str, or list]: List of values.
+            * list[_ValueFormat or None]: List of formatting hints.
+
+        Raises:
+            VicarError: A name or value violates the VICAR standard.
         """
-        return (self._names == other._names
-                and self._values == other._values)
 
-    ########################################
+        name_set = set(names)
+        for item in _REQUIRED:
+            name = item[0]
+            if name in name_set:
+                k = names.index(name)
+                value = vals[k]
+                if name in _ENUMERATED_VALUES:
+                    if value not in _ENUMERATED_VALUES[name]:
+                        raise VicarError(f'Invalid {name} value: {repr(value)}; '
+                                         f'must be in {_ENUMERATED_VALUES[name]}')
+                elif name in _REQUIRED_INTS:
+                    if not isinstance(value, numbers.Integral) or value < 0:
+                        raise VicarError(f'Invalid {name} value: {repr(value)}; '
+                                         f'must be a non-negative integer')
+            elif append:    # pragma: no branch
+                names.append(name)
+                vals.append(item[1])
+                fmts.append(None)
+
+            else:           # pragma: no cover; can't get here currently
+                raise VicarError(f'missing required VICAR parameter "{name}"')
+
+        # Move LBLSIZE to the front if necessary
+        if names[0] != 'LBLSIZE':
+            if append:
+                k = names.index('LBLSIZE')
+                name = names.pop(k)
+                val = vals.pop(k)
+                fmt = fmts.pop(k)
+
+                names = [name] + names
+                vals = [val] + vals
+                fmts = [fmt] + fmts
+            else:
+                raise VicarError('VICAR parameter "LBLSIZE" must be first')
+
+        return (names, vals, fmts)     # same list objects as input
+
+    ######################################################################################
+    # Object Modification Operations
+    ######################################################################################
 
     def append(self, source):
-        """Insert the content of a second VICAR label into this object.
+        """Append the additional content to the end of this label.
 
-        Args:
-            source (str, list, dict):
-                If a dictionary is provided, it is converted to a list of (name, value)
-                tuples and then treated as a list input. The order is defined by the order
-                of the entries in the dictionary.
+        Parameters:
+            source (file, pathlib.Path, str, None, dict, list, or tuple):
+                A representation of VICAR label content:
 
-                If a list of tuples is provided, each tuple must contain a parameter name
-                and a value, where the value is represented by an int, float, string, or
-                list.
+                * *file*: The label string is read from the given, open file.
+                * *pathlib.Path*: The label string is read from the referenced file.
+                * *str*: First, a check is performed to see if it is path to an existing
+                  file. If so, the label is read from that file; otherwise, the string is
+                  itself interpreted as a VICAR label string.
+                * *None*: The returned VicarLabel only contains the required parameters
+                  with their default values.
+                * *dict*: The label parameters are the names of the dictionary keys, given
+                  in the order they were entered into the dictionary. Each dictionary
+                  value is either the VICAR parameter value or a tuple(value, formatting
+                  hints).
+                * *list*: The label is derived from the given sequence of (name, value) or
+                  (name, value, formatting hints) tuples.
+                * *tuple*: A single parameter defined by (name, value) or (name, value,
+                  formatting hints).
 
-                Optional formatting can be provided if a user wants additional control
-                over how the associated label string will be formatted. The tuple contains
-                up to six values in total:
+                See ``Notes`` for details about formatting hints.
 
-                    (name, value[, format][[[, name_blanks], val_blanks], sep_blanks])
+        Raises:
+            OSError: If the source is given as a file path that cannot be read.
+            TypeError: If the source is an unrecognized type or contains an unrecognized
+                type.
+            VicarError: If the source violates the VICAR standard or a required VICAR
+                parameter has an invalid value.
 
-                The name and value are required. Optional subsequent items are:
+        Notes:
+            Formatting hints can be included wherever a VICAR parameter value is
+            specified. When defining label parameters using a list of tuples, use (name,
+            value, hints...) instead of (name, value). Elsewhere, simply replace the value
+            by a tuple (value, hints...).
 
-                    format: a format string, e.g., "%+7d" or "%7.3f".
+            Hints can be specified using up to four items:
 
-                    name_blanks: number of blank characters after the name and before the
-                    equal sign; zero is the default.
+                ([`format`][[[, `name_blanks`], `val_blanks`], `sep_blanks`])
 
-                    val_blanks: number of blank characters after the equal sign and before
-                    the value; zero is the default.
+            where:
 
-                    sep_blanks: number of blanks after the value and before the next label
-                    parameter or the label's end; default 2.
+                * `format` is a format string, e.g., "%+7d" or "%7.3f".
+                * `name_blanks` is the number of blank characters after the name and
+                  before the equal sign; zero by default.
+                * `val_blanks` is the number of blank characters after the equal sign and
+                  before the value; zero by default.
+                * `sep_blanks` is the number of blanks after the value and before the next
+                  label parameter or the label's end; two by default.
 
-                If the value is a list, then each item in the list must be either a
-                parameter value (int, float, or string) or else a tuple of up to four
-                values:
+            Note the use of square brackets in the tuple expression above. If the first
+            hint value is a string, it is interpreted as `format`; otherwise, the `format`
+            is unspecified. After the optional format, values are interpreted as numbers
+            of blanks. If only one int is provided, it defines `sep_blanks`, with
+            `val_blanks` and `name_blanks` set to zero. If two trailing ints are provided,
+            they define `val_blanks` and `sep_blanks`, with `name_blanks` set to zero.
 
-                    (value[, format][[, blanks_before], blanks_after])
+            For example, if the name is "TEXP" and the value is 1.5, this is how hint
+            values are interpreted::
 
-                After the value, the optional items are:
+                <no hints>        = ("", 0, 0, 0)     -> "TEXP=1.5  "
+                "%.3f"            = ("%.3f", 0, 0, 0) -> "TEXP=1.500  "
+                ("%.3f", 4)       = ("%.3f", 0, 0, 4) -> "TEXP=1.500    "
+                ("%.3f", 1, 4)    = ("%.3f", 0, 1, 4) -> "TEXP= 1.500    "
+                ("%.3f", 2, 1, 4) = ("%.3f", 2, 1, 4) -> "TEXP  = 1.500    "
+                4                 = ("", 0, 0, 4)     -> "TEXP=1.5    "
+                (1, 4)            = ("", 0, 1, 4)     -> "TEXP= 1.5    "
+                (2, 1, 4)         = ("", 2, 1, 4)     -> "TEXP  = 1.5    "
 
-                    format: a format string, e.g., "%+07d", "%12.3e" or "%.4f".
-                    blanks_before: the number of blanks before the value, after the left
-                    parenthesis or comma; zero is the default.
+            When the parameter value is a list, it is also possible to embed formatting
+            information on an item by item basis. Replace any item value by a tuple:
 
-                    blanks_after: the number of blanks after the value and before the
-                    next comma or the right parenthesis; zero is the default.
+                (`item` [, `format`][[, `blanks_before`], `blanks_after`])
+
+            where:
+
+                * `format` is a format string, e.g., "%+07d", "%12.3e" or "%.4f".
+                * `blanks_before` is the number of blanks before the value, after the left
+                  parenthesis or comma; zero is the default.
+                * `blanks_after` is the number of blanks after the value and before the
+                  next comma or the right parenthesis; zero is the default.
+
+            Here are some examples of a list with embedded formatting for a parameter
+            named "XY" with a value [7,6]::
+
+                [(7, "%+02d"), 6]       = [(7, "%+02d", 0, 0), 6] -> "XY=[+07, 6]  "
+                [(7, 2), 6]             = [(7, "", 0, 2), 6]      -> "XY=[7  , 6]  "
+                [(7, 1, 2), 6])         = [(7, "", 1, 2), 6]      -> "XY=[ 7  , 6]  "
+                [(7, "%02d", 2), 6])    = [(7, "%02d", 0, 2), 6]  -> "XY=[07  , 6]  "
+                [(7, "%02d", 1, 2), 6]) = [(7, "%02d", 1, 2), 6]  -> "XY=[ 07  , 6]  "
         """
 
-        # Interpret the input
-        if isinstance(source, dict):
-            source = [(k,) + (v if isinstance(v, tuple) else (v,))
-                      for k,v in source.items()]
-        elif not isinstance(source, list):
-            source = _LABEL_GRAMMAR.parse_string(source).as_list()
+        names, vals, fmts, _ = self._interpret_source(source, required=False, fileio=True)
 
-        # Extract names, values, formats in order
-        names = [t[0] for t in source]
-        values = []
-        formats = []
-        for tuple_ in source:
-            (value, valfmt) = VicarLabel._interpret_value_format(tuple_[1:])
-            values.append(value)
-            formats.append(valfmt)
+        names = self._names + names
+        vals = self._values + vals
+        fmts = self._formats + fmts
 
-        self._update(self._names + names, self._values + values, self._formats + formats)
+        self._update(names, vals, fmts)
 
-    ########################################
+    def insert(self, source, indx):
+        """Insert the given content into this label at the specified index.
+
+        Parameters:
+            source (file, pathlib.Path, str, dict, list, or tuple):
+                A representation of VICAR label content:
+
+                * *file*: The label string is read from the given, open file.
+                * *pathlib.Path*: The label string is read from the referenced file.
+                * *str*: First, a check is performed to see if it is path to an existing
+                  file. If so, the label is read from that file; otherwise, the string is
+                  itself interpreted as a VICAR label string.
+                * *dict*: The label parameters are the names of the dictionary keys, given
+                  in the order they were entered into the dictionary. Each dictionary
+                  value is either the VICAR parameter value or a tuple(value, formatting
+                  hints).
+                * *list*: The label is derived from the given sequence of (name, value) or
+                  (name, value, formatting hints) tuples.
+                * *tuple*: A single parameter defined by (name, value) or (name, value,
+                  formatting hints).
+
+                See ``Notes`` for details about formatting hints.
+
+            indx (int): The integer index defining the location at which to insert the new
+                content. If the index is non-negative, the new new content will begin at
+                this index. If negative, the new content will end just before this index.
+                To append, to the label, use indx = len(self).
+
+        Raises:
+            OSError: If the source is given as a file path that cannot be read.
+            TypeError: If the source is an unrecognized type or contains an unrecognized
+                type.
+            VicarError: If the source violates the VICAR standard or a required VICAR
+                parameter has an invalid value.
+
+        Notes:
+            Formatting hints can be included wherever a VICAR parameter value is
+            specified. When defining label parameters using a list of tuples, use (name,
+            value, hints...) instead of (name, value). Elsewhere, simply replace the value
+            by a tuple (value, hints...).
+
+            Hints can be specified using up to four items:
+
+                ([`format`][[[, `name_blanks`], `val_blanks`], `sep_blanks`])
+
+            where:
+
+                * `format` is a format string, e.g., "%+7d" or "%7.3f".
+                * `name_blanks` is the number of blank characters after the name and
+                  before the equal sign; zero by default.
+                * `val_blanks` is the number of blank characters after the equal sign and
+                  before the value; zero by default.
+                * `sep_blanks` is the number of blanks after the value and before the next
+                  label parameter or the label's end; two by default.
+
+            Note the use of square brackets in the tuple expression above. If the first
+            hint value is a string, it is interpreted as `format`; otherwise, the `format`
+            is unspecified. After the optional format, values are interpreted as numbers
+            of blanks. If only one int is provided, it defines `sep_blanks`, with
+            `val_blanks` and `name_blanks` set to zero. If two trailing ints are provided,
+            they define `val_blanks` and `sep_blanks`, with `name_blanks` set to zero.
+
+            For example, if the name is "TEXP" and the value is 1.5, this is how hint
+            values are interpreted::
+
+                <no hints>        = ("", 0, 0, 0)     -> "TEXP=1.5  "
+                "%.3f"            = ("%.3f", 0, 0, 0) -> "TEXP=1.500  "
+                ("%.3f", 4)       = ("%.3f", 0, 0, 4) -> "TEXP=1.500    "
+                ("%.3f", 1, 4)    = ("%.3f", 0, 1, 4) -> "TEXP= 1.500    "
+                ("%.3f", 2, 1, 4) = ("%.3f", 2, 1, 4) -> "TEXP  = 1.500    "
+                4                 = ("", 0, 0, 4)     -> "TEXP=1.5    "
+                (1, 4)            = ("", 0, 1, 4)     -> "TEXP= 1.5    "
+                (2, 1, 4)         = ("", 2, 1, 4)     -> "TEXP  = 1.5    "
+
+            When the parameter value is a list, it is also possible to embed formatting
+            information on an item by item basis. Replace any item value by a tuple:
+
+                (`item` [, `format`][[, `blanks_before`], `blanks_after`])
+
+            where:
+
+                * `format` is a format string, e.g., "%+07d", "%12.3e" or "%.4f".
+                * `blanks_before` is the number of blanks before the value, after the left
+                  parenthesis or comma; zero is the default.
+                * `blanks_after` is the number of blanks after the value and before the
+                  next comma or the right parenthesis; zero is the default.
+
+            Here are some examples of a list with embedded formatting for a parameter
+            named "XY" with a value [7,6]::
+
+                [(7, "%+02d"), 6]       = [(7, "%+02d", 0, 0), 6] -> "XY=[+07, 6]  "
+                [(7, 2), 6]             = [(7, "", 0, 2), 6]      -> "XY=[7  , 6]  "
+                [(7, 1, 2), 6])         = [(7, "", 1, 2), 6]      -> "XY=[ 7  , 6]  "
+                [(7, "%02d", 2), 6])    = [(7, "%02d", 0, 2), 6]  -> "XY=[07  , 6]  "
+                [(7, "%02d", 1, 2), 6]) = [(7, "%02d", 1, 2), 6]  -> "XY=[ 07  , 6]  "
+        """
+
+        names, vals, fmts, _ = self._interpret_source(source, required=False, fileio=True)
+
+        names = self._names[:indx] + names + self._names[indx:]
+        vals = self._values[:indx] + vals + self._values[indx:]
+        fmts = self._formats[:indx] + fmts + self._formats[indx:]
+
+        # Make sure the required parameters are still valid
+        names, vals, fmts = VicarLabel._validate_required(names, vals, fmts, append=False)
+
+        self._update(names, vals, fmts)
 
     def reorder(self, *keys):
         """Re-order one or more specified parameters inside this object.
 
-        Args:
-            keys (str or tuple ...): two or more parameter names or (name, occurrence)
-                keys. The first key is left in place, and subsequent keys are positioned
-                after it in the order given. Use "" in front of the first key if you want
-                the listed keys to be first.
+        Parameters:
+            *keys (list[int, name, or tuple]):
+                Two or more indexing keys, interpreted as follows:
+
+                * *int* = `n`: The "nth" parameter in the label. `n` can be positive or
+                  negative.
+                * *str* = `name`: The first occurrence in the label of a parameter with
+                  this name.
+                * (*str*, *int*) = (`name`, `n`): The "nth" occurrence in the label of a
+                  parameter with this name. `n` can be positive or negative.
+                * (*str*, *str*) = (`name`, `after`): The first occurrence of parameter
+                  `name` after the first occurrence of parameter `after` and before the
+                  second occurrence of `after`.
+                * (*str*, *str*, *any*) = (`name`, `after`, `value`): The first occurrence
+                  of parameter `name` after the first location where `after` equals
+                  `value` and before the next occurrence of `after`.
+
+                The last two options make it easy to reference a VICAR label parameter
+                that is repeated. For example, "`label['DAT_TIM', 'TASK', 'COPY']`"
+                uniquely identifies the occurrence of `DAT_TIM` applicable to
+                `TASK='COPY'` when there might be other `TASK` sections of the label
+                containing other values of `DAT_TIM`.
 
         Raises:
-            ValueError: The new order is invalid.
+            IndexError: If any numeric component of the key is out of range.
+            KeyError: If the parameter name is not present in the label (or the section of
+                the label defined by `after_name` and `after_value`), or if the key format
+                is unrecognized.
+            TypeError: If the key is not a recognized type or contains a component that is
+                not of a recognized type.
+            ValueError: If no identified parameter equals `value` or if no occurrence of
+                `after_name` equals `after_value`. Also if an index is duplicated in the
+                new order.
+
+        Notes:
+            The first key is left in place, and subsequent keys are positioned after it in
+            the order given. Use "" in front of the first key if you want the listed keys
+            to be first.
         """
 
         move_to_front = (keys[0] == '')
@@ -481,7 +1105,7 @@ class VicarLabel():
         order = [self.arg(k) for k in keys]
         order_set = set(order)
         if len(order) != len(order_set):
-            raise ValueError('Invalid new index order')
+            raise ValueError('duplicated index in reorder')
 
         before = []
         if not move_to_front:
@@ -510,348 +1134,516 @@ class VicarLabel():
         self._update(names, values, formats)
 
     ######################################################################################
-    # Shape methods
+    # Indexing Support
     ######################################################################################
 
-    def _set_n321(self, n3, n2, n1):
-        """Set the values of N1, N2, N3."""
+    def _args(self, key, mode='get'):
+        """The numerical index or indices of the keyed item in the VICAR label.
 
-        (self['N1'], self['N2'], self['N3']) = (n1, n2, n3)
-        self._nbls_from_n123()
+        Parameters:
+            key (int, name, or tuple): The indexing key, interpreted as follows:
 
-    def _set_nbls(self, nb, nl, ns):
-        """Set the values of NB, NL, NS."""
+                * *int* = `n`: The "nth" parameter in the label. `n` can be positive or
+                  negative.
+                * *str* = `name`: The first occurrence in the label of a parameter with
+                  this name.
+                * (*str*, *int*) = (`name`, `n`): The "nth" occurrence in the label of a
+                  parameter with this name. `n` can be positive or negative.
+                * (*str*, *str*) = (`name`, `after`): The first occurrence of parameter
+                  `name` after the first occurrence of parameter `after` and before the
+                  second occurrence of `after`.
+                * (*str*, *str*, *any*) = (`name`, `after`, `value`): The first occurrence
+                  of parameter `name` after the first location where `after` equals
+                  `value` and before the next occurrence of `after`.
 
-        (self['NB'], self['NL'], self['NS']) = (nb, nl, ns)
-        self._n123_from_nbls()
+                The last two options make it easy to reference a VICAR label parameter
+                that is repeated. For example, "`label['DAT_TIM', 'TASK', 'COPY']`"
+                uniquely identifies the occurrence of `DAT_TIM` applicable to
+                `TASK='COPY'` when there might be other `TASK` sections of the label
+                containing other values of `DAT_TIM`.
 
-    def _n123_from_nbls(self):
-        """Fill in the N1, N2, N3 parameters given values of NB, NL, NS and ORG.
-        """
+                Append a "+" to `name` to expand upon the function's behavior. With "get",
+                it returns a list of matching indices rather than a single index. With
+                "set", it will identify the index where a new parameter is to be inserted
+                if the key is not found.
 
-        if self['ORG'] == 'BSQ':
-            (self['N1'], self['N2'], self['N3']) = (self['NS'], self['NL'], self['NB'])
-        elif self['ORG'] == 'BIL':
-            (self['N1'], self['N2'], self['N3']) = (self['NS'], self['NB'], self['NL'])
-        else:   # == 'BIP'
-            (self['N1'], self['N2'], self['N3']) = (self['NB'], self['NS'], self['NL'])
+            mode (str, optional): One of:
 
-    def _nbls_from_n123(self):
-        """Fill in the NB, NL, NS parameters given values of N1, N2, N3 and ORG.
-        """
-
-        if self['ORG'] == 'BSQ':
-            (self['NS'], self['NL'], self['NB']) = (self['N1'], self['N2'], self['N3'])
-        elif self['ORG'] == 'BIL':
-            (self['NS'], self['NB'], self['NL']) = (self['N1'], self['N2'], self['N3'])
-        else:   # == 'BIP'
-            (self['NB'], self['NS'], self['NL']) = (self['N1'], self['N2'], self['N3'])
-
-    ######################################################################################
-    # Indexing methods
-    ######################################################################################
-
-    def __len__(self):
-        """The number of keywords in the VICAR label."""
-
-        return self._len
-
-    ########################################
-
-    def _after_arg(self, key, exists=True):
-        """Internal method to return the index associated with a key of the form (name,
-        after_name) or (name, after_name, after_value).
-
-        Return -1 if the key has a different format.
-
-        If the parameter is not found and exists is True, raise a KeyError. Otherwise,
-        return the index where this item can be inserted into the label.
-        """
-
-        if isinstance(key, tuple) and len(key) in (2,3) and isinstance(key[1], str):
-            (name, after_name) = key[:2]
-            start = self.arg(*key[1:])
-            stops = [i for i,n in enumerate(self._names) if n == after_name] + [len(self)]
-            stop = [i for i in stops if i > start][0]
-
-            args = [i for i,n in enumerate(self._names) if n == name and start < i < stop]
-            if args:
-                return args[0]
-
-            if not exists:
-                return stop
-
-            if len(key) == 2:
-                raise KeyError(f'{name} not found after {after_name}')
-            else:
-                raise KeyError(f'{name} not found after {after_name}={repr(key[2])}')
-
-        return -1
-
-    ########################################
-
-    def arg(self, key, value=None):
-        """Return the numerical index of the item in the VICAR label defined by the key.
-
-        The key can be defined by a name, index, or using various other indexing options.
-        If the key is missing, return the default value.
-
-        If a name appears multiple times in the label, this returns the value at the first
-        occurrence. Use the tuple (name, n) to return later values, where n = 0, 1, 2 ...
-        to index from the first occurrence, or n = -1, -2, ... to index from the last.
-
-        Use the key (name, after_name) to return the index of the given parameter
-        name after the first occurrence of parameter after_name and before any later
-        occurrence of after_name.
-
-        Use the key (name, after_name, after_value) to return the index of the given
-        parameter name after the location where after_name equals after_value and before
-        the next occurrence of after_name.
-
-        If a value is provided, this returns the index of the item in the label where the
-        given key has the given value.
-
-        Args:
-            key (str or tuple): The key defining the name to return the index of.
-            value (int, float, str, or list, optional): The value used to uniquely
-                identify the key location.
+                * "get": an error will be raised if the key does not exist.
+                * "set": a single index will be returned, indicating where in the label
+                  to insert the new parameter.
 
         Returns:
-            int: The numerical index of the key.
+            (int or list, bool): A tuple containing:
+
+            * int or list[int]: The index or list of indices that identify matching
+              parameters. If the key contains a name ending in "+", this is a list
+              starting with the "nth" occurrence; otherwise, it is a single int.
+            * bool:  True if the identified parameter already exists; False if `mode` is
+              "set" and the int is the location to insert a new parameter.
 
         Raises:
-            IndexError: The list index is out of range.
-            KeyError: The key is not found.
-            ValueError: The value is not found.
+            IndexError: If any numeric component of the key is out of range.
+            KeyError: If the parameter name is not present in the label (or the section of
+                the label defined by `after_name` and `after_value`), or if the key format
+                is unrecognized.
+            TypeError: If the key is not a recognized type or contains a component that is
+                not of  a recognized type.
+            ValueError: If no identified parameter equals `value` or if no occurrence of
+                `after_name` equals `after_value`.
         """
+
+        self._finish_update()
+
+        assert mode in {'get', 'set'}, 'invalid mode: ' + repr(mode)
 
         # Handle an integer key
         if isinstance(key, numbers.Integral):
             if key < 0:
                 key += self._len
             if key >= 0 and key < self._len:
-                if value is None or value == self._values[key]:
-                    return key
-                raise ValueError(f'index {key} does not have value {repr(value)}')
-            raise IndexError('list index out of range')
+                return key, True
+            raise IndexError('list index out of range: ' + repr(key))
 
-        # Handle a name or (name, occurrence) key
-        try:
-            indices = self._key_index[key]
-        except KeyError as e:
-            error = e
-        else:
-            if value is None:
-                return indices[0]
-            indices = [i for i in indices if self._values[i] == value]
+        # Check the key format and extract the name
+        has_plus = VicarLabel._has_plus(key)
+        key = VicarLabel._remove_plus(key)
+
+        # Handle name alone
+        if isinstance(key, str):
+            if mode == 'set' and has_plus:
+                return self._len, False
+
+            indices = self._key_index.get(key, [])
             if indices:
-                return indices[0]
-            raise ValueError(f'index {key} does not have value {value}')
+                if has_plus:
+                    return indices, True
+                else:
+                    return indices[0], True
+            elif mode == 'set':
+                return self._len, False
 
-        # Handle a (name, after_key) or (name, after_key, after_value) key
-        indx = self._after_arg(key)
-        if indx >= 0:
-            if value is None or value == self._values[indx]:
-                return indx
-            raise ValueError(f'index {key} does not have value {repr(value)}')
+            raise KeyError(key)
 
-        # Check for IndexError instead of KeyError
-        if (isinstance(key, tuple) and isinstance(key[0], str)
-                and isinstance(key[1], numbers.Integral)
-                and key[0] in self._key_index):
-            raise IndexError(key[0] + ' index out of range')
+        # Handle (name, occurrence)
+        if len(key) == 2 and isinstance(key[1], numbers.Integral):
+            name, indx = key
+            indices = self._key_index.get(name, [])
 
-        raise error
+            # Handle a reference one beyond the last valid index
+            if mode == 'set' and indx == len(indices):
+                return self._len, False
 
-    ########################################
+            if not indices:
+                raise KeyError(name)    # different message from indx out of range
 
-    def __getitem__(self, key):
-        """Get the value of the given VICAR parameter.
+            # Return if the index is in range
+            if -len(indices) <= indx < len(indices):
+                if mode == 'get' and has_plus:
+                    return indices[indx:], True
+                else:
+                    return indices[indx], True
 
-        If a name appears multiple times in the label, this returns the value at the first
-        occurrence. Use (name, n) to return later values, where n = 0, 1, 2 ... to index
-        from the first occurrence, or n = -1, -2, ... to index from the last.
+            raise IndexError('list index out of range: ' + repr(key))
 
-        Append a "+" to a name to retrieve a list containing all the values of the given
-        parameter name.
+        # Handle (name, after_name) or (name, after_name, after_value)
+        if len(key) in (2,3) and isinstance(key[1], str):
+            name, after_name = key[:2]
+            indices = self._key_index.get(after_name, [])
+            if not indices:
+                raise KeyError(after_name)
 
-        Use (name, after_name) to return the value of the given parameter name that falls
-        after the first occurrence of parameter after_name and before any later occurrence
-        of after_name.
+            # Get the start and stop indices within this "after_name" section
+            if len(key) == 3:
+                matches = [i for i in indices if self._values[i] == key[2]]
+                if not matches:
+                    raise ValueError(f'{after_name} never has value {repr(key[2])}')
+                start = matches[0]
+            else:
+                start = indices[0]
 
-        Use (name, after_name, after_value) to return the value of the given parameter
-        name that falls after the location where after_name equals after_value and before
-        any later occurrence of after_name.
+            k = indices.index(start)
+            if k == len(indices) - 1:
+                stop = self._len
+            else:
+                stop = indices[k+1]
 
-        Args:
-            key (str, tuple): The key defining the name to return the index of.
-            value (int, float, str, or list, optional): The value used to uniquely
-                identify the key location.
+            if mode == 'set' and has_plus:
+                return stop, False
+
+            # Find the indices with matching names
+            indices = [i for i in range(start,stop) if self._names[i] == name]
+            if indices:
+                if mode == 'get' and has_plus:
+                    return indices, True
+                return indices[0], True
+            elif mode == 'set':
+                return stop, False
+
+            raise KeyError(key)
+
+        raise TypeError('invalid key type: ' + repr(key))
+
+    @staticmethod
+    def _add_plus(key):
+        """Insert a plus, if absent, at the end of the name within the indexing key."""
+
+        if isinstance(key, str):
+            return key.rstrip('+') + '+'
+
+        if isinstance(key, tuple) and key and isinstance(key[0], str):
+            return (key[0].rstrip('+') + '+',) + key[1:]
+
+        return key
+
+    @staticmethod
+    def _remove_plus(key):
+        """Remove a plus, if present, from the end of the name within the indexing key."""
+
+        if isinstance(key, str):
+            return key.rstrip('+')
+
+        if isinstance(key, tuple) and key and isinstance(key[0], str):
+            return (key[0].rstrip('+'),) + key[1:]
+
+        return key
+
+    @staticmethod
+    def _has_plus(key):
+        """True if there is a plus at the end of the name within the indexing key."""
+
+        if isinstance(key, str):
+            return key.endswith('+')
+
+        if isinstance(key, tuple) and key and isinstance(key[0], str):
+            return key[0].endswith('+')
+
+        return False
+
+    def _get_name(self, key):
+        """Get a name, if present, from the indexing key and remove any plus."""
+
+        if isinstance(key, numbers.Integral):
+            return self.names()[key]
+
+        if isinstance(key, str):
+            return key.rstrip('+')
+
+        if isinstance(key, tuple) and key and isinstance(key[0], str): # pragma: no branch
+            return key[0].rstrip('+')
+
+        return ''   # pragma: no cover; shouldn't happen
+
+    ######################################################################################
+    # Indexing Operations
+    ######################################################################################
+
+    def arg(self, key, value=None):
+        """The numerical index or indices of the keyed item in the VICAR label.
+
+        Parameters:
+            key (int, name, or tuple): The indexing key, interpreted as follows:
+
+                * *int* = `n`: The "nth" parameter in the label. `n` can be positive or
+                  negative.
+                * *str* = `name`: The first occurrence in the label of a parameter with
+                  this name.
+                * (*str*, *int*) = (`name`, `n`): The "nth" occurrence in the label of a
+                  parameter with this name. `n` can be positive or negative.
+                * (*str*, *str*) = (`name`, `after`): The first occurrence of parameter
+                  `name` after the first occurrence of parameter `after` and before the
+                  second occurrence of `after`.
+                * (*str*, *str*, *any*) = (`name`, `after`, `value`): The first occurrence
+                  of parameter `name` after the first location where `after` equals
+                  `value` and before the next occurrence of `after`.
+
+                The last two options make it easy to reference a VICAR label parameter
+                that is repeated. For example, "`label['DAT_TIM', 'TASK', 'COPY']`"
+                uniquely identifies the occurrence of `DAT_TIM` applicable to
+                `TASK='COPY'` when there might be other `TASK` sections of the label
+                containing other values of `DAT_TIM`.
+
+                Append a "+" to the name to return a list of all indices where the
+                constraints are satisfied, starting with the first or "nth".
+
+            value (int, float, or string, optional):
+                If provided, the identified parameter must equal this value. For an
+                integer key, if the indexed parameter does not have this value, ValueError
+                is raised. For any key involving a name, values of the named parameter
+                that do not match `value` are skipped over until the one(s) with the
+                correct value are found.
 
         Returns:
-            Any: The value of the given VICAR parameter.
+            int or list[int]:
+                The index or list of indices that identify matching parameters. If the key
+                contains a name ending in "+", this is a list starting with the "nth"
+                occurrence; otherwise, it is a single int.
 
         Raises:
-            IndexError: The list index is out of range.
-            KeyError: The key is not found.
+            IndexError: If any numeric component of the key is out of range.
+            KeyError: If the parameter name is not present in the label (or the section of
+                the label defined by `after_name` and `after_value`), or if the key format
+                is unrecognized.
+            TypeError: If the key is not a recognized type or contains a component that is
+                not of a recognized type.
+            ValueError: If no identified parameter equals `value` or if no occurrence of
+                `after_name` equals `after_value`.
         """
 
-        # Handle an integer key
-        if isinstance(key, numbers.Integral):
-            return self._values[key]            # IndexError if out of range
+        if value is not None:
 
-        # Handle a name or (name, occurrence) key
-        try:
-            indx = self._key_index[key][0]      # first if more than one
-        except KeyError as e:
-            error = e
-        else:
-            return self._values[indx]
+            # We need to get all matches, regardless of "+"
+            has_plus = VicarLabel._has_plus(key)
+            key = VicarLabel._add_plus(key)
 
-        # Handle a (name, after_key) or (name, after_key, after_value) key
-        arg = self._after_arg(key)
-        if arg >= 0:
-            return self._values[arg]
+            indices, _ = self._args(key, mode='get')
+            if isinstance(indices, numbers.Integral):
+                indices = [indices]
+            indices = [i for i in indices if self._values[i] == value]
+            if not indices:
+                raise ValueError(f'index {key} never has value {repr(value)}')
 
-        # Check for IndexError
-        if (isinstance(key, tuple) and isinstance(key[0], str)
-                and isinstance(key[1], numbers.Integral)
-                and key[0] in self._key_index):
-            raise IndexError(key[0] + ' index out of range')
+            return indices if has_plus else indices[0]
 
-        # Handle "+" suffix
-        if not isinstance(key, str):
-            raise error
+        index_or_indices, _ = self._args(key, mode='get')
+        return index_or_indices
 
-        if key.endswith('+'):
-            name = key[:-1]
-            if name in self._key_index:
-                return [self._values[i] for i in self._key_index[name]]
+    def __getitem__(self, key):
+        """Retrieve the value or values of the VICAR parameter defined by key, using
+        various indexing options.
 
-        raise error
+        Parameters:
+            key (int, name, or tuple): The indexing key, interpreted as follows:
 
-    ########################################
+                * *int* = `n`: The "nth" parameter in the label. `n` can be positive or
+                  negative.
+                * *str* = `name`: The first occurrence in the label of a parameter with
+                  this name.
+                * (*str*, *int*) = (`name`, `n`): The "nth" occurrence in the label of a
+                  parameter with this name. `n` can be positive or negative.
+                * (*str*, *str*) = (`name`, `after`): The first occurrence of parameter
+                  `name` after the first occurrence of parameter `after` and before the
+                  second occurrence of `after`.
+                * (*str*, *str*, *any*) = (`name`, `after`, `value`): The first occurrence
+                  of parameter `name` after the first location where `after` equals
+                  `value` and before the next occurrence of `after`.
 
-    def get(self, key, default):
-        """Get the value of the given VICAR parameter.
+                The last two options make it easy to reference a VICAR label parameter
+                that is repeated. For example, "`label['DAT_TIM', 'TASK', 'COPY']`"
+                uniquely identifies the occurrence of `DAT_TIM` applicable to
+                `TASK='COPY'` when there might be other `TASK` sections of the label
+                containing other values of `DAT_TIM`.
 
-        The key can be defined by a name, index, or using various other indexing options.
-        If the key is missing, return the default value.
-
-        If a name appears multiple times in the label, this returns the value at the first
-        occurrence. Use the key (name, n) to return later values, where n = 0, 1, 2 ... to
-        index from the first occurrence, or n = -1, -2, ... to index from the last.
-
-        Append a "+" to a name to retrieve a list containing all the values of the given
-        parameter name.
-
-        Use the key (name, after_name) to return the value of the given parameter name
-        that falls after the first occurrence of parameter after_name and before any later
-        occurrence of after_name.
-
-        Use the key (name, after_name, after_value) to return the value of the given
-        parameter name that falls after the location where after_name equals after_value
-        and before any later occurrence of after_name.
-
-        Args:
-            key (str, tuple): The key defining the name to return the index of.
-            default (Any, optional): The value to return if the key is not found or any
-                other exception occurs.
+                Append a "+" to the name to return a list of all values where the
+                constraints are satisfied, starting with the first or "nth".
 
         Returns:
-            Any: The value of the given VICAR parameter.
+            int, float, string, or list:
+                If `key` contains a name ending in "+", this is the list of values of the
+                matching parameters, starting with the "nth". Otherwise, it is the single
+                matching value.
 
         Raises:
-            IndexError: The list index is out of range.
-            KeyError: The key is not found.
+            IndexError: If any numeric component of the key is out of range.
+            KeyError: If the parameter name is not present in the label (or the section of
+                the label defined by `after_name` and `after_value`), or if the key format
+                is unrecognized.
+            TypeError: If the key is not a recognized type or contains a component that is
+                not of a recognized type.
+            ValueError: If no identified parameter equals `value` or if no occurrence of
+                `after_name` equals `after_value`.
+        """
+
+        indices, _ = self._args(key, mode='get')
+        if isinstance(indices, list):
+            return [self._values[i] for i in indices]
+
+        return self._values[indices]
+
+    def get(self, key, default):
+        """Retrieve the value of the VICAR parameter defined by the given key, using
+        various indexing options.
+
+        If the key is not found, return a specified default value.
+
+        Parameters:
+            key (int, str, or tuple): The indexing key, interpreted as follows:
+
+                * *int* = `n`: The "nth" parameter in the label. `n` can be positive or
+                  negative.
+                * *str* = `name`: The first occurrence in the label of a parameter with
+                  this name.
+                * (*str*, *int*) = (`name`, `n`): The "nth" occurrence in the label of a
+                  parameter with this name. `n` can be positive or negative.
+                * (*str*, *str*) = (`name`, `after`): The first occurrence of parameter
+                  `name` after the first occurrence of parameter `after` and before the
+                  second occurrence of `after`.
+                * (*str*, *str*, *any*) = (`name`, `after`, `value`): The first occurrence
+                  of parameter `name` after the first location where `after` equals
+                  `value` and before the next occurrence of `after`.
+
+                The last two options make it easy to reference a VICAR label parameter
+                that is repeated. For example, "`label['DAT_TIM', 'TASK', 'COPY']`"
+                uniquely identifies the occurrence of `DAT_TIM` applicable to
+                `TASK='COPY'` when there might be other `TASK` sections of the label
+                containing other values of `DAT_TIM`.
+
+                Append a "+" to the name to return a list of all values where the
+                constraints are satisfied, starting with the first or "nth".
+
+            default (int, float, str, or list): The value to return if the key is not
+                found.
+
+        Returns:
+            int, float, str, or list:
+                If a name is provided that ends in a plus, the returned value will be the
+                list of all values of the selected key, or else `[default]` if the key
+                would raise an error.
+
+                Otherwise, the returned value is that of the key if present, or `default`
+                if it is not.
+
+        Raises:
+            IndexError: If any numeric component of the key is out of range.
+            KeyError: If the parameter name is not present in the label (or the section of
+                the label defined by `after_name` and `after_value`), or if the key format
+                is unrecognized.
+            TypeError: If the key is not a recognized type or contains a component that is
+                not of a recognized type.
+            ValueError: If no identified parameter equals `value` or if no occurrence of
+                `after_name` equals `after_value`.
         """
 
         try:
             return self.__getitem__(key)
-        except Exception:
+        except (IndexError, KeyError, TypeError, ValueError, VicarError):
+            if VicarLabel._has_plus(key):
+                return [default]
+
             return default
 
-    ########################################
-
     def __setitem__(self, key, value):
-        """Set the value of the VICAR parameter defined by key.
+        """Set the value of the VICAR parameter defined by the given key; define a new
+        parameter name and value if necessary.
 
-        The key can be defined by a name, index, or using various other indexing options.
-        If the parameter is not currently found in the label, create a new one.
+        Parameters:
+            key (int, str, or tuple): The indexing key, interpreted as follows:
 
-        If a name appears multiple times in the label, this sets the value at the first
-        occurrence. Use (name, n) to set later values, where n = 0, 1, 2, ... to index
-        from the first occurrence, or n = -1, -2, ... to index from the last.
+                * *int* = `n`: The "nth" parameter in the label. `n` can be positive or
+                  negative.
+                * *str* = `name`: The first occurrence in the label of a parameter with
+                  this name.
+                * (*str*, *int*) = (`name`, `n`): The "nth" occurrence in the label of a
+                  parameter with this name. `n` can be positive or negative.
+                * (*str*, *str*) = (`name`, `after`): The first occurrence of parameter
+                  `name` after the first occurrence of parameter `after` and before the
+                  second occurrence of `after`.
+                * (*str*, *str*, *any*) = (`name`, `after`, `value`): The first occurrence
+                  of parameter `name` after the first location where `after` equals
+                  `value` and before the next occurrence of `after`.
 
-        Append a "+" to a name to append a new "name=value" pair the label, even if that
-        name already appears.
+                The last two options make it easy to reference a VICAR label parameter
+                that is repeated. For example, "`label['DAT_TIM', 'TASK', 'COPY']`"
+                uniquely identifies the occurrence of `DAT_TIM` applicable to
+                `TASK='COPY'` when there might be other `TASK` sections of the label
+                containing other values of `DAT_TIM`.
 
-        Use (name, after_name) to set the given parameter name after the first occurrence
-        of the parameter after_name and before any later occurrence of after_name.
+                Append a "+" to the name to force a new occurrence of the key to be
+                inserted, even if the key already exists.
 
-        Use (name, after_name, after_value) to set the given parameter name after the
-        location where after_name equals after_value and before any later occurrence of
-        after_name.
+            value (int, float, string, list, or tuple):
+                Value to assign to the indexed entry in the label.
 
-        Use a tuple to include additional formatting information with the new value. The
-        tuple contains up to six values in total:
-
-            (name, value[, format][[[, name_blanks], val_blanks], sep_blanks])
-
-        The name and value are required. Optional subsequent items are:
-
-            format: a format string, e.g., "%+7d" or "%7.3f".
-
-            name_blanks: number of blank characters after the name and before the
-            equal sign; zero is the default.
-
-            val_blanks: number of blank characters after the equal sign and before
-            the value; zero is the default.
-
-            sep_blanks: number of blanks after the value and before the next label
-            parameter or the label's end; a default value of zero means that the
-            standard padding (two blanks) will be used when the text string is
-            generated.
-
-        If the value is a list, then each item in the list must be either a
-        parameter value (int, float, or string) or else a tuple of up to four
-        values:
-
-            (value[, format][[, blanks_before], blanks_after])
-
-        After the value, the optional items are:
-
-            format: a format string, e.g., "%+07d", "%12.3e" or "%.4f".
-
-            blanks_before: the number of blanks before the value, after the left
-            parenthesis or comma; zero is the default.
-
-            blanks_after: the number of blanks after the value and before the next
-            comma or the right parenthesis; zero is the default.
-
-        Args:
-            key (str, tuple): The key defining the name to set the value of.
-            value (Any): The value to set.
+                Optional formatting can be included if a user wants additional control
+                over how this value will be formatted in the label string will be
+                formatted, by replacing the value with a tuple (value, hints...). See
+                ``Notes`` for details about formatting hints.
 
         Raises:
-            IndexError: The index is out of range.
-            VicarError: There is an invalid VICAR parameter name or value.
+            IndexError: If any numeric component of the key is out of range.
+            KeyError: If the parameter name is not present in the label (or the section of
+                the label defined by `after_name` and `after_value`), or if the key format
+                is unrecognized.
+            TypeError: If the key is not a recognized type or contains a component that is
+                not of a recognized type.
+            ValueError: If no identified parameter equals `value` or if no occurrence of
+                `after_name` equals `after_value`.
+
+        Notes:
+            Formatting hints can be included wherever a VICAR parameter value is
+            specified; simply replace the value by a tuple (value, hints...).
+
+            Hints can be specified using up to four items:
+
+                ([`format`][[[, `name_blanks`], `val_blanks`], `sep_blanks`])
+
+            where:
+
+                * `format` is a format string, e.g., "%+7d" or "%7.3f".
+                * `name_blanks` is the number of blank characters after the name and
+                  before the equal sign; zero by default.
+                * `val_blanks` is the number of blank characters after the equal sign and
+                  before the value; zero by default.
+                * `sep_blanks` is the number of blanks after the value and before the next
+                  label parameter or the label's end; two by default.
+
+            Note the use of square brackets in the tuple expression above. If the first
+            hint value is a string, it is interpreted as `format`; otherwise, the `format`
+            is unspecified. After the optional format, values are interpreted as numbers
+            of blanks. If only one int is provided, it defines `sep_blanks`, with
+            `val_blanks` and `name_blanks` set to zero. If two trailing ints are provided,
+            they define `val_blanks` and `sep_blanks`, with `name_blanks` set to zero.
+
+            For example, if the name is "TEXP" and the value is 1.5, this is how hint
+            values are interpreted::
+
+                <no hints>        = ("", 0, 0, 0)     -> "TEXP=1.5  "
+                "%.3f"            = ("%.3f", 0, 0, 0) -> "TEXP=1.500  "
+                ("%.3f", 4)       = ("%.3f", 0, 0, 4) -> "TEXP=1.500    "
+                ("%.3f", 1, 4)    = ("%.3f", 0, 1, 4) -> "TEXP= 1.500    "
+                ("%.3f", 2, 1, 4) = ("%.3f", 2, 1, 4) -> "TEXP  = 1.500    "
+                4                 = ("", 0, 0, 4)     -> "TEXP=1.5    "
+                (1, 4)            = ("", 0, 1, 4)     -> "TEXP= 1.5    "
+                (2, 1, 4)         = ("", 2, 1, 4)     -> "TEXP  = 1.5    "
+
+            When the parameter value is a list, it is also possible to embed formatting
+            information on an item by item basis. Replace any item value by a tuple:
+
+                (`item` [, `format`][[, `blanks_before`], `blanks_after`])
+
+            where:
+
+                * `format` is a format string, e.g., "%+07d", "%12.3e" or "%.4f".
+                * `blanks_before` is the number of blanks before the value, after the left
+                  parenthesis or comma; zero is the default.
+                * `blanks_after` is the number of blanks after the value and before the
+                  next comma or the right parenthesis; zero is the default.
+
+            Here are some examples of a list with embedded formatting for a parameter
+            named "XY" with a value [7,6]::
+
+                [(7, "%+02d"), 6]       = [(7, "%+02d", 0, 0), 6] -> "XY=[+07, 6]  "
+                [(7, 2), 6]             = [(7, "", 0, 2), 6]      -> "XY=[7  , 6]  "
+                [(7, 1, 2), 6])         = [(7, "", 1, 2), 6]      -> "XY=[ 7  , 6]  "
+                [(7, "%02d", 2), 6])    = [(7, "%02d", 0, 2), 6]  -> "XY=[07  , 6]  "
+                [(7, "%02d", 1, 2), 6]) = [(7, "%02d", 1, 2), 6]  -> "XY=[ 07  , 6]  "
         """
 
         # Handle an integer key
         if isinstance(key, numbers.Integral):
 
-            # Handle an input with embedded formatting info
-            (value, valfmt) = VicarLabel._interpret_value_format(value)
-            if not VicarLabel._validate_value(value):
-                raise VicarError('Invalid VICAR parameter value: ' + repr(value))
+            self._finish_update()
 
-            name = self._names[key]
-            is_first = self._key_index[name][0] == key
-            VicarLabel._check_type(name, value, is_first)
+            # Create a very short list of tuples and validate
+            name = self._names[key]         # IndexError if out of range
+            source = [(name,) + (value if isinstance(value, tuple) else (value,))]
+
+            names, vals, fmts = self._interpret_source(source, required=False,
+                                                       fileio=False)
 
             # Default to the pre-existing format if it works
-            if not valfmt:
+            valfmt = fmts[0]
+            if valfmt is None:
                 valfmt = self._formats[key]
                 if valfmt:
                     if valfmt.fmt:
@@ -864,149 +1656,171 @@ class VicarLabel():
                     else:   # preserve spacing only
                         valfmt = _ValueFormat('', *valfmt[1:-1], [])
 
-            self._values[key] = value
-            self._formats[key] = valfmt
+            # Create new lists
+            key += (self._len if key < 0 else 0)
+            names = self._names[:key] + names + self._names[key+1:]
+            vals = self._values[:key] + vals + self._values[key+1:]
+            fmts = self._formats[:key] + [valfmt] + self._formats[key+1:]
+
+            # Make sure the required parameters are still valid, then update
+            names, vals, fmts = VicarLabel._validate_required(names, vals, fmts,
+                                                              append=False)
+            self._update(self._names, vals, fmts)
             return
 
-        # Handle a name or (name, occurrence) key recursively
-        try:
-            indx = self._key_index[key][0]
-        except (KeyError, TypeError):
-            pass
-        else:
+        # See if this is a new or existing parameter and get its new location
+        indx, exists = self._args(key, mode='set')
+
+        # For an update to an existing parameter, make a recursive call
+        if exists:
             self.__setitem__(indx, value)
-            return
 
-        # Plan to insert a new parameter at the end
-        insert_loc = len(self)
-
-        # Handle a (name, after_key) or (name, after_key, after_value) key recursively
-        indx = self._after_arg(key, exists=False)
-        if indx >= 0:
-            if indx < len(self) and self._names[indx] == key[0]:    # name already exists
-                self.__setitem__(indx, value)
-                return
-
-            # Insert new keyword at the end of this section
-            key = key[0]
-            insert_loc = indx
-
-        # Allow a (name, occurrence) key to index one past the end; name with optional "+"
-        if (isinstance(key, tuple) and isinstance(key[0], str) and len(key) == 2):
-            name = key[0][:-1] if key[0].endswith('+') else key[0]      # strip "+"
-            if name in self._names:
-                valid_indices = (len(self._key_index[name]),)
-            else:
-                valid_indices = (0, -1)
-
-            if key[1] not in valid_indices:
-                raise IndexError(name + ' index out of range')
-
-            key = name
-
-        # Handle a new name or append to a name
-        if not isinstance(key, str):
-            raise VicarError('Invalid VICAR parameter name: ' + repr(key))
-
-        if key.endswith('+'):
-            key = key[:-1]
-
-        (value, valfmt) = VicarLabel._interpret_value_format(value)
-        VicarLabel._check_type(key, value, is_first=False)
-
-        names = list(self._names)
-        values = list(self._values)
-        formats = list(self._formats)
-
-        names.insert(insert_loc, key)
-        values.insert(insert_loc, value)
-        formats.insert(insert_loc, valfmt)
-
-        self._update(names, values, formats)
-
-    ########################################
+        # Otherwise, do the insert
+        else:
+            name = self._get_name(key)
+            source = [(name,) + (value if isinstance(value, tuple) else (value,))]
+            self.insert(source, indx)
 
     def __delitem__(self, key):
-        """Delete the value of the VICAR parameter defined by this name.
+        """Delete the value of the VICAR parameter identified by the given key.
 
-        The key can be defined by a name, index, or using various other indexing options.
+        Parameters:
+            key (int, str, or tuple): The indexing key, interpreted as follows:
 
-        If a name appears multiple times in the label, this deletes the first occurrence.
-        Use the tuple (name, n) to return later values, where n = 0, 1, 2 ... to index
-        from the first occurrence, or n = -1, -2, ... to index from the last.
+                * *int* = `n`: The "nth" parameter in the label. `n` can be positive or
+                  negative.
+                * *str* = `name`: The first occurrence in the label of a parameter with
+                  this name.
+                * (*str*, *int*) = (`name`, `n`): The "nth" occurrence in the label of a
+                  parameter with this name. `n` can be positive or negative.
+                * (*str*, *str*) = (`name`, `after`): The first occurrence of parameter
+                  `name` after the first occurrence of parameter `after` and before the
+                  second occurrence of `after`.
+                * (*str*, *str*, *any*) = (`name`, `after`, `value`): The first occurrence
+                  of parameter `name` after the first location where `after` equals
+                  `value` and before the next occurrence of `after`.
 
-        Args:
-            key (str, tuple): The key defining the name to delete.
+                The last two options make it easy to reference a VICAR label parameter
+                that is repeated. For example, "`label['DAT_TIM', 'TASK', 'COPY']`"
+                uniquely identifies the occurrence of `DAT_TIM` applicable to
+                `TASK='COPY'` when there might be other `TASK` sections of the label
+                containing other values of `DAT_TIM`.
+
+                Append a "+" to `name` to delete all of the label parameters whose names
+                match the constraints, starting with the first or "nth".
 
         Raises:
-            KeyError: The key is not found.
-            VicarError: An attempt is made to delete the first occurrence of a key.
+            IndexError: If any numeric component of the key is out of range.
+            KeyError: If the parameter name is not present in the label (or the section
+                of the label defined by `after_name` and `after_value`), or if the key
+                format is unrecognized.
+            TypeError: If the key is not a recognized type or contains a component that is
+                not of a recognized type.
+            ValueError: If no identified parameter equals `value` or if no occurrence of
+                `after_name` equals `after_value`.
         """
 
-        # Handle an integer key
-        if isinstance(key, numbers.Integral):
+        indices, _ = self._args(key, mode='get')
+        if not isinstance(indices, list):
+            indices = [indices]
 
-            name = self._names[key]
-            if name in _REQUIRED_NAMES:
-                is_first = self._key_index[name][0] == key
-                if is_first:
-                    raise VicarError('The first occurrence of {name} cannot be deleted')
+        # Make sure every deletion is legal
+        for indx in indices:
+            name = self._names[indx]
+            if name in _REQUIRED_NAMES and self._key_index[name][0] == indx:
+                raise VicarError(f'{name} is a required parameter')
 
-            names = list(self._names)
-            values = list(self._values)
-            formats = list(self._formats)
+        # Make copies of lists
+        names = list(self._names)
+        vals = list(self._values)
+        fmts = list(self._formats)
 
-            names.pop(key)
-            values.pop(key)
-            formats.pop(key)
+        # Delete starting from end so indices don't change
+        for indx in indices[::-1]:
+            names.pop(indx)
+            vals.pop(indx)
+            fmts.pop(indx)
 
-            self._update(names, values, formats)
-            return
-
-        # Handle a (name, after_key) or (name, after_key, after_value) key recursively
-        indx = self._after_arg(key)
-        if indx >= 0:
-            self.__delitem__(indx)
-            return
-
-        # Handle a name or (name, occurrence) key recursively
-        indx = self._key_index[key][0]      # raise KeyError on failure
-        self.__delitem__(indx)
-
-    ########################################
+        self._update(names, vals, fmts)
 
     def __contains__(self, key):
-        """Return True if the given key can be used to index the VICAR label."""
+        """True if the given key can be used to index the VICAR label.
 
-        # Handle an integer key
-        if isinstance(key, numbers.Integral):
-            return -len(self) <= key < len(self)
+        Parameters:
+            key (int, str, or tuple): The indexing key, interpreted as follows:
 
-        # Handle a (name, after_key) or (name, after_key, after_value) key
+                * *int* = `n`: The "nth" parameter in the label. `n` can be positive or
+                  negative.
+                * *str* = `name`: The first occurrence in the label of a parameter with
+                  this name.
+                * (*str*, *int*) = (`name`, `n`): The "nth" occurrence in the label of a
+                  parameter with this name. `n` can be positive or negative.
+                * (*str*, *str*) = (`name`, `after`): The first occurrence of parameter
+                  `name` after the first occurrence of parameter `after` and before the
+                  second occurrence of `after`.
+                * (*str*, *str*, *any*) = (`name`, `after`, `value`): The first occurrence
+                  of parameter `name` after the first location where `after` equals
+                  `value` and before the next occurrence of `after`.
+
+                The last two options make it easy to reference a VICAR label parameter
+                that is repeated. For example, "`label['DAT_TIM', 'TASK', 'COPY']`"
+                uniquely identifies the occurrence of `DAT_TIM` applicable to
+                `TASK='COPY'` when there might be other `TASK` sections of the label
+                containing other values of `DAT_TIM`.
+
+        Returns:
+            bool: True if the key is found within this label.
+        """
+
         try:
-            indx = self._after_arg(key)
-        except Exception:
-            pass
-        else:
-            if indx >= 0:
-                return True
+            indx, _ = self._args(key, mode='get')
+        except (IndexError, KeyError, TypeError, ValueError, VicarError):
+            return False
 
-        # Handle a name or (name, occurrence) key
-        return (key in self._key_index)
+        return True
 
     ######################################################################################
-    # String methods
+    # String Methods
     ######################################################################################
 
     def value_str(self, key):
-        """Return the value of the given parameter as it will appear in the label.
+        """The value of the given parameter as it will appear in the label.
 
-        Args:
-            key (str or tuple): The key to look up. See the help for VicarLabel.arg()
-                for full details.
+        Parameters:
+            key (int, str, or tuple): The indexing key, interpreted as follows:
+
+                * *int* = `n`: The "nth" parameter in the label. `n` can be positive or
+                  negative.
+                * *str* = `name`: The first occurrence in the label of a parameter with
+                  this name.
+                * (*str*, *int*) = (`name`, `n`): The "nth" occurrence in the label of a
+                  parameter with this name. `n` can be positive or negative.
+                * (*str*, *str*) = (`name`, `after`): The first occurrence of parameter
+                  `name` after the first occurrence of parameter `after` and before the
+                  second occurrence of `after`.
+                * (*str*, *str*, *any*) = (`name`, `after`, `value`): The first occurrence
+                  of parameter `name` after the first location where `after` equals
+                  `value` and before the next occurrence of `after`.
+
+                The last two options make it easy to reference a VICAR label parameter
+                that is repeated. For example, "`label['DAT_TIM', 'TASK', 'COPY']`"
+                uniquely identifies the occurrence of `DAT_TIM` applicable to
+                `TASK='COPY'` when there might be other `TASK` sections of the label
+                containing other values of `DAT_TIM`.
 
         Returns:
-            Any: The value associated with the given key.
+            str: The VICAR-compliant string representing the value of the selected
+                parameter.
+
+        Raises:
+            IndexError: If any numeric component of the key is out of range.
+            KeyError: If the parameter name is not present in the label (or the section of
+                the label defined by `after_name` and `after_value`), or if the key format
+                is unrecognized.
+            TypeError: If the key is not a recognized type or contains a component that is
+                not of a recognized type.
+            ValueError: If no identified parameter equals `value` or if no occurrence of
+                `after_name` equals `after_value`.
         """
 
         def _scalar_str(value, fmt=''):
@@ -1022,8 +1836,6 @@ class VicarLabel():
             return "'" + value.replace("'", "''") + "'"
 
         def _float_str(value):
-            """Format a float using a reasonable set of digits; avoid "00000" or "99999".
-            """
 
             result = repr(value)
             mantissa, e, expo = result.partition('e')
@@ -1055,6 +1867,13 @@ class VicarLabel():
             tail = fmt % (int(before) + 1)
             return sign + head + dot + tail + e + expo
 
+        ################
+        # Active code...
+        ################
+
+        self._finish_update()
+
+        key = VicarLabel._remove_plus(key)
         arg = self.arg(key)
         name = self._names[arg]
         value = self._values[arg]
@@ -1095,17 +1914,46 @@ class VicarLabel():
     def name_value_str(self, key, pad=True):
         """Convert one entry in the dictionary to a string of the form "NAME=VALUE".
 
-        If pad is True, the string will always end with at least one blank character.
+        Parameters:
+            key (int, str, or tuple): The indexing key, interpreted as follows:
 
-        Args:
-            key (str or tuple): The key to look up. See the help for VicarLabel.arg()
-            for full details.
-            pad (bool, optional): True to pad the resulting string.
+                * *int* = `n`: The "nth" parameter in the label. `n` can be positive or
+                  negative.
+                * *str* = `name`: The first occurrence in the label of a parameter with
+                  this name.
+                * (*str*, *int*) = (`name`, `n`): The "nth" occurrence in the label of a
+                  parameter with this name. `n` can be positive or negative.
+                * (*str*, *str*) = (`name`, `after`): The first occurrence of parameter
+                  `name` after the first occurrence of parameter `after` and before the
+                  second occurrence of `after`.
+                * (*str*, *str*, *any*) = (`name`, `after`, `value`): The first occurrence
+                  of parameter `name` after the first location where `after` equals
+                  `value` and before the next occurrence of `after`.
+
+                The last two options make it easy to reference a VICAR label parameter
+                that is repeated. For example, "`label['DAT_TIM', 'TASK', 'COPY']`"
+                uniquely identifies the occurrence of `DAT_TIM` applicable to
+                `TASK='COPY'` when there might be other `TASK` sections of the label
+                containing other values of `DAT_TIM`.
+
+            pad (bool, optional):
+                If True, the returned string will end with at least one blank character.
 
         Returns:
-            str: The converted value.
+            str: A "NAME=VALUE" string compliant with the VICAR standard.
+
+        Raises:
+            IndexError: If any numeric component of the key is out of range.
+            KeyError: If the parameter name is not present in the label (or the section of
+                the label defined by `after_name` and `after_value`), or if the key format
+                is unrecognized.
+            TypeError: If the key is not a recognized type or contains a component that is
+                not of a recognized type.
+            ValueError: If no identified parameter equals `value` or if no occurrence of
+                `after_name` equals `after_value`.
         """
 
+        key = VicarLabel._remove_plus(key)
         k = self.arg(key)
         name = self._names[k]
         valfmt = self._formats[k] or _ValueFormat('', 0, 0, 0, [])
@@ -1120,13 +1968,15 @@ class VicarLabel():
     def _prep_for_export(self, resize=True):
         """Update the label's LBLSIZE and EOL values in preparation for export.
 
-        Args:
+        Parameters:
             resize (bool, optional):
-                if True, LBLSIZE will be modified to accommodate the new content.
+                If True, LBLSIZE will be modified to accommodate the new content.
                 Otherwise, the current value of LBLSIZE will be preserved and any overflow
-                content will be placed into an EOL label. In this case, a second LBLSIZE
-                parameter will mark the starting location of this label.
+                content will be placed into an end-of-file ("EOL") label. In this case, a
+                second LBLSIZE parameter will mark the starting location of this label.
         """
+
+        self._finish_update()
 
         lblsize = self['LBLSIZE']
         recsize = self['RECSIZE']
@@ -1171,26 +2021,26 @@ class VicarLabel():
             self['LBLSIZE'] = nrecs * recsize
 
     def export(self, resize=True):
-        """Return two strings representing the contents of a VICAR label in a data file.
+        """Export this VicarLabel to text strings.
 
-        The first string contains the VICAR label at the top of the file, as constrained
-        by the internal values of LBLSIZE and RECSIZE. The second is the content of the
-        EOL label, which is either an empty string or label text beginning with a second
-        value of LBLSIZE. Each string is padded with null characters to the full length
-        specified by LBLSIZE.
-
-        Note that the returned strings must be encoded as "latin8" bytes before writing
-        into a file.
-
-        Args:
+        Parameters:
             resize (bool, optional):
-                if True, LBLSIZE will be modified to accommodate the new content.
+                If True, LBLSIZE will be modified to accommodate the new content.
                 Otherwise, the current value of LBLSIZE will be preserved and any overflow
-                content will be placed into an EOL label. In this case, a second LBLSIZE
-                parameter will mark the starting location of this label.
+                content will be placed into an end-of-file label.
 
         Returns:
-            str, str: The header label and the EOL label as strings.
+            (str, str): A tuple containing:
+
+            * str: The VICAR label at the top of the file, as constrained by the internal
+              values of LBLSIZE and RECSIZE. The string is padded with null characters to
+              the full length specified by LBLSIZE.
+            * str: The VICAR end-of-file label; empty if all the label content fits within
+              the specified LBLSIZE.
+
+        Note:
+            The returned strings must be encoded as "latin8" bytes before writing them
+            into a data file.
         """
 
         self._prep_for_export(resize=resize)
@@ -1214,23 +2064,23 @@ class VicarLabel():
         return labels
 
     def as_string(self, start=0, stop=None, sep=''):
-        """Return this VicarLabel's content as a string.
+        """The content of this label as a string.
 
-        Args:
-            start (int, str, or tuple, optional): The index or key of the first parameter
-                index. See VicarLabel.arg() for details on specifying a key.
-            stop (int, str, or tuple, optional): The index or key just after the last
-                parameter index; omit to include all remaining VICAR parameters in the
-                returned string. See VicarLabel.arg() for details on specifying a key.
-            sep (str, optional): optional characters to insert before the second LBLSIZE,
-                if any.
+        Parameters:
+            start (int, optional):
+                Index or key of the first parameter to include in the string.
+            stop (int, optional):
+                Index or key just after the last parameter to include in the string.
+            sep (str, optional):
+                Optional characters to insert before a second LBLSIZE. For example, use
+                "\\n" to create a string with a line break before any extension label.
 
         Returns:
-            str: The string representation of the VicarLabel's contents.
+            str: A label string compliant with the VICAR standard.
         """
 
         start = self.arg(start)
-        stop = self._len if not stop else min(self._len, self.arg(stop))
+        stop = self._len if stop is None else min(self._len, self.arg(stop))
 
         label = []
         for k in range(start, stop):
@@ -1244,30 +2094,27 @@ class VicarLabel():
 
         return ''.join(label)
 
-    def __str__(self):
-        return self.as_string()
-
-    def __repr__(self):
-        return 'VicarLabel("""' + self.as_string(sep='\n\n') + '""")'
-
     ######################################################################################
-    # Iterators (mostly just lists)
+    # Iterators
     ######################################################################################
 
     def __iter__(self):
         """Iterator over the unique names or (name, occurrence) pairs in the label.
 
-        It returns a name string if that name is unique, otherwise a tuple (name,
-        occurrence).
-
-        Yields:
-            str or tuple: Each unique or non-unique name.
+        Returns:
+            iterator:
+                An iterator over the parameter keys within this label, in order. The key
+                is the parameter name if it is unique or (name, occurrence number)
+                otherwise.
         """
+
+        self._finish_update()
 
         self._counter = 0
         return self
 
     def __next__(self):
+
         i = self._counter
         if i >= self._len:
             raise StopIteration
@@ -1276,60 +2123,58 @@ class VicarLabel():
         return self._unique_keys[i]
 
     def names(self, pattern=None):
-        """Iterator over the parameter name strings in this VicarLabel.
+        """Iterator over the names in this label.
 
-        Implemented as a simple list.
-
-        Args:
-            pattern (str, optional): If provided, the iteration only
-                includes parameter names that match the given regular expression. If no
-                pattern is provided, all parameter names are included.
+        Parameters:
+            pattern (str or re.Pattern, optional):
+                Regular expression that can be used to filter the label parameter names.
 
         Returns:
-            list: The list of names.
+            list: The list of the matching parameter names within this label, in order.
         """
+
+        self._finish_update()
 
         if pattern:
             pattern = re.compile(pattern, re.I)
             return [n for n in self._names if pattern.fullmatch(n)]
 
-        return list(self._names)
+        return list(self._names)        # return a copy
 
     def keys(self, pattern=None):
-        """Iterator over the label keys.
+        """Iterator over the keys of the parameters within this label.
 
-        The key is the parameter name if it is unique or (name, occurrence number)
-        otherwise.
-
-        Implemented as a simple list.
-
-        Args:
-            pattern (str, optional): If provided, the iteration only
-                includes parameter names that match the given regular expression. If no
-                pattern is provided, all parameter names are included.
+        Parameters:
+            pattern (str or re.Pattern, optional):
+                Regular expression that can be used to filter the label parameter names.
 
         Returns:
-            list: The list of keys.
+            list:
+                The list of the parameter keys within this label, in order. The key is the
+                parameter name if it is unique or (name, occurrence number) otherwise.
         """
+
+        self._finish_update()
 
         if pattern:
             pattern = re.compile(pattern, re.I)
             indices = [i for i,n in enumerate(self._names) if pattern.fullmatch(n)]
             return [self._unique_keys[i] for i in indices]
 
-        return list(self._unique_keys)
+        return list(self._unique_keys)  # return a copy
 
     def values(self, pattern=None):
         """Iterator over the values in this VicarLabel.
 
-        Args:
-            pattern (str, optional): If provided, the iteration only
-                includes parameter names that match the given regular expression. If no
-                pattern is provided, all parameter names are included.
+        Parameters:
+            pattern (str or re.Pattern, optional):
+                Regular expression that can be used to filter the label parameter names.
 
         Returns:
-            list: The list of values.
+            iterator: The values of the matching parameters within this label, in order.
         """
+
+        self._finish_update()
 
         if pattern:
             pattern = re.compile(pattern, re.I)
@@ -1339,19 +2184,24 @@ class VicarLabel():
         return list(self._values)
 
     def items(self, pattern=None, unique=True):
-        """Iterator over the (key, value) pairs in this VicarLabel.
+        """Iterator over the (key, value) pairs in this label.
 
-        Args:
-            pattern (str, optional): If provided, the iteration only
-                includes parameter names that match the given regular expression. If no
-                pattern is provided, all parameter names are included.
-            unique (bool, optional): True to return unique keys, in which non-unique names
-                are replaced by tuples (name, occurrence). If False, all keys are name
-                strings, and a string may appear multiple times.
+        Parameters:
+            pattern (str or re.Pattern, optional):
+                Regular expression that can be used to filter the label parameter names.
+
+            unique (bool, optional):
+                True to return unique keys, in which non-unique names are replaced by
+                tuples (name, occurrence). If False, all keys are name strings, and a name
+                may appear multiple times.
 
         Returns:
-            list: The list of (key, value) pairs.
+            iterator:
+                The tuples (name, value) of the matching parameter names within this
+                label, in order.
         """
+
+        self._finish_update()
 
         if pattern:
             pattern = re.compile(pattern, re.I)
@@ -1369,18 +2219,20 @@ class VicarLabel():
     def args(self, pattern=None):
         """Iterator over the numerical indices of the keywords.
 
-        Args:
-            pattern (str, optional): If provided, the iteration only
-                includes parameter names that match the given regular expression.
-                If no pattern is provided, all parameter names are included.
+        Parameters:
+            pattern (str or re.Pattern, optional):
+                Regular expression that can be used to filter the label parameter names.
 
-        Yields:
-            The numerical indices for the keys that match the given pattern.
+        Returns:
+            iterator:
+                The indices of the matching parameter names within this label, in order.
         """
+
+        self._finish_update()
 
         if pattern:
             pattern = re.compile(pattern, re.I)
-            return (i for i,n in enumerate(self._names) if pattern.fullmatch(n))
+            return [i for i,n in enumerate(self._names) if pattern.fullmatch(n)]
 
         return range(self._len)
 
@@ -1390,26 +2242,32 @@ class VicarLabel():
 
     @staticmethod
     def read_label(source, _extra=False):
-        """Read a VICAR data file and return the VICAR label string.
+        """The VICAR label string from the specified data file.
 
-        If an EOL label is present, its content is appended to the returned string. This
-        can be recognized by a second occurrence of the LBLSIZE parameter.
+        If an EOL label is present, the content of the extension label is appended to the
+        returned string. This can be recognized by a second occurrence of the LBLSIZE
+        parameter.
 
-        Args:
-            source (str, Path, or open file object): The source of the VICAR data. If
-                an open file object is provided, it must have been opened in binary read
-                mode.
-            _extra (bool, optional): True to return any extraneous bytes from the end of
-                the data file in addition to the label.
+        Parameters:
+            source (str, pathlib.Path, or file):
+                A path to a VICAR data file or else a file object already opened for
+                binary read.
+            _extra (bool, optional):
+                True to return any extraneous bytes from the end of the data file in
+                addition to the label.
 
-        Return:
-            str, bytes:
-                text: The VICAR label as a character string, with the EOL label appended
-                if one is present. The EOL label can be recognized by the presence of
-                a second LBLSIZE parameter.
+        Returns:
+            str or (str, bytes): A string or a tuple containing:
 
-                extra: A bytes object containing any extraneous characters at the end of
-                the file; included if input _extra is True.
+            * str: The VICAR label as a character string, with the EOL label appended if
+              one is present. The EOL label can be recognized by the presence of a second
+              LBLSIZE parameter.
+            * bytes: A bytes object containing any extraneous characters at the end of the
+              file, included if `_extra` is True.
+
+        Raises:
+            OSError: If the referenced file could not be read.
+            VicarError: If the referenced file does not conform to the VICAR standard.
         """
 
         if isinstance(source, io.IOBase):
@@ -1425,7 +2283,7 @@ class VicarLabel():
             # Read the beginning of the VICAR file to get the label size
             f.seek(0)
             snippet = f.read(40).decode('latin8')
-            match = _LBLSIZE.match(snippet)
+            match = _LBLSIZE_PATTERN.match(snippet)
             if not match:       # pragma: no cover
                 raise VicarError('Missing LBLSIZE keyword in file ' + str(filepath))
 
@@ -1437,7 +2295,7 @@ class VicarLabel():
             label = label.partition('\0')[0]
 
             # Parse
-            ldict = VicarLabel(label)
+            ldict = VicarLabel(label, strict=False)
 
             # Figure out the distance to the EOL label
             recsize = ldict['RECSIZE']
@@ -1452,7 +2310,7 @@ class VicarLabel():
 
             # Try to read the EOF label
             snippet = str(f.read(40).decode('latin8'))
-            match = _LBLSIZE.match(snippet)
+            match = _LBLSIZE_PATTERN.match(snippet)
             if match:
                 eolsize = int(match.group(1))
                 f.seek(skip)
@@ -1478,13 +2336,13 @@ class VicarLabel():
 
     @staticmethod
     def from_file(filepath):
-        """Return a new VicarLabel object derived from the given VICAR data file.
+        """A new VicarLabel object derived from the given VICAR data file.
 
-        Args:
-            filepath (str or Path): path to a VICAR data file.
+        Parameters:
+            filepath (str or pathlib.Path): Path to a VICAR data file.
 
         Returns:
-            VicarLabel: The VicarLabel created from the given file.
+            VicarLabel: VicarLabel object read from file.
         """
 
         return VicarLabel(source=filepath)
@@ -1492,17 +2350,14 @@ class VicarLabel():
     def write_label(self, filepath=None):
         """Replace the label in the selected VICAR file with this label content.
 
-        Note that this method modifies the file without first creating a backup, so it
-        should be used with caution.
+        Parameters:
+            filepath (str or pathlib.Path, optional):
+                Optional path of the existing file to write. If not provided, the value of
+                this object's filepath attribute is used.
 
-        Args:
-            filepath (str or Path, optional):
-                Path of the existing file to write. If not provided, the value of this
-                object's filepath attribute is used.
-
-        Raises:
-            ValueError: If the filepath attribute is missing.
-            VicarError: If the LBLSIZE keyword is missing.
+        Note:
+            This method modifies the file without first creating a backup, so it should be
+            used with caution.
         """
 
         if not filepath:
@@ -1511,10 +2366,12 @@ class VicarLabel():
         if not filepath:
             raise ValueError('file path is missing')
 
+        self._finish_update()
+
         with self._filepath.open('r+b') as f:
 
             snippet = f.read(40).decode('latin8')
-            match = _LBLSIZE.match(snippet)
+            match = _LBLSIZE_PATTERN.match(snippet)
             if not match:       # pragma: no cover
                 raise VicarError('Missing LBLSIZE keyword in file ' + str(self._filepath))
 
@@ -1535,5 +2392,57 @@ class VicarLabel():
             f.seek(skip)
             f.write(labels[1].encode('latin8'))
             f.truncate()
+
+    ######################################################################################
+    # Other Utilities
+    ######################################################################################
+
+    def _set_n321(self, n3, n2, n1):
+        """Set the values of N1, N2, N3.
+
+        NB, NL, and NS will be derived from these, depending on the ORG.
+
+        Parameters:
+            n3 (int): Value for N3.
+            n2 (int): Value for N2.
+            n1 (int): Value for N1.
+        """
+
+        (self['N1'], self['N2'], self['N3']) = (n1, n2, n3)
+        self._nbls_from_n123()
+
+    def _set_nbls(self, nb, nl, ns):
+        """Set the values of NB, NL, NS.
+
+        N1, N2, and N3 will be derived from these, depending on the ORG.
+
+        Parameters:
+            nb (int): Value for NB.
+            nl (int): Value for NL.
+            ns (int): Value for NS.
+        """
+
+        (self['NB'], self['NL'], self['NS']) = (nb, nl, ns)
+        self._n123_from_nbls()
+
+    def _n123_from_nbls(self):
+        """Fill in the N1, N2, N3 parameters given values of NB, NL, NS and ORG."""
+
+        if self['ORG'] == 'BSQ':
+            (self['N1'], self['N2'], self['N3']) = (self['NS'], self['NL'], self['NB'])
+        elif self['ORG'] == 'BIL':
+            (self['N1'], self['N2'], self['N3']) = (self['NS'], self['NB'], self['NL'])
+        else:   # == 'BIP'
+            (self['N1'], self['N2'], self['N3']) = (self['NB'], self['NS'], self['NL'])
+
+    def _nbls_from_n123(self):
+        """Fill in the NB, NL, NS parameters given values of N1, N2, N3 and ORG."""
+
+        if self['ORG'] == 'BSQ':
+            (self['NS'], self['NL'], self['NB']) = (self['N1'], self['N2'], self['N3'])
+        elif self['ORG'] == 'BIL':
+            (self['NS'], self['NB'], self['NL']) = (self['N1'], self['N2'], self['N3'])
+        else:   # == 'BIP'
+            (self['NB'], self['NS'], self['NL']) = (self['N1'], self['N2'], self['N3'])
 
 ##########################################################################################
