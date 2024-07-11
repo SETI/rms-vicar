@@ -5,7 +5,7 @@
 Definition of _LABEL_GRAMMAR, a `pyparsing` grammar supporting the VICAR format standard,
 used internally. The full standard is defined here:
 
-    https://www-mipl.jpl.nasa.gov/external/VICAR_file_fmt.pdf
+    https://pds-rings.seti.org/help/VICAR_file_fmt.pdf
 
 _LABEL_GRAMMAR.parse_string(text) receives the contents of VICAR label and returns a list
 of tuples. Each tuple defines the name and value of a label parameter. When the formatting

@@ -32,42 +32,43 @@ class VicarLabel():
 
     **Properties:**
 
-        * filepath: The file path associated with this VicarLabel.
+        * `filepath`: The file path associated with this VicarLabel.
 
     **Core Methods:**
 
-        * append: Append one or more parameters to the end of this label.
-        * arg: The index of a parameter name within this label.
-        * args: Iterator over the numeric indices of the parameters in this label.
-        * as_string: A string representing all or part of this label.
-        * copy: An independent (deep) copy of this VicarLabel.
-        * export: Returns a label parameter string of the form NAME=VALUE.
-        * from_file: Construct a VicarLabel object from the content of a VICAR data file.
-        * get: Retrieve a label parameter value or return a default.
-        * insert: Insert one or more parameters into this label.
-        * items: Iterator over the (name, value) tuples in this label.
-        * keys: Iterator over the parameter names in this label as unique keys.
-        * name_value_str: Returns a label parameter string of the form NAME=VALUE.
-        * names: Iterator over the parameter names in this label.
-        * read_label: Read the label string(s) from a file.
-        * reorder: Reorder the parameters in this label.
-        * value_str: Formats a label parameter value.
-        * values: Iterator over the parameter values in this label.
-        * write_label: Write this label into a data file, replacing an existing label.
+        * `append`: Append one or more parameters to the end of this label.
+        * `arg`: The index of a parameter name within this label.
+        * `args`: Iterator over the numeric indices of the parameters in this label.
+        * `as_string`: A string representing all or part of this label.
+        * `copy`: An independent (deep) copy of this VicarLabel.
+        * `export`: Returns a label parameter string of the form `NAME=VALUE`.
+        * `from_file`: Construct a VicarLabel object from the content of a VICAR data file.
+        * `get`: Retrieve a label parameter value or return a default.
+        * `insert`: Insert one or more parameters into this label.
+        * `items`: Iterator over the `(name, value)` tuples in this label.
+        * `keys`: Iterator over the parameter names in this label as unique keys.
+        * `name_value_str`: Returns a label parameter string of the form `NAME=VALUE`.
+        * `names`: Iterator over the parameter names in this label.
+        * `read_label`: Read the label string(s) from a file.
+        * `reorder`: Reorder the parameters in this label.
+        * `value_str`: Formats a label parameter value.
+        * `values`: Iterator over the parameter values in this label.
+        * `write_label`: Write this label into a data file, replacing an existing label.
 
     **Python Syntax Support Methods:**
 
-        * __contains__: Enables "name in label" syntax.
-        * __delitem__: Enables "del label[name]" syntax.
-        * __eq__: Enables "a == b", the test of whether two labels are equal.
-        * __getitem__: Enables "label[name]" dictionary-like syntax.
-        * __iter__: Enables "for key in label:" syntax.
-        * __len__: Enables "len(label)", the number of parameters in the given VicarLabel.
-        * __repr__: Enables "repr(label)", similar to the "str(label)", but with the class
-          name included.
-        * __setitem__: Enables "label[name] = value" dictionary-like syntax.
-        * __str__: Enables "str(label)", returning a string representing the content of a
-          label.
+        * `__contains__`: Enables "`name in label`" syntax.
+        * `__delitem__`: Enables "`del label[name]`" syntax.
+        * `__eq__`: Enables "`a == b`", the test of whether two labels are equal.
+        * `__getitem__`: Enables "`label[name]`" dictionary-like syntax.
+        * `__iter__`: Enables "`for key in label:`" syntax.
+        * `__len__`: Enables "`len(label)`", the number of parameters in the given
+          VicarLabel.
+        * `__repr__`: Enables "`repr(label)`", similar to the "`str(label)`", but with the
+          class name included.
+        * `__setitem__`: Enables "`label[name] = value`" dictionary-like syntax.
+        * `__str__`: Enables "`str(label)`", returning a string representing the content
+          of a label.
 
     **Notes About Dictionary Keys:**
 
@@ -75,23 +76,23 @@ class VicarLabel():
         rich set of options are available. For example, if `label` is a VicarLabel object,
         then:
 
-            * "label[n]" where `n` is an integer refers to the "nth" parameter in the
+            * `label[n]` where `n` is an integer refers to the "nth" parameter in the
               label. `n` can be positive or negative.
-            * "label[name]" where `name` is a string refers to the first occurrence in the
+            * `label[name]` where `name` is a string refers to the first occurrence in the
               label of a parameter with this name.
-            * "label[name,n]" refers to the "nth" occurrence in the label of a parameter
+            * `label[name,n]` refers to the "nth" occurrence in the label of a parameter
               with this name. `n` can be positive or negative.
-            * "label[name, after]" where both items are strings refers to the first
+            * `label[name, after]` where both items are strings refers to the first
               occurrence of parameter `name` after the first occurrence of parameter
               `after` and before the second occurrence of `after`.
-            * "label[name, after, value]" refers to the first occurrence of parameter
+            * `label[name, after, value]` refers to the first occurrence of parameter
               `name` after the first location where `after` equals `value` and before the
               next occurrence of `after`.
 
         The last two options make it easy to reference a VICAR label parameter that is
-        repeated. For example, "label['DAT_TIM', 'TASK', 'COPY']" uniquely identifies the
-        occurrence of "DAT_TIM" applicable to "TASK='COPY'" when there might be other
-        "TASK" sections of the label containing other values of "DAT_TIM".
+        repeated. For example, "`label['DAT_TIM', 'TASK', 'COPY']`" uniquely identifies the
+        occurrence of `DAT_TIM` applicable to `TASK='COPY'` when there might be other
+        `TASK` sections of the label containing other values of `DAT_TIM`.
 
         Append a "+" to `name` to expand upon the function's behavior. With "get"
         operations, a list is returned identifying all of the occurrences of the selected
@@ -142,7 +143,7 @@ class VicarLabel():
         When the parameter value is a list, it is also possible to embed formatting
         information on an item by item basis. Replace any item value by a tuple:
 
-            (`item`[, `format`][[, `blanks_before`], `blanks_after`])
+            (`item` [, `format`][[, `blanks_before`], `blanks_after`])
 
         where:
 
@@ -201,10 +202,8 @@ class VicarLabel():
 
         Raises:
             OSError: If the source is given as a file path that cannot be read.
-
             TypeError: If the source is an unrecognized type or contains an unrecognized
                 type.
-
             VicarError: If the source violates the VICAR standard or a required VICAR
                 parameter has an invalid value.
 
@@ -250,7 +249,7 @@ class VicarLabel():
             When the parameter value is a list, it is also possible to embed formatting
             information on an item by item basis. Replace any item value by a tuple:
 
-                (`item`[, `format`][[, `blanks_before`], `blanks_after`])
+                (`item` [, `format`][[, `blanks_before`], `blanks_after`])
 
             where:
 
@@ -281,9 +280,7 @@ class VicarLabel():
 
         Parameters:
             names (list[str]): List of names, already validated.
-
             vals (list): List of values, already validated.
-
             fmts (list[_ValueFormat or None]): List of formatting hints, validated.
         """
 
@@ -453,10 +450,8 @@ class VicarLabel():
 
         Raises:
             OSError: If `fileio` is True but a file could not be read.
-
             TypeError: If the source is an unrecognized type or contains an unrecognized
                 type, or if a format string is incompatible with a parameter value.
-
             VicarError: If the source violates the VICAR standard or a required VICAR
                 parameter has an invalid value.
 
@@ -502,7 +497,7 @@ class VicarLabel():
             When the parameter value is a list, it is also possible to embed formatting
             information on an item by item basis. Replace any item value by a tuple:
 
-                (`item`[, `format`][[, `blanks_before`], `blanks_after`])
+                (`item` [, `format`][[, `blanks_before`], `blanks_after`])
 
             where:
 
@@ -584,7 +579,6 @@ class VicarLabel():
 
         Parameters:
             name (str): VICAR parameter name.
-
             strict (bool, optional): True for strict VICAR conformance, False for loose.
 
         Raises:
@@ -611,9 +605,7 @@ class VicarLabel():
 
         Parameters:
             value (int, float, string, or list): VICAR parameter value.
-
             name (str): Name of the VICAR parameter.
-
             strict (bool, optional): True for strict VICAR conformance, False for loose.
 
         Raises:
@@ -679,7 +671,6 @@ class VicarLabel():
 
         Raises:
             TypeError: If the format string is incompatible with the value.
-
             VicarError: If this is not a valid tuple of formatting hints or is
                 incompatible with the value type.
         """
@@ -733,7 +724,6 @@ class VicarLabel():
 
         Parameters:
             hints (tuple): Value format hints.
-
             listfmt (list[_ListFormat[, optional): Formats for list elements.
 
         Returns:
@@ -797,11 +787,8 @@ class VicarLabel():
 
         Parameters:
             names (list[str]): List of names.
-
             vals (list[int, float, str, or list]): List of values.
-
             fmts (list[_ValueFormat or None]): List of formatting hints.
-
             append (bool, optional): True to append any missing required VICAR parameters.
 
         Returns:
@@ -884,10 +871,8 @@ class VicarLabel():
 
         Raises:
             OSError: If the source is given as a file path that cannot be read.
-
             TypeError: If the source is an unrecognized type or contains an unrecognized
                 type.
-
             VicarError: If the source violates the VICAR standard or a required VICAR
                 parameter has an invalid value.
 
@@ -933,7 +918,7 @@ class VicarLabel():
             When the parameter value is a list, it is also possible to embed formatting
             information on an item by item basis. Replace any item value by a tuple:
 
-                (`item`[, `format`][[, `blanks_before`], `blanks_after`])
+                (`item` [, `format`][[, `blanks_before`], `blanks_after`])
 
             where:
 
@@ -991,10 +976,8 @@ class VicarLabel():
 
         Raises:
             OSError: If the source is given as a file path that cannot be read.
-
             TypeError: If the source is an unrecognized type or contains an unrecognized
                 type.
-
             VicarError: If the source violates the VICAR standard or a required VICAR
                 parameter has an invalid value.
 
@@ -1040,7 +1023,7 @@ class VicarLabel():
             When the parameter value is a list, it is also possible to embed formatting
             information on an item by item basis. Replace any item value by a tuple:
 
-                (`item`[, `format`][[, `blanks_before`], `blanks_after`])
+                (`item` [, `format`][[, `blanks_before`], `blanks_after`])
 
             where:
 
@@ -1091,21 +1074,19 @@ class VicarLabel():
                   of parameter `name` after the first location where `after` equals
                   `value` and before the next occurrence of `after`.
 
-                The last two options make it easy to reference parameter in a label that
-                is re-used, such as to find the value of "DAT_TIM" applicable to
-                "TASK='COPY'" when there might be other "TASK" sections of the label
-                containing other values of "DAT_TIM".
+                The last two options make it easy to reference a VICAR label parameter
+                that is repeated. For example, "`label['DAT_TIM', 'TASK', 'COPY']`"
+                uniquely identifies the occurrence of `DAT_TIM` applicable to
+                `TASK='COPY'` when there might be other `TASK` sections of the label
+                containing other values of `DAT_TIM`.
 
         Raises:
             IndexError: If any numeric component of the key is out of range.
-
             KeyError: If the parameter name is not present in the label (or the section of
                 the label defined by `after_name` and `after_value`), or if the key format
                 is unrecognized.
-
             TypeError: If the key is not a recognized type or contains a component that is
                 not of a recognized type.
-
             ValueError: If no identified parameter equals `value` or if no occurrence of
                 `after_name` equals `after_value`. Also if an index is duplicated in the
                 new order.
@@ -1175,10 +1156,10 @@ class VicarLabel():
                   `value` and before the next occurrence of `after`.
 
                 The last two options make it easy to reference a VICAR label parameter
-                that is repeated. For example, label["DAT_TIM", "TASK", "COPY"] uniquely
-                identifies the occurrence of "DAT_TIM" applicable to "TASK='COPY'" when
-                there might be other "TASK" sections of the label containing other values
-                of "DAT_TIM".
+                that is repeated. For example, "`label['DAT_TIM', 'TASK', 'COPY']`"
+                uniquely identifies the occurrence of `DAT_TIM` applicable to
+                `TASK='COPY'` when there might be other `TASK` sections of the label
+                containing other values of `DAT_TIM`.
 
                 Append a "+" to `name` to expand upon the function's behavior. With "get",
                 it returns a list of matching indices rather than a single index. With
@@ -1202,14 +1183,11 @@ class VicarLabel():
 
         Raises:
             IndexError: If any numeric component of the key is out of range.
-
             KeyError: If the parameter name is not present in the label (or the section of
                 the label defined by `after_name` and `after_value`), or if the key format
                 is unrecognized.
-
             TypeError: If the key is not a recognized type or contains a component that is
                 not of  a recognized type.
-
             ValueError: If no identified parameter equals `value` or if no occurrence of
                 `after_name` equals `after_value`.
         """
@@ -1379,10 +1357,10 @@ class VicarLabel():
                   `value` and before the next occurrence of `after`.
 
                 The last two options make it easy to reference a VICAR label parameter
-                that is repeated. For example, label["DAT_TIM", "TASK", "COPY"] uniquely
-                identifies the occurrence of "DAT_TIM" applicable to "TASK='COPY'" when
-                there might be other "TASK" sections of the label containing other values
-                of "DAT_TIM".
+                that is repeated. For example, "`label['DAT_TIM', 'TASK', 'COPY']`"
+                uniquely identifies the occurrence of `DAT_TIM` applicable to
+                `TASK='COPY'` when there might be other `TASK` sections of the label
+                containing other values of `DAT_TIM`.
 
                 Append a "+" to the name to return a list of all indices where the
                 constraints are satisfied, starting with the first or "nth".
@@ -1402,14 +1380,11 @@ class VicarLabel():
 
         Raises:
             IndexError: If any numeric component of the key is out of range.
-
             KeyError: If the parameter name is not present in the label (or the section of
                 the label defined by `after_name` and `after_value`), or if the key format
                 is unrecognized.
-
             TypeError: If the key is not a recognized type or contains a component that is
                 not of a recognized type.
-
             ValueError: If no identified parameter equals `value` or if no occurrence of
                 `after_name` equals `after_value`.
         """
@@ -1453,10 +1428,10 @@ class VicarLabel():
                   `value` and before the next occurrence of `after`.
 
                 The last two options make it easy to reference a VICAR label parameter
-                that is repeated. For example, label["DAT_TIM", "TASK", "COPY"] uniquely
-                identifies the occurrence of "DAT_TIM" applicable to "TASK='COPY'" when
-                there might be other "TASK" sections of the label containing other values
-                of "DAT_TIM".
+                that is repeated. For example, "`label['DAT_TIM', 'TASK', 'COPY']`"
+                uniquely identifies the occurrence of `DAT_TIM` applicable to
+                `TASK='COPY'` when there might be other `TASK` sections of the label
+                containing other values of `DAT_TIM`.
 
                 Append a "+" to the name to return a list of all values where the
                 constraints are satisfied, starting with the first or "nth".
@@ -1469,14 +1444,11 @@ class VicarLabel():
 
         Raises:
             IndexError: If any numeric component of the key is out of range.
-
             KeyError: If the parameter name is not present in the label (or the section of
                 the label defined by `after_name` and `after_value`), or if the key format
                 is unrecognized.
-
             TypeError: If the key is not a recognized type or contains a component that is
                 not of a recognized type.
-
             ValueError: If no identified parameter equals `value` or if no occurrence of
                 `after_name` equals `after_value`.
         """
@@ -1510,10 +1482,10 @@ class VicarLabel():
                   `value` and before the next occurrence of `after`.
 
                 The last two options make it easy to reference a VICAR label parameter
-                that is repeated. For example, label["DAT_TIM", "TASK", "COPY"] uniquely
-                identifies the occurrence of "DAT_TIM" applicable to "TASK='COPY'" when
-                there might be other "TASK" sections of the label containing other values
-                of "DAT_TIM".
+                that is repeated. For example, "`label['DAT_TIM', 'TASK', 'COPY']`"
+                uniquely identifies the occurrence of `DAT_TIM` applicable to
+                `TASK='COPY'` when there might be other `TASK` sections of the label
+                containing other values of `DAT_TIM`.
 
                 Append a "+" to the name to return a list of all values where the
                 constraints are satisfied, starting with the first or "nth".
@@ -1532,14 +1504,11 @@ class VicarLabel():
 
         Raises:
             IndexError: If any numeric component of the key is out of range.
-
             KeyError: If the parameter name is not present in the label (or the section of
                 the label defined by `after_name` and `after_value`), or if the key format
                 is unrecognized.
-
             TypeError: If the key is not a recognized type or contains a component that is
                 not of a recognized type.
-
             ValueError: If no identified parameter equals `value` or if no occurrence of
                 `after_name` equals `after_value`.
         """
@@ -1573,10 +1542,10 @@ class VicarLabel():
                   `value` and before the next occurrence of `after`.
 
                 The last two options make it easy to reference a VICAR label parameter
-                that is repeated. For example, label["DAT_TIM", "TASK", "COPY"] uniquely
-                identifies the occurrence of "DAT_TIM" applicable to "TASK='COPY'" when
-                there might be other "TASK" sections of the label containing other values
-                of "DAT_TIM".
+                that is repeated. For example, "`label['DAT_TIM', 'TASK', 'COPY']`"
+                uniquely identifies the occurrence of `DAT_TIM` applicable to
+                `TASK='COPY'` when there might be other `TASK` sections of the label
+                containing other values of `DAT_TIM`.
 
                 Append a "+" to the name to force a new occurrence of the key to be
                 inserted, even if the key already exists.
@@ -1591,14 +1560,11 @@ class VicarLabel():
 
         Raises:
             IndexError: If any numeric component of the key is out of range.
-
             KeyError: If the parameter name is not present in the label (or the section of
                 the label defined by `after_name` and `after_value`), or if the key format
                 is unrecognized.
-
             TypeError: If the key is not a recognized type or contains a component that is
                 not of a recognized type.
-
             ValueError: If no identified parameter equals `value` or if no occurrence of
                 `after_name` equals `after_value`.
 
@@ -1642,7 +1608,7 @@ class VicarLabel():
             When the parameter value is a list, it is also possible to embed formatting
             information on an item by item basis. Replace any item value by a tuple:
 
-                (`item`[, `format`][[, `blanks_before`], `blanks_after`])
+                (`item` [, `format`][[, `blanks_before`], `blanks_after`])
 
             where:
 
@@ -1734,24 +1700,21 @@ class VicarLabel():
                   `value` and before the next occurrence of `after`.
 
                 The last two options make it easy to reference a VICAR label parameter
-                that is repeated. For example, label["DAT_TIM", "TASK", "COPY"] uniquely
-                identifies the occurrence of "DAT_TIM" applicable to "TASK='COPY'" when
-                there might be other "TASK" sections of the label containing other values
-                of "DAT_TIM".
+                that is repeated. For example, "`label['DAT_TIM', 'TASK', 'COPY']`"
+                uniquely identifies the occurrence of `DAT_TIM` applicable to
+                `TASK='COPY'` when there might be other `TASK` sections of the label
+                containing other values of `DAT_TIM`.
 
                 Append a "+" to `name` to delete all of the label parameters whose names
                 match the constraints, starting with the first or "nth".
 
         Raises:
             IndexError: If any numeric component of the key is out of range.
-
             KeyError: If the parameter name is not present in the label (or the section
                 of the label defined by `after_name` and `after_value`), or if the key
                 format is unrecognized.
-
             TypeError: If the key is not a recognized type or contains a component that is
                 not of a recognized type.
-
             ValueError: If no identified parameter equals `value` or if no occurrence of
                 `after_name` equals `after_value`.
         """
@@ -1799,10 +1762,10 @@ class VicarLabel():
                   `value` and before the next occurrence of `after`.
 
                 The last two options make it easy to reference a VICAR label parameter
-                that is repeated. For example, label["DAT_TIM", "TASK", "COPY"] uniquely
-                identifies the occurrence of "DAT_TIM" applicable to "TASK='COPY'" when
-                there might be other "TASK" sections of the label containing other values
-                of "DAT_TIM".
+                that is repeated. For example, "`label['DAT_TIM', 'TASK', 'COPY']`"
+                uniquely identifies the occurrence of `DAT_TIM` applicable to
+                `TASK='COPY'` when there might be other `TASK` sections of the label
+                containing other values of `DAT_TIM`.
 
         Returns:
             bool: True if the key is found within this label.
@@ -1839,26 +1802,22 @@ class VicarLabel():
                   `value` and before the next occurrence of `after`.
 
                 The last two options make it easy to reference a VICAR label parameter
-                that is repeated. For example, label["DAT_TIM", "TASK", "COPY"] uniquely
-                identifies the occurrence of "DAT_TIM" applicable to "TASK='COPY'" when
-                there might be other "TASK" sections of the label containing other values
-                of "DAT_TIM".
+                that is repeated. For example, "`label['DAT_TIM', 'TASK', 'COPY']`"
+                uniquely identifies the occurrence of `DAT_TIM` applicable to
+                `TASK='COPY'` when there might be other `TASK` sections of the label
+                containing other values of `DAT_TIM`.
 
         Returns:
-            str:
-                The VICAR-compliant string representing the value of the selected
+            str: The VICAR-compliant string representing the value of the selected
                 parameter.
 
         Raises:
             IndexError: If any numeric component of the key is out of range.
-
             KeyError: If the parameter name is not present in the label (or the section of
                 the label defined by `after_name` and `after_value`), or if the key format
                 is unrecognized.
-
             TypeError: If the key is not a recognized type or contains a component that is
                 not of a recognized type.
-
             ValueError: If no identified parameter equals `value` or if no occurrence of
                 `after_name` equals `after_value`.
         """
@@ -1971,10 +1930,10 @@ class VicarLabel():
                   `value` and before the next occurrence of `after`.
 
                 The last two options make it easy to reference a VICAR label parameter
-                that is repeated. For example, label["DAT_TIM", "TASK", "COPY"] uniquely
-                identifies the occurrence of "DAT_TIM" applicable to "TASK='COPY'" when
-                there might be other "TASK" sections of the label containing other values
-                of "DAT_TIM".
+                that is repeated. For example, "`label['DAT_TIM', 'TASK', 'COPY']`"
+                uniquely identifies the occurrence of `DAT_TIM` applicable to
+                `TASK='COPY'` when there might be other `TASK` sections of the label
+                containing other values of `DAT_TIM`.
 
             pad (bool, optional):
                 If True, the returned string will end with at least one blank character.
@@ -1984,14 +1943,11 @@ class VicarLabel():
 
         Raises:
             IndexError: If any numeric component of the key is out of range.
-
             KeyError: If the parameter name is not present in the label (or the section of
                 the label defined by `after_name` and `after_value`), or if the key format
                 is unrecognized.
-
             TypeError: If the key is not a recognized type or contains a component that is
                 not of a recognized type.
-
             ValueError: If no identified parameter equals `value` or if no occurrence of
                 `after_name` equals `after_value`.
         """
@@ -2112,10 +2068,8 @@ class VicarLabel():
         Parameters:
             start (int, optional):
                 Index or key of the first parameter to include in the string.
-
             stop (int, optional):
                 Index or key just after the last parameter to include in the string.
-
             sep (str, optional):
                 Optional characters to insert before a second LBLSIZE. For example, use
                 "\\n" to create a string with a line break before any extension label.
@@ -2297,7 +2251,6 @@ class VicarLabel():
             source (str, pathlib.Path, or file):
                 A path to a VICAR data file or else a file object already opened for
                 binary read.
-
             _extra (bool, optional):
                 True to return any extraneous bytes from the end of the data file in
                 addition to the label.
@@ -2313,7 +2266,6 @@ class VicarLabel():
 
         Raises:
             OSError: If the referenced file could not be read.
-
             VicarError: If the referenced file does not conform to the VICAR standard.
         """
 

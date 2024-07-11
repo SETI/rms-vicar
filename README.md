@@ -25,7 +25,7 @@
 # Introduction
 
 `vicar` is a Python module that supports reading and writing of JPL's VICAR file format. It supports the definition of the VICAR file format as found here:
-[https://pds-rings.seti.org/help](https://pds-rings.seti.org/help)
+[https://pds-rings.seti.org/help/VICAR_file_fmt.pdf](https://pds-rings.seti.org/help/VICAR_file_fmt.pdf)
 
 # Installation
 

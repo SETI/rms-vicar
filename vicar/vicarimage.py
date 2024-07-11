@@ -26,49 +26,54 @@ class VicarImage():
 
     **Properties**:
 
-        * array: The 3-D data array converted to native format.
-        * array3d: Same as above.
-        * array2d: Same as above, but with leading dimension (typically, bands) stripped.
-        * prefix: The array prefix bytes as a 3-D array of unsigned bytes.
-        * prefix3d: Same as above.
-        * prefix2d: Same as above, but with the leading dimension stripped.
-        * binheader: The binary header as a bytes object; use vic.binheader_array() to
+        * `array`: The 3-D data array converted to native format.
+        * `array3d`: Same as above.
+        * `array2d`: Same as above, but with leading dimension (typically, bands)
+          stripped.
+        * `prefix`: The array prefix bytes as a 3-D array of unsigned bytes.
+        * `prefix3d`: Same as above.
+        * `prefix2d`: Same as above, but with the leading dimension stripped.
+        * `binheader`: The binary header as a bytes object; use vic.binheader_array() to
           extract information.
-        * label: The internal object that manages the VICAR label information, available
+        * `label`: The internal object that manages the VICAR label information, available
           if direct access to it is needed.
 
     **Core Methods:**
 
-        * arg: The index of a parameter name within this label.
-        * args: Iterator over the numeric indices of the parameters in a label.
-        * binheader_array: Interpret the content of a binary header.
-        * copy: A copy of this VicarImage.
-        * deepcopy: An independent (deep) copy of this VicarImage.
-        * from_array: Construct a VicarImage object for a NumPy array.
-        * from_file: Construct a VicarImage object from the content of a VICAR data file.
-        * get: Retrieve a label parameter value or return a default.
-        * items: Iterator over the (name, value) tuples in the label.
-        * keys: Iterator over the parameter names in the label as unique keys.
-        * names: Iterator over the parameter names in the label.
-        * values: Iterator over the parameter values in the label.
-        * write_file: Write this object as a VICAR data file.
+        * `arg`: The index of a parameter name within this label.
+        * `args`: Iterator over the numeric indices of the parameters in a label.
+        * `binheader_array`: Interpret the content of a binary header.
+        * `copy`: A copy of this VicarImage.
+        * `deepcopy`: An independent (deep) copy of this VicarImage.
+        * `from_array`: Construct a VicarImage object for a NumPy array.
+        * `from_file`: Construct a VicarImage object from the content of a VICAR data
+          file.
+        * `get`: Retrieve a label parameter value or return a default.
+        * `items`: Iterator over the (name, value) tuples in the label.
+        * `keys`: Iterator over the parameter names in the label as unique keys.
+        * `names`: Iterator over the parameter names in the label.
+        * `values`: Iterator over the parameter values in the label.
+        * `write_file`: Write this object as a VICAR data file.
 
     **Python Syntax Support Methods:**
 
-        * __contains__: Enables "name in image" syntax for checking a name in the label.
-        * __delitem__: Enables "del image[name]" syntax to remove a label parameter name.
-        * __eq__: Enables "a == b", the test of whether two image objects are equal.
-        * __getitem__: Enables "image[name]" dictionary-like syntax to get the value of
-          a label parameter.
-        * __iter__: Enables "for key in image:" syntax to iterate over the label parameter
-          keys.
-        * __len__: Enables "len(image)", the number of parameters in the image's label.
-        * __repr__: Enables "repr(image)", similar to the "str(label)", but with the class
-          name included.
-        * __setitem__: Enables "image[name] = value" dictionary-like syntax to set the
-          value of a label parameter.
-        * __str__: Enables "str(image)", returning a string representing the content of a
+        * `__contains__`: Enables "`name in image`" syntax for checking a name in the
           label.
+        * `__delitem__`: Enables "`del image[name]`" syntax to remove a label parameter
+          name.
+        * `__eq__`: Enables "`a == b`', the test of whether two image objects are equal.
+        * `__getitem__`: Enables "`image[name]`" dictionary-like syntax to get the value
+          of a label parameter.
+        * `__iter__`: Enables "`for key in image:`" syntax to iterate over the label
+          parameter keys.
+        * `__len__`: Enables "`len(image)`", the number of parameters in the image's
+          label.
+        * `__repr__`: Enables "`repr(image)`", similar to the "`str(label)`", but with the
+          class name included.
+        * `__setitem__`: Enables "`image[name] = value`" dictionary-like syntax to set the
+          value of a label parameter.
+        * `__str__`: Enables "`str(image)`", returning a string representing the content of
+          a label.
 
     **Notes About Dictionary Keys:**
 
@@ -76,23 +81,23 @@ class VicarImage():
         rich set of options are available. For example, if `image` is a VicarImage object,
         then:
 
-            * "image[n]" where `n` is an integer refers to the "nth" parameter in the
+            * `image[n]` where `n` is an integer refers to the "nth" parameter in the
               label. `n` can be positive or negative.
-            * "image[name]" where `name` is a string refers to the first occurrence in the
-              label of a parameter with this name.
-            * "image[name,n]" refers to the "nth" occurrence in the label of a parameter
+            * `image[name]` where `name` is a string refers to the first occurrence in
+              the label of a parameter with this name.
+            * `image[name,n]` refers to the "nth" occurrence in the label of a parameter
               with this name. `n` can be positive or negative.
-            * "image[name, after]" where both items are strings refers to the first
+            * `image[name, after]` where both items are strings refers to the first
               occurrence of parameter `name` after the first occurrence of parameter
               `after` and before the second occurrence of `after`.
-            * "image[name, after, value]" refers to the first occurrence of parameter
+            * `image[name, after, value]` refers to the first occurrence of parameter
               `name` after the first location where `after` equals `value` and before the
               next occurrence of `after`.
 
         The last two options make it easy to reference a VICAR label parameter that is
-        repeated. For example, "image['DAT_TIM', 'TASK', 'COPY']" uniquely identifies the
-        occurrence of "DAT_TIM" applicable to "TASK='COPY'" when there might be other
-        "TASK" sections of the image label containing other values of "DAT_TIM".
+        repeated. For example, "`image['DAT_TIM', 'TASK', 'COPY']`" uniquely identifies
+        the occurrence of `DAT_TIM` applicable to `TASK='COPY'` when there might be other
+        `TASK` sections of the image label containing other values of `DAT_TIM`.
 
         Append a "+" to `name` to expand upon the function's behavior. With "get"
         operations, a list is returned identifying all of the occurrences of the selected
@@ -109,21 +114,17 @@ class VicarImage():
             source (pathlib.Path, str, or VicarLabel, optional):
                 Source for the VicarImage based on a file path or VicarLabel; if not
                 specified (equvalent to source=None), a minimal label is created.
-
             array (array-like, optional):
                 Optional data array for this object. If the source is a file path,
                 this array will override that in the file.
-
             prefix (array-like, optional):
                 Optional prefix bytes for this object. If the source is a file
                 path, this value will override that in the file. To remove the
                 prefix array found in the file, use prefix=[].
-
             binheader (array-like or bytes, optional):
                 Optional binary header for this data file. If the source is a
                 file path, this value will override that in the file. To remove
                 the binheader found in the file, use binheader=b''.
-
             strict (bool, optional):
                 True (the default) to require strict conformance to the VICAR standard;
                 False for a looser version of the standard. If `source` is a VicarLabel,
@@ -568,7 +569,7 @@ class VicarImage():
 
             * VicarImage: A new object containing the content of the specified file.
             * bytes or None: Any extraneous bytes from the end of the file, included if
-              if `extraneous` equals "include".
+              `extraneous` equals "include".
         """
 
         info = VicarImage._read_file(filepath, extraneous=extraneous, strict=strict)
@@ -586,7 +587,6 @@ class VicarImage():
 
         Parameters:
             array (array-like): The data array to use in this VicarImage object.
-
             strict (bool, optional):
                 True (the default) to require strict conformance to the VICAR standard;
                 False for a looser version of the standard.
@@ -652,7 +652,6 @@ class VicarImage():
                 Optional single-letter code for the data type: "u" for unsigned int; "i"
                 for signed int; "f" for float. If not specified, the kind is inferred from
                 the value of the FMT_DEFAULT parameter.
-
             size (int, optional):
                 Number of bytes per value. If not provided, it is inferred from the
                 FMT_DEFAULT parameter if present. Otherwise, the default is 1 for kind =
@@ -746,9 +745,7 @@ class VicarImage():
 
         Raises:
             OSError: If the referenced file could not be read.
-
             ValueError: If `extraneous` does not have a valid value.
-
             VicarError: If the referenced file does not conform to the VICAR standard.
         """
 
@@ -867,10 +864,10 @@ class VicarImage():
                   `value` and before the next occurrence of `after`.
 
                 The last two options make it easy to reference a VICAR label parameter
-                that is repeated. For example, if image is a VicarImage, then
-                image["DAT_TIM", "TASK", "COPY"] uniquely identifies the occurrence of
-                "DAT_TIM" applicable to "TASK='COPY'" when there might be other "TASK"
-                sections of the image label containing other values of "DAT_TIM".
+                that is repeated. For example, if `image` is a VicarImage, then
+                "`image['DAT_TIM', 'TASK', 'COPY']`" uniquely identifies the occurrence of
+                `DAT_TIM` applicable to `TASK='COPY'` when there might be other `TASK`
+                sections of the label containing other values of `DAT_TIM`.
 
                 Append a "+" to the name to return a list of all values where the
                 constraints are satisfied, starting with the first or "nth".
@@ -882,14 +879,11 @@ class VicarImage():
 
         Raises:
             IndexError: If any numeric component of the key is out of range.
-
             KeyError: If the parameter name is not present in the label (or the section of
                 the label defined by `after_name` and `after_value`), or if the key format
                 is unrecognized.
-
             TypeError: If the key is not a recognized type or contains a component that is
                 not of a recognized type.
-
             ValueError: If no identified parameter equals `value` or if no occurrence of
                 `after_name` equals `after_value`.
         """
@@ -919,10 +913,10 @@ class VicarImage():
                   `value` and before the next occurrence of `after`.
 
                 The last two options make it easy to reference a VICAR label parameter
-                that is repeated. For example, if image is a VicarImage, then
-                image["DAT_TIM", "TASK", "COPY"] uniquely identifies the occurrence of
-                "DAT_TIM" applicable to "TASK='COPY'" when there might be other "TASK"
-                sections of the image label containing other values of "DAT_TIM".
+                that is repeated. For example, if `image` is a VicarImage, then
+                "`image['DAT_TIM', 'TASK', 'COPY']`" uniquely identifies the occurrence of
+                `DAT_TIM` applicable to `TASK='COPY'` when there might be other `TASK`
+                sections of the label containing other values of `DAT_TIM`.
 
                 Append a "+" to the name to return a list of all values where the
                 constraints are satisfied, starting with the first or "nth".
@@ -941,14 +935,11 @@ class VicarImage():
 
         Raises:
             IndexError: If any numeric component of the key is out of range.
-
             KeyError: If the parameter name is not present in the label (or the section of
                 the label defined by `after_name` and `after_value`), or if the key format
                 is unrecognized.
-
             TypeError: If the key is not a recognized type or contains a component that is
                 not of a recognized type.
-
             ValueError: If no identified parameter equals `value` or if no occurrence of
                 `after_name` equals `after_value`.
         """
@@ -976,10 +967,10 @@ class VicarImage():
                   `value` and before the next occurrence of `after`.
 
                 The last two options make it easy to reference a VICAR label parameter
-                that is repeated. For example, if image is a VicarImage, then
-                image["DAT_TIM", "TASK", "COPY"] uniquely identifies the occurrence of
-                "DAT_TIM" applicable to "TASK='COPY'" when there might be other "TASK"
-                sections of the image label containing other values of "DAT_TIM".
+                that is repeated. For example, if `image` is a VicarImage, then
+                "`image['DAT_TIM', 'TASK', 'COPY']`" uniquely identifies the occurrence of
+                `DAT_TIM` applicable to `TASK='COPY'` when there might be other `TASK`
+                sections of the label containing other values of `DAT_TIM`.
 
                 Append a "+" to the name to force a new occurrence of the key to be
                 inserted, even if the key already exists.
@@ -994,14 +985,11 @@ class VicarImage():
 
         Raises:
             IndexError: If any numeric component of the key is out of range.
-
             KeyError: If the parameter name is not present in the label (or the section of
                 the label defined by `after_name` and `after_value`), or if the key format
                 is unrecognized.
-
             TypeError: If the key is not a recognized type or contains a component that is
                 not of a recognized type.
-
             ValueError: If no identified parameter equals `value` or if no occurrence of
                 `after_name` equals `after_value`.
 
@@ -1045,7 +1033,7 @@ class VicarImage():
             When the parameter value is a list, it is also possible to embed formatting
             information on an item by item basis. Replace any item value by a tuple:
 
-                (`item`[, `format`][[, `blanks_before`], `blanks_after`])
+                (`item` [, `format`][[, `blanks_before`], `blanks_after`])
 
             where:
 
@@ -1094,24 +1082,21 @@ class VicarImage():
                   `value` and before the next occurrence of `after`.
 
                 The last two options make it easy to reference a VICAR label parameter
-                that is repeated. For example, if image is a VicarImage, then
-                image["DAT_TIM", "TASK", "COPY"] uniquely identifies the occurrence of
-                "DAT_TIM" applicable to "TASK='COPY'" when there might be other "TASK"
-                sections of the image label containing other values of "DAT_TIM".
+                that is repeated. For example, if `image` is a VicarImage, then
+                "`image['DAT_TIM', 'TASK', 'COPY']`" uniquely identifies the occurrence of
+                `DAT_TIM` applicable to `TASK='COPY'` when there might be other `TASK`
+                sections of the label containing other values of `DAT_TIM`.
 
                 Append a "+" to `name` to delete all of the label parameters whose names
                 match the constraints, starting with the first or "nth".
 
         Raises:
             IndexError: If any numeric component of the key is out of range.
-
             KeyError: If the parameter name is not present in the label (or the section
                 of the label defined by `after_name` and `after_value`), or if the key
                 format is unrecognized.
-
             TypeError: If the key is not a recognized type or contains a component that is
                 not of a recognized type.
-
             ValueError: If no identified parameter equals `value` or if no occurrence of
                 `after_name` equals `after_value`.
         """
@@ -1144,10 +1129,10 @@ class VicarImage():
                   `value` and before the next occurrence of `after`.
 
                 The last two options make it easy to reference a VICAR label parameter
-                that is repeated. For example, if image is a VicarImage, then
-                image["DAT_TIM", "TASK", "COPY"] uniquely identifies the occurrence of
-                "DAT_TIM" applicable to "TASK='COPY'" when there might be other "TASK"
-                sections of the image label containing other values of "DAT_TIM".
+                that is repeated. For example, if `image` is a VicarImage, then
+                "`image['DAT_TIM', 'TASK', 'COPY']`" uniquely identifies the occurrence of
+                `DAT_TIM` applicable to `TASK='COPY'` when there might be other `TASK`
+                sections of the label containing other values of `DAT_TIM`.
 
         Returns:
             bool: True if the key is found within the label.
@@ -1174,10 +1159,11 @@ class VicarImage():
                   of parameter `name` after the first location where `after` equals
                   `value` and before the next occurrence of `after`.
 
-                The last two options make it easy to reference parameter in a label that
-                is re-used, such as to find the value of "DAT_TIM" applicable to
-                "TASK='COPY'" when there might be other "TASK" sections of the label
-                containing other values of "DAT_TIM".
+                The last two options make it easy to reference a VICAR label parameter
+                that is repeated. For example, if `image` is a VicarImage, then
+                "`image['DAT_TIM', 'TASK', 'COPY']`" uniquely identifies the occurrence of
+                `DAT_TIM` applicable to `TASK='COPY'` when there might be other `TASK`
+                sections of the label containing other values of `DAT_TIM`.
 
                 Append a "+" to the name to return a list of all indices where the
                 constraints are satisfied, starting with the first or "nth".
@@ -1197,14 +1183,11 @@ class VicarImage():
 
         Raises:
             IndexError: If any numeric component of the key is out of range.
-
             KeyError: If the parameter name is not present in the label (or the section of
                 the label defined by `after_name` and `after_value`), or if the key format
                 is unrecognized.
-
             TypeError: If the key is not a recognized type or contains a component that is
                 not of a recognized type.
-
             ValueError: If no identified parameter equals `value` or if no occurrence of
                 `after_name` equals `after_value`.
         """
@@ -1271,7 +1254,6 @@ class VicarImage():
         Parameters:
             pattern (str or re.Pattern, optional):
                 Regular expression that can be used to filter the label parameter names.
-
             unique (bool, optional):
                 True to return unique keys, in which non-unique names are replaced by
                 tuples (name, occurrence). If False, all keys are name strings, and a name
@@ -1353,7 +1335,6 @@ class VicarImage():
 
         Parameters:
             array (np.ndarray or None): A data array.
-
             prefix (np.ndarray or None): A prefix array.
 
         Raises:

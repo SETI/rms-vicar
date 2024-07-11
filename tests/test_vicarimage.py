@@ -143,12 +143,12 @@ class Test_VicarImage(unittest.TestCase):
 
         # binheader
         test = VicarImage(test_dir / 'C2069302_GEOMA.DAT')
-        self.assertTrue(test.array is None)
-        self.assertTrue(test.array2d is None)
-        self.assertTrue(test.array3d is None)
-        self.assertTrue(test.prefix is None)
-        self.assertTrue(test.prefix2d is None)
-        self.assertTrue(test.prefix3d is None)
+        self.assertIsNone(test.array)
+        self.assertIsNone(test.array2d)
+        self.assertIsNone(test.array3d)
+        self.assertIsNone(test.prefix)
+        self.assertIsNone(test.prefix2d)
+        self.assertIsNone(test.prefix3d)
         array = test.binheader_array()
         self.assertEqual(array.shape, (552,4))
         self.assertEqual(array.dtype, np.dtype('=f4'))
@@ -510,17 +510,17 @@ class Test_VicarImage(unittest.TestCase):
         vim = VicarImage(filepath, array=array, prefix=prefix, binheader=b'')
         self.assertTrue(np.all(vim.array == array))
         self.assertTrue(np.all(vim.prefix2d.view(dtype='<f4') == prefix))
-        self.assertTrue(vim.binheader is None)
+        self.assertIsNone(vim.binheader)
 
         vim = VicarImage(filepath, binheader=b'')
         self.assertEqual(vim.array.shape, (1,800,800))
         self.assertTrue(vim.prefix2d.shape, (800,200))
-        self.assertTrue(vim.binheader is None)
+        self.assertIsNone(vim.binheader)
 
         vim = VicarImage(filepath, prefix=[], binheader=b'')
         self.assertEqual(vim.array.shape, (1,800,800))
-        self.assertTrue(vim.prefix2d is None)
-        self.assertTrue(vim.binheader is None)
+        self.assertIsNone(vim.prefix2d)
+        self.assertIsNone(vim.binheader)
 
         # Add some "strict" tests
 
