@@ -50,3 +50,4 @@ packages = ["vicar"]
 [tool.setuptools_scm]
 local_scheme = "no-local-version"
 write_to = "vicar/_version.py"
+
