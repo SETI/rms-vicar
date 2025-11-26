@@ -139,7 +139,8 @@ class Test_VicarImage(unittest.TestCase):
         vim.filepath = None
         self.assertEqual(vim.filepath, None)
         vim.filepath = str(filepath)
-        self.assertEqual(str(vim.filepath), str(filepath))
+        self.assertEqual(str(vim.filepath).replace('\\', '/'),
+                         str(filepath).replace('\\', '/'))
         self.assertIsInstance(vim.filepath, FCPath)
 
         # binheader

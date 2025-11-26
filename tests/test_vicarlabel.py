@@ -305,7 +305,8 @@ class Test_VicarLabel(unittest.TestCase):
 
         altvic.filepath = str(dest)
         self.assertIsInstance(altvic.filepath, FCPath)
-        self.assertEqual(str(altvic.filepath), str(dest))
+        self.assertEqual(str(altvic.filepath).replace('\\', '/'),
+                         str(dest).replace('\\', '/'))
 
         os.remove(dest)     # delete extra file
 
