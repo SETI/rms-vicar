@@ -342,8 +342,8 @@ class VicarLabel():
 
         Parameters:
             value (FCPath or Path or None):
-                The FCPath or Path to the file associated with this object; None if this object is
-                not associated with a file.
+                The FCPath or Path to the file associated with this object; None if this
+                object is not associated with a file.
         """
 
         if value:
@@ -528,13 +528,14 @@ class VicarLabel():
                 filepath = source
                 source = VicarLabel.read_label(source)
             elif isinstance(source, str):
-                filepath = FCPath(source)
+                filepath_temp = FCPath(source)
                 try:
-                    exists = filepath.exists()
-                except:
+                    exists = filepath_temp.exists()
+                except Exception:
                     # Who knows what a random label string will do to FCPath!
                     exists = False
                 if exists:
+                    filepath = filepath_temp
                     source = VicarLabel.read_label(filepath)
 
         # Convert to list of tuples
