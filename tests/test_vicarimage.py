@@ -9,6 +9,7 @@ import pathlib
 import unittest
 import sys
 from contextlib import redirect_stdout
+from filecache import FCPath
 from vicar.vicarimage import VicarImage
 from vicar.vicarlabel import VicarError
 
@@ -138,8 +139,8 @@ class Test_VicarImage(unittest.TestCase):
         vim.filepath = None
         self.assertEqual(vim.filepath, None)
         vim.filepath = str(filepath)
-        self.assertEqual(vim.filepath, filepath)
-        self.assertIsInstance(vim.filepath, pathlib.Path)
+        self.assertEqual(str(vim.filepath), str(filepath))
+        self.assertIsInstance(vim.filepath, FCPath)
 
         # binheader
         test = VicarImage(test_dir / 'C2069302_GEOMA.DAT')

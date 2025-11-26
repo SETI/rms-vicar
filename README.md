@@ -57,6 +57,8 @@ import vicar
 vic = vicar.VicarImage("path/to/file")
 ```
 
+(The file path can be any URL accepted by [`FCPath`](https://rms-filecache.readthedocs.io/en/latest/module.html#filecache.file_cache_path.FCPath).)
+
 The resulting object contains:
 
 - `vic.array`: The 3-D data array converted to native format.
