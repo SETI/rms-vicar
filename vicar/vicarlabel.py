@@ -341,8 +341,8 @@ class VicarLabel():
         """Set the file path associated with this VicarLabel.
 
         Parameters:
-            value (FCPath or Path or None):
-                The FCPath or Path to the file associated with this object; None if this
+            value (FCPath, Path, str, or None):
+                The FCPath to the file associated with this object; None if this
                 object is not associated with a file.
         """
 
@@ -2280,11 +2280,11 @@ class VicarLabel():
         if isinstance(source, io.IOBase):
             f = source
             filepath = f.name
-            return VicarLabel._read_label(f, filepath,_extra)
+            return VicarLabel._read_label(f, filepath, _extra)
 
         filepath = FCPath(source)
         with filepath.open('rb') as f:
-            return VicarLabel._read_label(f, filepath,_extra)
+            return VicarLabel._read_label(f, filepath, _extra)
 
     @staticmethod
     def _read_label(f, filepath, _extra):
@@ -2351,7 +2351,7 @@ class VicarLabel():
         """A new VicarLabel object derived from the given VICAR data file.
 
         Parameters:
-            filepath (str or FCPath or Path): Path to a VICAR data file.
+            filepath (FCPath, Path, or str): Path to a VICAR data file.
 
         Returns:
             VicarLabel: VicarLabel object read from file.
@@ -2363,7 +2363,7 @@ class VicarLabel():
         """Replace the label in the selected VICAR file with this label content.
 
         Parameters:
-            filepath (str or FCPath or Path, optional):
+            filepath (FCPath, Path, or str, optional):
                 Optional path of the existing file to write. If not provided, the value of
                 this object's filepath attribute is used.
 
