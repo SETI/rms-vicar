@@ -618,7 +618,7 @@ class VicarImage():
         with self._filepath.open('wb') as f:
 
             labels = self._label.export(resize=True)
-            f.write(labels[0].encode('latin8'))
+            f.write(labels[0].encode('latin1'))
 
             if self._binheader is not None:
                 if isinstance(self._binheader, np.ndarray):
@@ -638,7 +638,7 @@ class VicarImage():
                 array[:,:,nbb:] = self._array.view(dtype='uint8')
                 f.write(array.data)
 
-            f.write(labels[1].encode('latin8'))
+            f.write(labels[1].encode('latin1'))
 
     def binheader_array(self, kind='', size=None):
         """The numbers embedded in a binary header.

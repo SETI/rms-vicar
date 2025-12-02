@@ -2046,7 +2046,7 @@ class VicarLabel():
               the specified LBLSIZE.
 
         Note:
-            The returned strings must be encoded as "latin8" bytes before writing them
+            The returned strings must be encoded as "latin1" bytes before writing them
             into a data file.
         """
 
@@ -2298,7 +2298,7 @@ class VicarLabel():
 
         # Read the beginning of the VICAR file to get the label size
         f.seek(0)
-        snippet = f.read(40).decode('latin8')
+        snippet = f.read(40).decode('latin1')
         match = _LBLSIZE_PATTERN.match(snippet)
         if not match:       # pragma: no cover
             raise VicarError('Missing LBLSIZE keyword in file ' + str(filepath))
@@ -2307,7 +2307,7 @@ class VicarLabel():
 
         # Read the top VICAR label
         f.seek(0)
-        label = f.read(lblsize).decode('latin8')
+        label = f.read(lblsize).decode('latin1')
         label = label.partition('\0')[0]
 
         # Parse
@@ -2325,12 +2325,12 @@ class VicarLabel():
         f.seek(skip)
 
         # Try to read the EOF label
-        snippet = str(f.read(40).decode('latin8'))
+        snippet = str(f.read(40).decode('latin1'))
         match = _LBLSIZE_PATTERN.match(snippet)
         if match:
             eolsize = int(match.group(1))
             f.seek(skip)
-            eol = f.read(eolsize).decode('latin8')
+            eol = f.read(eolsize).decode('latin1')
             eol = eol.partition('\0')[0]
 
             if not label.endswith(' '):     # pragma: no cover
@@ -2382,7 +2382,7 @@ class VicarLabel():
 
         with self._filepath.open('r+b') as f:
 
-            snippet = f.read(40).decode('latin8')
+            snippet = f.read(40).decode('latin1')
             match = _LBLSIZE_PATTERN.match(snippet)
             if not match:       # pragma: no cover
                 raise VicarError('Missing LBLSIZE keyword in file ' + str(self._filepath))
@@ -2393,7 +2393,7 @@ class VicarLabel():
             # Update the header
             labels = self.export(resize=False)
             f.seek(0)
-            f.write(labels[0].encode('latin8'))
+            f.write(labels[0].encode('latin1'))
 
             # Update the EOL label, possibly truncating the file
             recsize = self['RECSIZE']
@@ -2402,7 +2402,7 @@ class VicarLabel():
             n3 = self['N3']
             skip = lblsize + recsize * (nlb + n2*n3)
             f.seek(skip)
-            f.write(labels[1].encode('latin8'))
+            f.write(labels[1].encode('latin1'))
             f.truncate()
 
     ######################################################################################
