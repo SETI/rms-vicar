@@ -7,6 +7,7 @@ import pathlib
 import shutil
 import sys
 import unittest
+from filecache import FCPath
 from vicar.vicarlabel import VicarLabel, VicarError, _REQUIRED
 from vicar._LABEL_GRAMMAR import _LABEL_GRAMMAR
 
@@ -303,8 +304,9 @@ class Test_VicarLabel(unittest.TestCase):
         self.assertRaises(ValueError, altvic.write_label)
 
         altvic.filepath = str(dest)
-        self.assertIsInstance(altvic.filepath, pathlib.Path)
-        self.assertEqual(altvic.filepath, dest)
+        self.assertIsInstance(altvic.filepath, FCPath)
+        self.assertEqual(str(altvic.filepath).replace('\\', '/'),
+                         str(dest).replace('\\', '/'))
 
         os.remove(dest)     # delete extra file
 

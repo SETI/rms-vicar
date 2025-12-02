@@ -5,12 +5,12 @@
 
 import io
 import numbers
-import os
-import pathlib
 import pyparsing
 import re
 
 from collections import namedtuple
+from filecache import FCPath
+from pathlib import Path
 from vicar._LABEL_GRAMMAR import _LABEL_GRAMMAR, _NAME
 from vicar._DEFINITIONS import (_ENUMERATED_VALUES, _LBLSIZE_WIDTH, _REQUIRED,
                                 _REQUIRED_INTS, _REQUIRED_NAMES)
@@ -168,11 +168,11 @@ class VicarLabel():
         """Constructor for a VicarLabel.
 
         Parameters:
-            source (file, pathlib.Path, str, None, dict, or list):
+            source (file, FCPath, Path, str, None, dict, or list):
                 A representation of a VICAR label:
 
                 * *file*: The label string is read from the given, open file.
-                * *pathlib.Path*: The label string is read from the referenced file.
+                * *FCPath* or *Path*: The label string is read from the referenced file.
                 * *str*: First, a check is performed to see if it is path to an existing
                   file. If so, the label is read from that file; otherwise, the string is
                   itself interpreted as a VICAR label string.
@@ -330,8 +330,8 @@ class VicarLabel():
         """The file path associated with this VicarLabel.
 
         Returns:
-            pathlib.Path or None:
-                The Path if this object is associated with a file; None otherwise.
+            FCPath or None:
+                The FCPath if this object is associated with a file; None otherwise.
         """
 
         return self._filepath
@@ -341,13 +341,13 @@ class VicarLabel():
         """Set the file path associated with this VicarLabel.
 
         Parameters:
-            value (pathlib.Path or None):
-                The Path to the file associated with this object; None if this object is
-                not associated with a file.
+            value (FCPath, Path, str, or None):
+                The FCPath to the file associated with this object; None if this
+                object is not associated with a file.
         """
 
         if value:
-            self._filepath = pathlib.Path(value)
+            self._filepath = FCPath(value)
         else:
             self._filepath = None
 
@@ -411,11 +411,11 @@ class VicarLabel():
         """Interpret and validate a source object.
 
         Parameters:
-            source (file, pathlib.Path, str, None, dict, list, or tuple):
+            source (file, FCPath, Path, str, None, dict, list, or tuple):
                 A representation of VICAR label content:
 
                 * *file*: The label string is read from the given, open file.
-                * *pathlib.Path*: The label string is read from the referenced file.
+                * *FCPath* or *Path*: The label string is read from the referenced file.
                 * *str*: First, a check is performed to see if it is path to an existing
                   file. If so, the label is read from that file; otherwise, the string is
                   itself interpreted as a VICAR label string.
@@ -437,16 +437,16 @@ class VicarLabel():
 
             fileio (bool, optional):
                 True to allow the source to be read from a file, file path string, or
-                pathlib.Path object. In this case, the file path is returned in addition
+                FCPath or Path object. In this case, the file path is returned in addition
                 to the lists.
 
         Returns:
-            (list, list, list[, pathlib.Path or None]): A tuple containing:
+            (list, list, list[, FCPath or None]): A tuple containing:
 
             * list[str]: List of names.
             * list[int, float, str, or list]: List of values.
             * list[_ValueFormat or None]: List of formatting hints.
-            * pathlib.Path or None, optional: The pathlib.Path of the file if the label
+            * FCPath or None, optional: The FCPath of the file if the label
               was read from a file; otherwise, None. Included only if `fileio` is True.
 
         Raises:
@@ -522,14 +522,21 @@ class VicarLabel():
         if fileio:
             filepath = None
             if isinstance(source, io.IOBase):
-                filepath = pathlib.Path(source.name)
+                filepath = FCPath(source.name)
                 source = VicarLabel.read_label(source)
-            elif isinstance(source, pathlib.Path):
+            elif isinstance(source, (FCPath, Path)):
                 filepath = source
                 source = VicarLabel.read_label(source)
-            elif isinstance(source, str) and os.path.exists(source):
-                filepath = pathlib.Path(source)
-                source = VicarLabel.read_label(filepath)
+            elif isinstance(source, str):
+                filepath_temp = FCPath(source)
+                try:
+                    exists = filepath_temp.exists()
+                except Exception:
+                    # Who knows what a random label string will do to FCPath!
+                    exists = False
+                if exists:
+                    filepath = filepath_temp
+                    source = VicarLabel.read_label(filepath)
 
         # Convert to list of tuples
         if isinstance(source, tuple):
@@ -849,11 +856,11 @@ class VicarLabel():
         """Append the additional content to the end of this label.
 
         Parameters:
-            source (file, pathlib.Path, str, None, dict, list, or tuple):
+            source (file, FCPath, Path, str, None, dict, list, or tuple):
                 A representation of VICAR label content:
 
                 * *file*: The label string is read from the given, open file.
-                * *pathlib.Path*: The label string is read from the referenced file.
+                * *FCPath* or *Path*: The label string is read from the referenced file.
                 * *str*: First, a check is performed to see if it is path to an existing
                   file. If so, the label is read from that file; otherwise, the string is
                   itself interpreted as a VICAR label string.
@@ -951,11 +958,11 @@ class VicarLabel():
         """Insert the given content into this label at the specified index.
 
         Parameters:
-            source (file, pathlib.Path, str, dict, list, or tuple):
+            source (file, FCPath, Path, str, dict, list, or tuple):
                 A representation of VICAR label content:
 
                 * *file*: The label string is read from the given, open file.
-                * *pathlib.Path*: The label string is read from the referenced file.
+                * *FCPath* or *Path*: The label string is read from the referenced file.
                 * *str*: First, a check is performed to see if it is path to an existing
                   file. If so, the label is read from that file; otherwise, the string is
                   itself interpreted as a VICAR label string.
@@ -2039,7 +2046,7 @@ class VicarLabel():
               the specified LBLSIZE.
 
         Note:
-            The returned strings must be encoded as "latin8" bytes before writing them
+            The returned strings must be encoded as "latin1" bytes before writing them
             into a data file.
         """
 
@@ -2249,7 +2256,7 @@ class VicarLabel():
         parameter.
 
         Parameters:
-            source (str, pathlib.Path, or file):
+            source (str, FCPath, Path, or file):
                 A path to a VICAR data file or else a file object already opened for
                 binary read.
             _extra (bool, optional):
@@ -2273,73 +2280,78 @@ class VicarLabel():
         if isinstance(source, io.IOBase):
             f = source
             filepath = f.name
-            close_when_done = False
+            return VicarLabel._read_label(f, filepath, _extra)
+
+        filepath = FCPath(source)
+        with filepath.open('rb') as f:
+            return VicarLabel._read_label(f, filepath, _extra)
+
+    @staticmethod
+    def _read_label(f, filepath, _extra):
+        """Read the label from the given file.
+
+        Parameters:
+            f (file): The file to read the label from.
+            filepath (FCPath or Path): The path to the file.
+            _extra (bool): True to return any extraneous bytes from the end of the file.
+        """
+
+        # Read the beginning of the VICAR file to get the label size
+        f.seek(0)
+        snippet = f.read(40).decode('latin1')
+        match = _LBLSIZE_PATTERN.match(snippet)
+        if not match:       # pragma: no cover
+            raise VicarError('Missing LBLSIZE keyword in file ' + str(filepath))
+
+        lblsize = int(match.group(1))
+
+        # Read the top VICAR label
+        f.seek(0)
+        label = f.read(lblsize).decode('latin1')
+        label = label.partition('\0')[0]
+
+        # Parse
+        ldict = VicarLabel(label, strict=False)
+
+        # Figure out the distance to the EOL label
+        recsize = ldict['RECSIZE']
+        nlb = ldict.get('NLB', 0)
+        # N2*N3 is simpler but there are files where these values aren't right
+        if ldict['ORG'] == 'BIP':           # pragma: no cover
+            data_recs = ldict['NL'] * ldict['NS']
         else:
-            filepath = pathlib.Path(source)
-            f = filepath.open('rb')
-            close_when_done = True
+            data_recs = ldict['NL'] * ldict['NB']
+        skip = lblsize + recsize * (nlb + data_recs)
+        f.seek(skip)
 
-        try:
-            # Read the beginning of the VICAR file to get the label size
-            f.seek(0)
-            snippet = f.read(40).decode('latin8')
-            match = _LBLSIZE_PATTERN.match(snippet)
-            if not match:       # pragma: no cover
-                raise VicarError('Missing LBLSIZE keyword in file ' + str(filepath))
+        # Try to read the EOF label
+        snippet = str(f.read(40).decode('latin1'))
+        match = _LBLSIZE_PATTERN.match(snippet)
+        if match:
+            eolsize = int(match.group(1))
+            f.seek(skip)
+            eol = f.read(eolsize).decode('latin1')
+            eol = eol.partition('\0')[0]
 
-            lblsize = int(match.group(1))
+            if not label.endswith(' '):     # pragma: no cover
+                label += '  '
 
-            # Read the top VICAR label
-            f.seek(0)
-            label = f.read(lblsize).decode('latin8')
-            label = label.partition('\0')[0]
-
-            # Parse
-            ldict = VicarLabel(label, strict=False)
-
-            # Figure out the distance to the EOL label
-            recsize = ldict['RECSIZE']
-            nlb = ldict.get('NLB', 0)
-            # N2*N3 is simpler but there are files where these values aren't right
-            if ldict['ORG'] == 'BIP':           # pragma: no cover
-                data_recs = ldict['NL'] * ldict['NS']
-            else:
-                data_recs = ldict['NL'] * ldict['NB']
-            skip = lblsize + recsize * (nlb + data_recs)
+            label += eol
+        else:
             f.seek(skip)
 
-            # Try to read the EOF label
-            snippet = str(f.read(40).decode('latin8'))
-            match = _LBLSIZE_PATTERN.match(snippet)
-            if match:
-                eolsize = int(match.group(1))
-                f.seek(skip)
-                eol = f.read(eolsize).decode('latin8')
-                eol = eol.partition('\0')[0]
+        # Check for extraneous bytes
+        if _extra:
+            return (label, f.read())
 
-                if not label.endswith(' '):     # pragma: no cover
-                    label += '  '
-
-                label += eol
-            else:
-                f.seek(skip)
-
-            # Check for extraneous bytes
-            if _extra:
-                return (label, f.read())
-
-            return label
-
-        finally:
-            if close_when_done:
-                f.close()
+        return label
 
     @staticmethod
     def from_file(filepath):
         """A new VicarLabel object derived from the given VICAR data file.
 
         Parameters:
-            filepath (str or pathlib.Path): Path to a VICAR data file.
+            filepath (FCPath, Path, or str): Path to a VICAR data file.
 
         Returns:
             VicarLabel: VicarLabel object read from file.
@@ -2351,7 +2363,7 @@ class VicarLabel():
         """Replace the label in the selected VICAR file with this label content.
 
         Parameters:
-            filepath (str or pathlib.Path, optional):
+            filepath (FCPath, Path, or str, optional):
                 Optional path of the existing file to write. If not provided, the value of
                 this object's filepath attribute is used.
 
@@ -2370,7 +2382,7 @@ class VicarLabel():
 
         with self._filepath.open('r+b') as f:
 
-            snippet = f.read(40).decode('latin8')
+            snippet = f.read(40).decode('latin1')
             match = _LBLSIZE_PATTERN.match(snippet)
             if not match:       # pragma: no cover
                 raise VicarError('Missing LBLSIZE keyword in file ' + str(self._filepath))
@@ -2381,7 +2393,7 @@ class VicarLabel():
             # Update the header
             labels = self.export(resize=False)
             f.seek(0)
-            f.write(labels[0].encode('latin8'))
+            f.write(labels[0].encode('latin1'))
 
             # Update the EOL label, possibly truncating the file
             recsize = self['RECSIZE']
@@ -2390,7 +2402,7 @@ class VicarLabel():
             n3 = self['N3']
             skip = lblsize + recsize * (nlb + n2*n3)
             f.seek(skip)
-            f.write(labels[1].encode('latin8'))
+            f.write(labels[1].encode('latin1'))
             f.truncate()
 
     ######################################################################################

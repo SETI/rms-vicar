@@ -4,6 +4,7 @@ myst-parser
 numpy
 pyparsing
 pytest
+rms-filecache
 rms-vax
 sphinx
 sphinxcontrib-napoleon

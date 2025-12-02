@@ -4,10 +4,11 @@
 """Class to support accessing, reading, and modifying VICAR image files."""
 
 import numpy as np
-import pathlib
 import sys
 import vax
 import warnings
+
+from filecache import FCPath
 
 try:
     from _version import __version__
@@ -111,7 +112,7 @@ class VicarImage():
         """Constructor for a VicarImage object.
 
         Parameters:
-            source (pathlib.Path, str, or VicarLabel, optional):
+            source (FCPath, Path, str, or VicarLabel, optional):
                 Source for the VicarImage based on a file path or VicarLabel; if not
                 specified (equvalent to source=None), a minimal label is created.
             array (array-like, optional):
@@ -139,7 +140,7 @@ class VicarImage():
         elif isinstance(source, VicarLabel):
             self._label = source
         else:
-            self._filepath = pathlib.Path(source)
+            self._filepath = FCPath(source)
             info = VicarImage._read_file(self.filepath, extraneous='ignore',
                                          strict=strict)
             (self._label, array1, prefix1, binheader1) = info
@@ -169,7 +170,7 @@ class VicarImage():
         """The path to the associated file.
 
         Returns:
-            pathlib.Path or None: The path to the associated file, if any.
+            FCPath or None: The path to the associated file, if any.
         """
 
         return self._filepath
@@ -179,14 +180,14 @@ class VicarImage():
         """Set the path to the associated file.
 
         Parameters:
-            value (pathlib.Path, str, or None):
+            value (FCPath, Path, str, or None):
                 The path to the associated file; None to remove a file association.
         """
 
         if value is None:
             self._filepath = None
         else:
-            self._filepath = pathlib.Path(value)
+            self._filepath = FCPath(value)
 
     @property
     def label(self):
@@ -548,7 +549,7 @@ class VicarImage():
         """VicarImage object from an existing VICAR image file.
 
         Parameters:
-            filepath (pathlib.Path or str): Path to an existing VICAR data file.
+            filepath (FCPath, Path, or str): Path to an existing VICAR data file.
 
             extraneous (str, optional):
                 How to handle the presence of extraneous bytes at the end of the file, one
@@ -601,7 +602,7 @@ class VicarImage():
         """Write the VicarImage object into a file.
 
         Parameters:
-            filepath (path.Pathlib or str, optional):
+            filepath (FCPath, Path, or str, optional):
                 Optional the path of the file to write. If not specified but this object's
                 filepath attribute is defined, it will write to this file.
         """
@@ -617,7 +618,7 @@ class VicarImage():
         with self._filepath.open('wb') as f:
 
             labels = self._label.export(resize=True)
-            f.write(labels[0].encode('latin8'))
+            f.write(labels[0].encode('latin1'))
 
             if self._binheader is not None:
                 if isinstance(self._binheader, np.ndarray):
@@ -637,7 +638,7 @@ class VicarImage():
                 array[:,:,nbb:] = self._array.view(dtype='uint8')
                 f.write(array.data)
 
-            f.write(labels[1].encode('latin8'))
+            f.write(labels[1].encode('latin1'))
 
     def binheader_array(self, kind='', size=None):
         """The numbers embedded in a binary header.
@@ -716,7 +717,7 @@ class VicarImage():
         data file.
 
         Parameters:
-            filepath (pathlib.Path or str): Path to an existing VICAR data file.
+            filepath (FCPath, Path, or str): Path to an existing VICAR data file.
 
             extraneous (str, optional):
                 How to handle the presence of extraneous bytes at the end of the file, one
@@ -752,7 +753,7 @@ class VicarImage():
         if extraneous not in ('ignore', 'print', 'warn', 'error', 'include'):
             raise ValueError('invalid input value for extraneous: ' + repr(extraneous))
 
-        filepath = pathlib.Path(filepath)
+        filepath = FCPath(filepath)
         with filepath.open('rb') as f:
 
             # Get the label
