@@ -84,7 +84,7 @@ from pyparsing import (alphanums,
                        FollowedBy,
                        Literal,
                        nums,
-                       oneOf,
+                       one_of,
                        OneOrMore,
                        Optional,
                        ParserElement,
@@ -96,7 +96,7 @@ from pyparsing import (alphanums,
 
 ParserElement.set_default_whitespace_chars(' ')
 
-_BREAK = ((ZeroOrMore(White(' ')) + (FollowedBy(oneOf(', )'))
+_BREAK = ((ZeroOrMore(White(' ')) + (FollowedBy(one_of(', )'))
                                      | (Suppress(ZeroOrMore('\0')) + StringEnd())))
           | OneOrMore(White(' \t\n\r')))
 
@@ -131,7 +131,7 @@ def _int_info(token):
 
 _INT = Word(nums)
 _OPT_INT = Optional(_INT)
-_OPT_SIGN = Optional(oneOf('+ -'))
+_OPT_SIGN = Optional(one_of('+ -'))
 
 _INTEGER = Combine(_OPT_WHITE + _OPT_SIGN + _INT + _BREAK)
 _INTEGER.set_name('_INTEGER')
@@ -170,7 +170,7 @@ def _float_info(token):
 
 _DOT = Literal('.')
 
-_EXPO = Combine(Suppress(oneOf('e E d D')) + _OPT_SIGN + _INT)
+_EXPO = Combine(Suppress(one_of('e E d D')) + _OPT_SIGN + _INT)
 _EXPO.set_parse_action(lambda s,l,t: 'e' + t[0])
 _OPT_EXPO = Optional(_EXPO)
 
