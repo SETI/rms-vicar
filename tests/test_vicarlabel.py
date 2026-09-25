@@ -308,7 +308,30 @@ class Test_VicarLabel(unittest.TestCase):
         self.assertEqual(str(altvic.filepath).replace('\\', '/'),
                          str(dest).replace('\\', '/'))
 
-        os.remove(dest)     # delete extra file
+        # write_label to a file other than the one associated with this object
+        dest2 = test_dir / 'C2069302_GEOMA_new_label2.DAT'
+        shutil.copy(test_dir / 'C2069302_GEOMA.DAT', dest2)
+        vic = VicarLabel(dest)
+        del vic['LAB01']
+        vic.write_label(dest2)
+        self.assertEqual(VicarLabel(dest2), vic)
+        self.assertIn('LAB01', VicarLabel(dest))
+
+        os.remove(dest)     # delete extra files
+        os.remove(dest2)
+
+        # is_vicar_file
+        self.assertTrue(VicarLabel.is_vicar_file(test_dir / 'C2069302_GEOMA.DAT'))
+        self.assertTrue(VicarLabel.is_vicar_file(str(test_dir / 'C2069302_RAW.IMG')))
+        self.assertTrue(VicarLabel.is_vicar_file(FCPath(test_dir / 'C2069302_RAW.IMG')))
+
+        not_vicar = test_dir / 'not_vicar.txt'
+        for content in (b'', b'LBLSIZE', b'LBLSIZEX=1536', b'Hello, world!'):
+            not_vicar.write_bytes(content)
+            self.assertFalse(VicarLabel.is_vicar_file(not_vicar))
+        os.remove(not_vicar)
+
+        self.assertRaises(OSError, VicarLabel.is_vicar_file, test_dir / 'missing.IMG')
 
         # Empty label
         empty = VicarLabel()

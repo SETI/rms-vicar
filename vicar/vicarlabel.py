@@ -46,6 +46,7 @@ class VicarLabel():
           file.
         * `get`: Retrieve a label parameter value or return a default.
         * `insert`: Insert one or more parameters into this label.
+        * `is_vicar_file`: True if the given file appears to have a VICAR header.
         * `items`: Iterator over the `(name, value)` tuples in this label.
         * `keys`: Iterator over the parameter names in this label as unique keys.
         * `name_value_str`: Returns a label parameter string of the form `NAME=VALUE`.
@@ -2378,14 +2379,15 @@ class VicarLabel():
         if not filepath:
             raise ValueError('file path is missing')
 
+        filepath = FCPath(filepath)
         self._finish_update()
 
-        with self._filepath.open('r+b') as f:
+        with filepath.open('r+b') as f:
 
             snippet = f.read(40).decode('latin1')
             match = _LBLSIZE_PATTERN.match(snippet)
             if not match:       # pragma: no cover
-                raise VicarError('Missing LBLSIZE keyword in file ' + str(self._filepath))
+                raise VicarError('Missing LBLSIZE keyword in file ' + str(filepath))
 
             lblsize = int(match.group(1))
             self['LBLSIZE'] = lblsize
@@ -2404,6 +2406,25 @@ class VicarLabel():
             f.seek(skip)
             f.write(labels[1].encode('latin1'))
             f.truncate()
+
+    @staticmethod
+    def is_vicar_file(filepath):
+        """True if the given file appears to have a VICAR header.
+
+        Parameters:
+            filepath (str | Path | FCPath): Path to the file.
+
+        Returns:
+            bool: True if `filepath` has a VICAR header.
+
+        Raises:
+            OSError: If `filepath` cannot be read.
+        """
+
+        filepath = FCPath(filepath)
+        with filepath.open(mode='rb') as f:
+            snippet = f.read(40).decode('latin1')
+        return bool(_LBLSIZE_PATTERN.match(snippet))
 
     ######################################################################################
     # Other Utilities
