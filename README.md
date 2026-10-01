@@ -49,7 +49,6 @@ The `vicar` module provides these classes:
 
 Details of each class are available in the [module documentation](https://rms-vicar.readthedocs.io/en/latest/module.html).
 
-
 To read a VICAR image file:
 
 ```python

@@ -152,10 +152,10 @@ def _float_info(token):
 
     value = float(stripped)
 
-    mantissa, e, expo = stripped.partition('e')
+    mantissa, e, _expo = stripped.partition('e')
     plus = '+' if mantissa[0] == '+' else ''
     unsigned = mantissa[1:] if mantissa[0] in '+-' else mantissa
-    (head, dot, tail) = unsigned.partition('.')
+    (head, _dot, tail) = unsigned.partition('.')
 
     if e:
         prec = len(head) + len(tail) - 1

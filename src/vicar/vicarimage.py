@@ -19,7 +19,7 @@ from vicar.vicarlabel import VicarLabel, VicarError
 from vicar._DEFINITIONS import _DTYPE_FROM_FORMAT, _FORMAT_FROM_DTYPE, _HOST, _IMMUTABLE
 
 
-class VicarImage():
+class VicarImage:
     """Constructor for a VicarImage.
 
     This class defines the contents of a VICAR data file. It supports methods for reading
@@ -170,7 +170,8 @@ class VicarImage():
         """The path to the associated file.
 
         Returns:
-            FCPath or None: The path to the associated file, if any.
+            filecache.file_cache_path.FCPath or None:
+                The path to the associated file, if any.
         """
 
         return self._filepath
@@ -204,7 +205,7 @@ class VicarImage():
         """The data array as 2-D.
 
         Returns:
-            np.ndarray or None:
+            numpy.ndarray or None:
                 The data array as 2-dimensional if it is present; otherwise, None.
 
         Raises:
@@ -222,7 +223,7 @@ class VicarImage():
         """The data array as 2-D; DEPRECATED name.
 
         Returns:
-            np.ndarray or None:
+            numpy.ndarray or None:
                 The data array as 2-dimensional if it is present; otherwise, None.
 
         Raises:
@@ -236,7 +237,7 @@ class VicarImage():
         """The data array as 3-D.
 
         Returns:
-            np.ndarray or None:
+            numpy.ndarray or None:
                 The data array as 3-dimensional if it is present; otherwise, None.
         """
 
@@ -247,7 +248,7 @@ class VicarImage():
         """The data array as 3-D; DEPRECATED name.
 
         Returns:
-            np.ndarray or None:
+            numpy.ndarray or None:
                 The data array as 3-dimensional if it is present; otherwise, None.
         """
 
@@ -258,7 +259,7 @@ class VicarImage():
         """The data array.
 
         Returns:
-            np.ndarray or None: The data array if it is present; otherwise, None.
+            numpy.ndarray or None: The data array if it is present; otherwise, None.
         """
 
         return self._array
@@ -315,7 +316,7 @@ class VicarImage():
         """The image prefix as a 2-D array.
 
         Returns:
-            np.ndarray: The image prefix as a 2-dimensional array.
+            numpy.ndarray: The image prefix as a 2-dimensional array.
 
         Raises:
             VicarError: If the prefix array has more than two dimensions.
@@ -332,7 +333,7 @@ class VicarImage():
         """The image prefix as a 2-D array; DEPRECATED name.
 
         Returns:
-            np.ndarray: The image prefix as a 2-dimensional array.
+            numpy.ndarray: The image prefix as a 2-dimensional array.
 
         Raises:
             VicarError: If the prefix array has more than two dimensions.
@@ -345,7 +346,7 @@ class VicarImage():
         """The image prefix as a 3-D array.
 
         Returns:
-            np.ndarray: The image prefix as a 3-dimensional array.
+            numpy.ndarray: The image prefix as a 3-dimensional array.
         """
 
         return self._prefix
@@ -355,7 +356,7 @@ class VicarImage():
         """The image prefix as a 3-D array; DEPRECATED name.
 
         Returns:
-            np.ndarray: The image prefix as a 2-dimensional array.
+            numpy.ndarray: The image prefix as a 2-dimensional array.
         """
 
         return self._prefix
@@ -365,7 +366,7 @@ class VicarImage():
         """The image prefix object.
 
         Returns:
-            np.ndarray: The image prefix as a 2-dimensional array.
+            numpy.ndarray: The image prefix as a 2-dimensional array.
         """
 
         return self._prefix
@@ -423,9 +424,9 @@ class VicarImage():
                 self._label['FORMAT'] = fmt
 
             if isint:
-                if self._array is None or self._array.dtype.kind in 'fc':
-                    if value.itemsize > 1:
-                        self._label['INTFMT'] = VicarImage._intfmt(value)
+                if ((self._array is None or self._array.dtype.kind in 'fc')
+                        and value.itemsize > 1):
+                    self._label['INTFMT'] = VicarImage._intfmt(value)
             else:
                 if self._array is None or self._array.dtype.kind in 'ui':
                     self._label['REALFMT'] = VicarImage._realfmt(value)
@@ -435,7 +436,7 @@ class VicarImage():
         """The binary header as an array or bytes object.
 
         Returns:
-            np.ndarray, bytes, or None: The binary header if present; otherwise, None.
+            numpy.ndarray, bytes, or None: The binary header if present; otherwise, None.
         """
 
         return self._binheader
@@ -659,7 +660,7 @@ class VicarImage():
                 "u"; 2 for kind = "i"; 4 for kind = "f".
 
         Returns:
-            np.ndarray or None:
+            numpy.ndarray or None:
                 The binary header as an array; None if there is no binary header.
         """
 
@@ -733,12 +734,12 @@ class VicarImage():
                 the VICAR standard; False for a looser version of the standard.
 
         Returns:
-            (VicarLabel, np.ndarray, np.ndarray or None, bytes[, bytes]):
+            (VicarLabel, numpy.ndarray, numpy.ndarray or None, bytes[, bytes]):
             A tuple containing:
 
             * VicarLabel: The label.
-            * np.ndarray: The data as a 3D array converted to native format.
-            * np.ndarray or None: The prefix array as a 3D array of unsigned bytes if
+            * numpy.ndarray: The data as a 3D array converted to native format.
+            * numpy.ndarray or None: The prefix array as a 3D array of unsigned bytes if
               present; otherwise, None.
             * bytes: The binary header if present; otherwise, None.
             * bytes, optional: Any extraneous bytes at the end of the file, included if
@@ -769,7 +770,7 @@ class VicarImage():
                 if extraneous == 'print':
                     print(message)
                 elif extraneous == 'warn':
-                    warnings.warn(message)
+                    warnings.warn(message, stacklevel=2)
                 elif extraneous == 'error':
                     raise VicarError(message)
 
@@ -1200,7 +1201,7 @@ class VicarImage():
         this VicarImage.
 
         Returns:
-            iterator:
+            collections.abc.Iterator:
                 The parameter keys within this label, in order. The key is the parameter
                 name if it is unique or (name, occurrence number) otherwise.
         """
@@ -1244,7 +1245,8 @@ class VicarImage():
                 Regular expression that can be used to filter the label parameter names.
 
         Returns:
-            iterator: The values of the matching parameters within this label, in order.
+            collections.abc.Iterator:
+                The values of the matching parameters within this label, in order.
         """
 
         return self._label.values(pattern=pattern)
@@ -1261,7 +1263,7 @@ class VicarImage():
                 may appear multiple times.
 
         Returns:
-            iterator:
+            collections.abc.Iterator:
                 Tuples (name, value) of the matching parameter names within this label, in
                 order.
         """
@@ -1277,7 +1279,7 @@ class VicarImage():
                 Regular expression that can be used to filter the label parameter names.
 
         Returns:
-            iterator:
+            collections.abc.Iterator:
                 The indices of the matching parameter names within this label, in order.
         """
 
@@ -1299,6 +1301,7 @@ class VicarImage():
     # Utilities
     ######################################################################################
 
+    @staticmethod
     def _intfmt(x):
         """Determine the INTFMT based on the dtype of an array."""
 
@@ -1310,6 +1313,7 @@ class VicarImage():
 
         return 'LOW' if sys.byteorder == 'little' else 'HIGH'
 
+    @staticmethod
     def _realfmt(x):
         """Determine the REALFMT value based on the dtype of an array."""
 
@@ -1321,6 +1325,7 @@ class VicarImage():
 
         return 'RIEEE' if sys.byteorder == 'little' else 'IEEE'
 
+    @staticmethod
     def _format_isint(x):
         """True if this array contains integer values."""
 
@@ -1328,8 +1333,10 @@ class VicarImage():
             key = x.dtype.kind + str(x.itemsize)
             return _FORMAT_FROM_DTYPE[key]
         except KeyError:
-            raise VicarError(f'array dtype "{x.dtype}" is not supported by VICAR')
+            raise VicarError(f'array dtype "{x.dtype}" is not supported by VICAR') \
+                from None
 
+    @staticmethod
     def _check_array_vs_prefix(array, prefix):
         """Raise an exception if the given image array and prefix byte array are not
         compatible.
@@ -1367,13 +1374,12 @@ class VicarImage():
         else:
             realfmt2 = VicarImage._realfmt(prefix)
 
-        if isint1 and isint2:
-            if format1 != 'BYTE' and format2 != 'BYTE' and intfmt1 != intfmt2:
-                raise VicarError('data and prefix array formats are incompatible: '
-                                 f'{intfmt1}, {intfmt2}')
-        if not isint1 and not isint2:
-            if realfmt1 != realfmt2:
-                raise VicarError('data and prefix array formats are incompatible: '
-                                 f'{realfmt1}, {realfmt2}')
+        if (isint1 and isint2 and format1 != 'BYTE' and format2 != 'BYTE'
+                and intfmt1 != intfmt2):
+            raise VicarError('data and prefix array formats are incompatible: '
+                             f'{intfmt1}, {intfmt2}')
+        if not isint1 and not isint2 and realfmt1 != realfmt2:
+            raise VicarError('data and prefix array formats are incompatible: '
+                             f'{realfmt1}, {realfmt2}')
 
 ##########################################################################################

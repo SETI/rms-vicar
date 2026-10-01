@@ -7,14 +7,17 @@ name = "rms-vicar"
 dynamic = ["version"]
 description = "Routines for converting to and from VICAR image files"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 dependencies = [
-    "numpy",
-    "pyparsing",
-    "rms-filecache",
-    "rms-vax"
+  "numpy",
+  "pyparsing",
+  "rms-filecache",
+  "rms-vax"
 ]
 license = {text = "Apache-2.0"}
+authors = [
+  {name = "Robert S. French", email = "rfrench@seti.org"}
+]
 maintainers = [
   {name = "Robert S. French", email = "rfrench@seti.org"}
 ]
@@ -27,8 +30,6 @@ classifiers = [
   "Topic :: Software Development :: Libraries :: Python Modules",
   "Topic :: Utilities",
   "License :: OSI Approved :: Apache Software License",
-  "Programming Language :: Python :: 3.9",
-  "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
@@ -44,9 +45,143 @@ Repository = "https://github.com/SETI/rms-vicar"
 Source = "https://github.com/SETI/rms-vicar"
 Issues = "https://github.com/SETI/rms-vicar/issues"
 
+[tool.pytest.ini_options]
+pythonpath = [
+  "src"
+]
+testpaths = ["tests"]
+addopts = ["-n", "auto", "--cov=src/vicar", "--strict-markers", "--strict-config"]
+markers = []
+filterwarnings = ["error"]
+
 [tool.setuptools]
-packages = ["vicar"]
+[tool.setuptools.packages.find]
+where = ["src"]
 
 [tool.setuptools_scm]
 local_scheme = "no-local-version"
-write_to = "vicar/_version.py"
+write_to = "src/vicar/_version.py"
+
+[project.optional-dependencies]
+dev = [
+  "coverage>=7.0",
+  "flake8",
+  "mypy>=1.0",
+  "pip-audit>=2.7",
+  "pymarkdownlnt>=0.9.35",
+  "pytest>=7.0",
+  "pytest-cov>=4.0",
+  "pytest-xdist>=3.8.0",
+  "ruff>=0.8",
+  # "bandit[toml]>=1.8",
+  "pyroma>=4.2",
+  # "vulture>=2.14",
+  "rms-vicar[docs]",
+]
+docs = [
+  "myst-parser",
+  "sphinx",
+  "sphinx-rtd-theme",
+]
+
+# Tool configuration
+
+[tool.coverage.run]
+branch = true
+parallel = true
+# Must match --cov in the pytest addopts above, or fail_under measures something else
+source = ["src/vicar"]
+omit = ["tests/*", "_version.py"]
+
+[tool.coverage.report]
+exclude_lines = [
+  "pragma: no cover",
+  "def __repr__",
+  "raise NotImplementedError",
+]
+fail_under = 90
+
+[tool.mypy]
+strict = true
+disallow_subclassing_any = false
+
+[[tool.mypy.overrides]]
+module = "vicar._version"
+ignore_missing_imports = true
+
+# The source under src/ is unannotated, so mypy is kept to the tests. Following an import
+# into the package would report every unannotated definition there.
+[[tool.mypy.overrides]]
+module = ["vicar", "vicar.*"]
+follow_imports = "skip"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = ["filecache", "filecache.*", "vax", "vax.*"]
+ignore_missing_imports = true
+
+[tool.ruff]
+target-version = "py311"
+# Must match max-line-length in .flake8.
+line-length = 90
+exclude = [
+]
+
+[tool.ruff.format]
+quote-style = "single"
+
+[tool.ruff.lint]
+# Explicit rule set (recommended for library projects). Categories:
+# E, W = pycodestyle errors/warnings; F = Pyflakes; I = isort; UP = pyupgrade;
+# B = bugbear; SIM = simplify; C4 = comprehensions; A = builtins (no shadowing);
+# N = pep8-naming; PT = pytest-style; RUF = Ruff-specific (e.g. unused noqa).
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "C4", "A", "N", "PT", "RUF"]
+# PT011 - pytest.raises is too broad.
+# SIM105 - Use contextlib.suppress for suppressions.
+# SIM108 - Use ternary operator for simple if/else.
+# RUF005 - Collection literal concatenation. `(0,) + ints` reads as clearly as the
+#   unpacked form it would be rewritten to.
+# I001 - Import sorting. The fix collapses the column-aligned imports this codebase
+#   uses (the same alignment .flake8 preserves by ignoring E221 and friends).
+extend-ignore = ["PT011", "SIM105", "SIM108", "RUF005", "I001"]
+
+[tool.ruff.lint.per-file-ignores]
+# E501: test files are exempt from the line length limit so that expected-value
+#   tables and VICAR label strings can stay readable.
+"tests/*" = ["E501"]
+
+# N999: _DEFINITIONS and _LABEL_GRAMMAR are upper case to mark them as tables of
+#   constants; renaming them would break code that imports them.
+"src/vicar/_DEFINITIONS.py" = ["N999"]
+# E741: `l` is the location argument of every pyparsing parse action, following the
+#   (s, l, t) convention in the pyparsing documentation.
+"src/vicar/_LABEL_GRAMMAR.py" = ["N999", "E741"]
+
+[tool.pymarkdown.plugins.md013]
+# Line length (disable so README/CONTRIBUTING can use longer lines).
+enabled = false
+
+[tool.pymarkdown.plugins.md033]
+# Inline HTML (e.g. <br>) allowed in Markdown.
+enabled = false
+
+[tool.pymarkdown.plugins.md025]
+# Multiple top-level headings. The README uses a level-one heading per major
+# section, and those levels feed the Sphinx TOC through the include in
+# docs/index.rst, so they are deliberate.
+enabled = false
+
+[tool.pymarkdown.plugins.md041]
+# First line must be a top-level heading. The README opens with badges.
+enabled = false
+
+# Uncomment when enabling bandit in [project.optional-dependencies].dev.
+# [tool.bandit]
+# exclude_dirs = ["tests", "venv", ".venv"]
+# targets = ["src"]
+
+# Uncomment when enabling vulture in [project.optional-dependencies].dev.
+# [tool.vulture]
+# paths = ["src"]
+# exclude = ["tests/"]
+# min_confidence = 70

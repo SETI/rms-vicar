@@ -9,7 +9,7 @@
 import os
 import sys
 
-sys.path.insert(0, os.path.abspath('..'))
+sys.path.insert(0, os.path.abspath('../src'))
 
 project = 'vicar'
 copyright = '2024, PDS Ring-Moon Systems Node'
@@ -39,4 +39,4 @@ def linkcode_resolve(domain, info):
     if not info['module']:
         return None
     filename = info['module'].replace('.', '/')
-    return f'https://github.com/SETI/rms-{project}/blob/master/{project}/{filename}.py'
+    return f'https://github.com/SETI/rms-{project}/blob/main/src/{filename}.py'

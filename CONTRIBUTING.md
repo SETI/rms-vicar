@@ -5,12 +5,12 @@ First off, thanks for taking the time to contribute!
 This software is maintained by the [Ring-Moon Systems Node](https://pds-rings.seti.org) of NASA's [Planetary Data System](https://pds.nasa.gov). All types of contributions are encouraged and valued. See the [Table of Contents](#table-of-contents) for different ways to help and details about how this project handles them; please read the relevant section before making your contribution.
 
 > If you like the project, but just don't have time to contribute, there are other easy ways to support the project and show your appreciation!
+>
 > - Star the project on GitHub
 > - Post about it on social media
 > - Refer to this project in your project's README
 > - Mention the project at conferences and workshops and tell your friends/colleagues
 > - Cite the project in your papers and posters
-
 
 ## Table of Contents
 
@@ -20,14 +20,12 @@ This software is maintained by the [Ring-Moon Systems Node](https://pds-rings.se
 - [I Want to Suggest an Enhancement](#i-want-to-suggest-an-enhancement)
 - [I Want To Contribute Code](#i-want-to-contribute-code)
 
-
 ## Code of Conduct
 
 This project and everyone participating in it are governed by the
 [Code of Conduct](CODE_OF_CONDUCT.md).
 By participating, you are expected to uphold this code. Please report unacceptable behavior
 to <matt@seti.org>.
-
 
 ## I Have a Question
 
@@ -42,7 +40,6 @@ If you can't find an appropriate issue and still want to ask a question, we reco
 - Provide project and platform versions (operating system, Python version, etc.), depending on what seems relevant.
 
 We will try to answer your question as soon as possible.
-
 
 ## I Want to Report a Bug
 
@@ -76,7 +73,6 @@ Once it's filed:
 - A team member will try to reproduce the issue with your provided steps. If there are no steps given and no obvious way to reproduce the issue, the team will ask you for clarification.
 - If the team is able to reproduce the issue, it will be appropriately labeled and either assigned to a team member to fix, or left unassigned to be [implemented by someone else](#i-want-to-contribute-code).
 
-
 ## I Want to Suggest an Enhancement
 
 This section guides you through submitting an enhancement, **including completely new features and minor improvements to existing functionality**.
@@ -96,10 +92,10 @@ We use GitHub Issues to track enhancement requests. If you want to suggest an en
 - Provide a **detailed** description of the suggested enhancement.
 - **Explain why this enhancement would be useful** to most users.
 
-
 ## I Want To Contribute Code
 
-> ### Legal Notice 
+> ### Legal Notice
+>
 > When contributing to this project, you must agree that you have authored 100% of the content, that you have the necessary rights to the content, and that the content you contribute may be provided under the project license.
 
 We welcome all code contributions, including bug fixes, new features, and improvements to documentation.

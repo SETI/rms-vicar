@@ -7,7 +7,7 @@ PDS Ring-Moon Systems Node, SETI Institute
 
 **Introduction**
 
-`vicar` is a Python module that supports reading and writing of JPL’s VICAR file format.
+`vicar` is a Python module that supports reading and writing of JPL's VICAR file format.
 It supports the definition of the VICAR file format as found here:
 
     https://pds-rings.seti.org/help/VICAR_file_fmt.pdf
@@ -89,7 +89,7 @@ from vicar.vicarimage import VicarImage
 
 try:
     from ._version import __version__
-except ImportError:
+except ImportError:     # pragma: no cover
     __version__ = 'Version unspecified'
 
 ##########################################################################################

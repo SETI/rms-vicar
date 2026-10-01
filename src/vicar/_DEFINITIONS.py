@@ -80,29 +80,29 @@ _REQUIRED = [('LBLSIZE' , 0,     ),
              ('BINTFMT' , _INTFMT_DICT [sys.byteorder]),
              ('BREALFMT', _REALFMT_DICT[sys.byteorder]),
              ('BLTYPE'  , ''),]
-_REQUIRED_NAMES = set([t[0] for t in _REQUIRED])
+_REQUIRED_NAMES = {t[0] for t in _REQUIRED}
 
 # Keywords that the user cannot modify
-_IMMUTABLE = set(['LBLSIZE' ,
-                  'FORMAT'  ,
-                  'TYPE'    ,
-                  'DIM'     ,
-                  'EOL'     ,
-                  'RECSIZE' ,
-                  'ORG'     ,
-                  'NL'      ,
-                  'NS'      ,
-                  'NB'      ,
-                  'N1'      ,
-                  'N2'      ,
-                  'N3'      ,
-                  'N4'      ,
-                  'NBB'     ,
-                  'NLB'     ,
-                  'INTFMT'  ,
-                  'REALFMT' ,
-                  'BINTFMT' ,
-                  'BREALFMT'])
+_IMMUTABLE = {'LBLSIZE' ,
+              'FORMAT'  ,
+              'TYPE'    ,
+              'DIM'     ,
+              'EOL'     ,
+              'RECSIZE' ,
+              'ORG'     ,
+              'NL'      ,
+              'NS'      ,
+              'NB'      ,
+              'N1'      ,
+              'N2'      ,
+              'N3'      ,
+              'N4'      ,
+              'NBB'     ,
+              'NLB'     ,
+              'INTFMT'  ,
+              'REALFMT' ,
+              'BINTFMT' ,
+              'BREALFMT'}
 
 # Keywords with enumerated values
 _ENUMERATED_VALUES = {

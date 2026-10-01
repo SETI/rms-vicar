@@ -27,7 +27,7 @@ class VicarError(ValueError):
     pass
 
 
-class VicarLabel():
+class VicarLabel:
     """Class to support accessing, reading, modifying, and writing VICAR labels.
 
     **Properties:**
@@ -331,7 +331,7 @@ class VicarLabel():
         """The file path associated with this VicarLabel.
 
         Returns:
-            FCPath or None:
+            filecache.file_cache_path.FCPath or None:
                 The FCPath if this object is associated with a file; None otherwise.
         """
 
@@ -551,7 +551,7 @@ class VicarLabel():
             try:
                 source = _LABEL_GRAMMAR.parse_string(source).as_list()
             except pyparsing.ParseException as e:
-                raise VicarError('VICAR parsing failure: ' + str(e))
+                raise VicarError('VICAR parsing failure: ' + str(e)) from e
         elif not isinstance(source, list):
             raise TypeError('Not a recognized source type: ' + type(source).__name__)
 
@@ -600,7 +600,7 @@ class VicarLabel():
         try:
             _ = _NAME.parse_string(name)
         except pyparsing.ParseException:
-            raise VicarError('Invalid VICAR name string: ' + repr(name))
+            raise VicarError('Invalid VICAR name string: ' + repr(name)) from None
 
         if strict:
             if len(name) > 32:
@@ -728,12 +728,13 @@ class VicarLabel():
         validate_tuplefmt(value, valfmt)
         return (value, valfmt)
 
-    def _interpret_valfmt(hints, listfmts=[]):
+    @staticmethod
+    def _interpret_valfmt(hints, listfmts):
         """Get the _ValueFormat from a value or tuple.
 
         Parameters:
             hints (tuple): Value format hints.
-            listfmt (list[_ListFormat[, optional): Formats for list elements.
+            listfmts (list[_ListFormat]): Formats for list elements; may be empty.
 
         Returns:
             _ValueFormat or None:
@@ -764,6 +765,7 @@ class VicarLabel():
 
         return _ValueFormat(fmt, *ints, listfmts)
 
+    @staticmethod
     def _interpret_listfmt(hints):
         """Get the _ListFormat from a value or tuple.
 
@@ -819,12 +821,12 @@ class VicarLabel():
                 value = vals[k]
                 if name in _ENUMERATED_VALUES:
                     if value not in _ENUMERATED_VALUES[name]:
-                        raise VicarError(f'Invalid {name} value: {repr(value)}; '
+                        raise VicarError(f'Invalid {name} value: {value!r}; '
                                          f'must be in {_ENUMERATED_VALUES[name]}')
-                elif name in _REQUIRED_INTS:
-                    if not isinstance(value, numbers.Integral) or value < 0:
-                        raise VicarError(f'Invalid {name} value: {repr(value)}; '
-                                         f'must be a non-negative integer')
+                elif (name in _REQUIRED_INTS
+                      and (not isinstance(value, numbers.Integral) or value < 0)):
+                    raise VicarError(f'Invalid {name} value: {value!r}; '
+                                     f'must be a non-negative integer')
             elif append:    # pragma: no branch
                 names.append(name)
                 vals.append(item[1])
@@ -1067,7 +1069,7 @@ class VicarLabel():
         """Re-order one or more specified parameters inside this object.
 
         Parameters:
-            *keys (list[int, name, or tuple]):
+            *keys (int, name, or tuple):
                 Two or more indexing keys, interpreted as follows:
 
                 * *int* = `n`: The "nth" parameter in the label. `n` can be positive or
@@ -1265,7 +1267,7 @@ class VicarLabel():
             if len(key) == 3:
                 matches = [i for i in indices if self._values[i] == key[2]]
                 if not matches:
-                    raise ValueError(f'{after_name} never has value {repr(key[2])}')
+                    raise ValueError(f'{after_name} never has value {key[2]!r}')
                 start = matches[0]
             else:
                 start = indices[0]
@@ -1409,7 +1411,7 @@ class VicarLabel():
                 indices = [indices]
             indices = [i for i in indices if self._values[i] == value]
             if not indices:
-                raise ValueError(f'index {key} never has value {repr(value)}')
+                raise ValueError(f'index {key} never has value {value!r}')
 
             return indices if has_plus else indices[0]
 
@@ -1781,7 +1783,7 @@ class VicarLabel():
         """
 
         try:
-            indx, _ = self._args(key, mode='get')
+            _ = self._args(key, mode='get')
         except (IndexError, KeyError, TypeError, ValueError, VicarError):
             return False
 
@@ -1900,7 +1902,7 @@ class VicarLabel():
         elif isinstance(value, list):
             result.append('(')
             listfmts = valfmt.listfmts or len(value) * [_ListFormat('', 0, 0)]
-            for v, f in zip(value, listfmts):
+            for v, f in zip(value, listfmts, strict=False):
                 if f:
                     result += [f.blanks_before * ' ', _scalar_str(v, f.fmt),
                                f.blanks_after * ' ']
@@ -2110,7 +2112,7 @@ class VicarLabel():
         """Iterator over the unique names or (name, occurrence) pairs in the label.
 
         Returns:
-            iterator:
+            collections.abc.Iterator:
                 An iterator over the parameter keys within this label, in order. The key
                 is the parameter name if it is unique or (name, occurrence number)
                 otherwise.
@@ -2179,7 +2181,8 @@ class VicarLabel():
                 Regular expression that can be used to filter the label parameter names.
 
         Returns:
-            iterator: The values of the matching parameters within this label, in order.
+            collections.abc.Iterator:
+                The values of the matching parameters within this label, in order.
         """
 
         self._finish_update()
@@ -2204,7 +2207,7 @@ class VicarLabel():
                 may appear multiple times.
 
         Returns:
-            iterator:
+            collections.abc.Iterator:
                 The tuples (name, value) of the matching parameter names within this
                 label, in order.
         """
@@ -2220,9 +2223,9 @@ class VicarLabel():
                 return [(self._names[i], self._values[i]) for i in indices]
 
         elif unique:
-            return list(zip(self._unique_keys, self._values))
+            return list(zip(self._unique_keys, self._values, strict=True))
 
-        return list(zip(self._names, self._values))
+        return list(zip(self._names, self._values, strict=True))
 
     def args(self, pattern=None):
         """Iterator over the numerical indices of the keywords.
@@ -2232,7 +2235,7 @@ class VicarLabel():
                 Regular expression that can be used to filter the label parameter names.
 
         Returns:
-            iterator:
+            collections.abc.Iterator:
                 The indices of the matching parameter names within this label, in order.
         """
 
@@ -2412,7 +2415,7 @@ class VicarLabel():
         """True if the given file appears to have a VICAR header.
 
         Parameters:
-            filepath (str | Path | FCPath): Path to the file.
+            filepath (str, Path, or FCPath): Path to the file.
 
         Returns:
             bool: True if `filepath` has a VICAR header.
