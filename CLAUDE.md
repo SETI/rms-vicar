@@ -88,7 +88,10 @@ PyMarkdown scans `docs/`, `.claude/` (recursively), `README.md`, and `CONTRIBUTI
 codespell scans `src/`, `tests/`, `docs/`, `scripts/`, `README.md`, and `CONTRIBUTING.md`, in both
 CI and the check script; keep the two lists in step.
 
-`docs-dev/` is a second Sphinx tree that also documents private members; it is not built in CI.
+The Developer's Guide lives in `docs/dev_guide/`. Its internal reference documents the whole
+package with `:private-members:` under `:no-index:`, so its entries do not compete with the
+public reference in `docs/module.rst` for link targets; give a private type that docstrings
+name its own `autoclass` entry there, as `_ValueFormat` and `_ListFormat` have.
 
 ## Repo etiquette
 

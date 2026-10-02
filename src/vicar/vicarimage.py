@@ -27,54 +27,55 @@ class VicarImage:
 
     **Properties**:
 
-        * `array`: The 3-D data array converted to native format.
-        * `array3d`: Same as above.
-        * `array2d`: Same as above, but with leading dimension (typically, bands)
+        * :attr:`array`: The 3-D data array converted to native format.
+        * :attr:`array3d`: Same as above.
+        * :attr:`array2d`: Same as above, but with leading dimension (typically, bands)
           stripped.
-        * `prefix`: The array prefix bytes as a 3-D array of unsigned bytes.
-        * `prefix3d`: Same as above.
-        * `prefix2d`: Same as above, but with the leading dimension stripped.
-        * `binheader`: The binary header as a bytes object; use vic.binheader_array() to
-          extract information.
-        * `label`: The internal object that manages the VICAR label information, available
-          if direct access to it is needed.
+        * :attr:`prefix`: The array prefix bytes as a 3-D array of unsigned bytes.
+        * :attr:`prefix3d`: Same as above.
+        * :attr:`prefix2d`: Same as above, but with the leading dimension stripped.
+        * :attr:`binheader`: The binary header as a bytes object; use
+          :meth:`binheader_array` to extract information.
+        * :attr:`label`: The internal object that manages the VICAR label information,
+          available if direct access to it is needed.
 
     **Core Methods:**
 
-        * `arg`: The index of a parameter name within this label.
-        * `args`: Iterator over the numeric indices of the parameters in a label.
-        * `binheader_array`: Interpret the content of a binary header.
-        * `copy`: A copy of this VicarImage.
-        * `deepcopy`: An independent (deep) copy of this VicarImage.
-        * `from_array`: Construct a VicarImage object for a NumPy array.
-        * `from_file`: Construct a VicarImage object from the content of a VICAR data
-          file.
-        * `get`: Retrieve a label parameter value or return a default.
-        * `items`: Iterator over the (name, value) tuples in the label.
-        * `keys`: Iterator over the parameter names in the label as unique keys.
-        * `names`: Iterator over the parameter names in the label.
-        * `values`: Iterator over the parameter values in the label.
-        * `write_file`: Write this object as a VICAR data file.
+        * :meth:`arg`: The index of a parameter name within this label.
+        * :meth:`args`: List of the numeric indices of the parameters in a label.
+        * :meth:`binheader_array`: Interpret the content of a binary header.
+        * :meth:`copy`: A copy of this VicarImage.
+        * :meth:`deepcopy`: An independent (deep) copy of this VicarImage.
+        * :meth:`from_array`: Construct a VicarImage object for a NumPy array.
+        * :meth:`from_file`: Construct a VicarImage object from the content of a VICAR
+          data file.
+        * :meth:`get`: Retrieve a label parameter value or return a default.
+        * :meth:`items`: List of the (name, value) tuples in the label.
+        * :meth:`keys`: List of the parameter names in the label as unique keys.
+        * :meth:`names`: List of the parameter names in the label.
+        * :meth:`values`: List of the parameter values in the label.
+        * :meth:`write_file`: Write this object as a VICAR data file.
 
     **Python Syntax Support Methods:**
 
-        * `__contains__`: Enables "`name in image`" syntax for checking a name in the
-          label.
-        * `__delitem__`: Enables "`del image[name]`" syntax to remove a label parameter
-          name.
-        * `__eq__`: Enables "`a == b`', the test of whether two image objects are equal.
-        * `__getitem__`: Enables "`image[name]`" dictionary-like syntax to get the value
-          of a label parameter.
-        * `__iter__`: Enables "`for key in image:`" syntax to iterate over the label
-          parameter keys.
-        * `__len__`: Enables "`len(image)`", the number of parameters in the image's
-          label.
-        * `__repr__`: Enables "`repr(image)`", similar to the "`str(label)`", but with the
-          class name included.
-        * `__setitem__`: Enables "`image[name] = value`" dictionary-like syntax to set the
+        * :meth:`__contains__`: Enables "`name in image`" syntax for checking a name in
+          the label.
+        * :meth:`__delitem__`: Enables "`del image[name]`" syntax to remove a label
+          parameter name.
+        * :meth:`__eq__`: Enables "`a == b`", the test of whether two image objects are
+          equal.
+        * :meth:`__getitem__`: Enables "`image[name]`" dictionary-like syntax to get the
           value of a label parameter.
-        * `__str__`: Enables "`str(image)`", returning a string representing the content
-          of a label.
+        * :meth:`__iter__`: Enables "`for key in image:`" syntax to iterate over the label
+          parameter keys.
+        * :meth:`__len__`: Enables "`len(image)`", the number of parameters in the image's
+          label.
+        * :meth:`__repr__`: Enables "`repr(image)`", similar to the "`str(label)`", but
+          with the class name included.
+        * :meth:`__setitem__`: Enables "`image[name] = value`" dictionary-like syntax to
+          set the value of a label parameter.
+        * :meth:`__str__`: Enables "`str(image)`", returning a string representing the
+          content of a label.
 
     **Notes About Dictionary Keys:**
 
@@ -659,10 +660,10 @@ class VicarImage:
     def binheader_array(self, kind='', size=None):
         """The numbers embedded in a binary header.
 
-        This method is capable of reading "ISIS" table files when those tables consist
-        entirely of a single data format. It uses the FMT_DEFAULT parameter to determine
-        dtype, and uses the NR and NC values, if present, to determine the number of rows
-        and columns in the table.
+        This method is capable of reading ISIS table files (IBIS format) when those
+        tables consist entirely of a single data format. It uses the FMT_DEFAULT parameter
+        to determine dtype, and uses the NR and NC values, if present, to determine the
+        number of rows and columns in the table.
 
         Parameters:
             kind (str, optional):

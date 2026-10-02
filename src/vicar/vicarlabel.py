@@ -32,45 +32,48 @@ class VicarLabel:
 
     **Properties:**
 
-        * `filepath`: The file path associated with this VicarLabel.
+        * :attr:`filepath`: The file path associated with this VicarLabel.
 
     **Core Methods:**
 
-        * `append`: Append one or more parameters to the end of this label.
-        * `arg`: The index of a parameter name within this label.
-        * `args`: Iterator over the numeric indices of the parameters in this label.
-        * `as_string`: A string representing all or part of this label.
-        * `copy`: An independent (deep) copy of this VicarLabel.
-        * `export`: Returns a label parameter string of the form `NAME=VALUE`.
-        * `from_file`: Construct a VicarLabel object from the content of a VICAR data
+        * :meth:`append`: Append one or more parameters to the end of this label.
+        * :meth:`arg`: The index of a parameter name within this label.
+        * :meth:`args`: List of the numeric indices of the parameters in this label.
+        * :meth:`as_string`: A string representing all or part of this label.
+        * :meth:`copy`: An independent (deep) copy of this VicarLabel.
+        * :meth:`export`: The label and end-of-file label strings to write into a data
           file.
-        * `get`: Retrieve a label parameter value or return a default.
-        * `insert`: Insert one or more parameters into this label.
-        * `is_vicar_file`: True if the given file appears to have a VICAR header.
-        * `items`: Iterator over the `(name, value)` tuples in this label.
-        * `keys`: Iterator over the parameter names in this label as unique keys.
-        * `name_value_str`: Returns a label parameter string of the form `NAME=VALUE`.
-        * `names`: Iterator over the parameter names in this label.
-        * `read_label`: Read the label string(s) from a file.
-        * `reorder`: Reorder the parameters in this label.
-        * `value_str`: Formats a label parameter value.
-        * `values`: Iterator over the parameter values in this label.
-        * `write_label`: Write this label into a data file, replacing an existing label.
+        * :meth:`from_file`: Construct a VicarLabel object from the content of a VICAR
+          data file.
+        * :meth:`get`: Retrieve a label parameter value or return a default.
+        * :meth:`insert`: Insert one or more parameters into this label.
+        * :meth:`is_vicar_file`: True if the given file appears to have a VICAR header.
+        * :meth:`items`: List of the `(name, value)` tuples in this label.
+        * :meth:`keys`: List of the parameter names in this label as unique keys.
+        * :meth:`name_value_str`: Returns a label parameter string of the form
+          `NAME=VALUE`.
+        * :meth:`names`: List of the parameter names in this label.
+        * :meth:`read_label`: Read the label string(s) from a file.
+        * :meth:`reorder`: Reorder the parameters in this label.
+        * :meth:`value_str`: Formats a label parameter value.
+        * :meth:`values`: List of the parameter values in this label.
+        * :meth:`write_label`: Write this label into a data file, replacing an existing
+          label.
 
     **Python Syntax Support Methods:**
 
-        * `__contains__`: Enables "`name in label`" syntax.
-        * `__delitem__`: Enables "`del label[name]`" syntax.
-        * `__eq__`: Enables "`a == b`", the test of whether two labels are equal.
-        * `__getitem__`: Enables "`label[name]`" dictionary-like syntax.
-        * `__iter__`: Enables "`for key in label:`" syntax.
-        * `__len__`: Enables "`len(label)`", the number of parameters in the given
+        * :meth:`__contains__`: Enables "`name in label`" syntax.
+        * :meth:`__delitem__`: Enables "`del label[name]`" syntax.
+        * :meth:`__eq__`: Enables "`a == b`", the test of whether two labels are equal.
+        * :meth:`__getitem__`: Enables "`label[name]`" dictionary-like syntax.
+        * :meth:`__iter__`: Enables "`for key in label:`" syntax.
+        * :meth:`__len__`: Enables "`len(label)`", the number of parameters in the given
           VicarLabel.
-        * `__repr__`: Enables "`repr(label)`", similar to the "`str(label)`", but with the
-          class name included.
-        * `__setitem__`: Enables "`label[name] = value`" dictionary-like syntax.
-        * `__str__`: Enables "`str(label)`", returning a string representing the content
-          of a label.
+        * :meth:`__repr__`: Enables "`repr(label)`", similar to the "`str(label)`", but
+          with the class name included.
+        * :meth:`__setitem__`: Enables "`label[name] = value`" dictionary-like syntax.
+        * :meth:`__str__`: Enables "`str(label)`", returning a string representing the
+          content of a label.
 
     **Notes About Dictionary Keys:**
 

@@ -14,6 +14,12 @@ Welcome to the Documentation for rms-vicar!
    module
 
 .. toctree::
+   :maxdepth: 2
+   :caption: Developer's Guide:
+
+   dev_guide/dev_guide
+
+.. toctree::
    :maxdepth: 1
    :caption: Project:
 
