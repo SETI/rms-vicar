@@ -12,7 +12,7 @@ on:
 
 jobs:
   lint:
-    name: Lint rms-vicar
+    name: Lint vicar
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -80,7 +80,7 @@ jobs:
           pymarkdown scan -r docs/ .claude/ README.md CONTRIBUTING.md
 
   test:
-    name: Test rms-vicar
+    name: Test vicar
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
