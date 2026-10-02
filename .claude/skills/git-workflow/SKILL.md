@@ -10,7 +10,7 @@ description: Commit message format, branch naming, and the pull request workflow
 Write the subject as a plain capitalized sentence in the imperative mood, with no type
 prefix:
 
-```
+```text
 Add caching to profile lookup
 
 [Optional body — wrap at 72 characters. Explain *what* and *why*, not *how*.

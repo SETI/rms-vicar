@@ -36,6 +36,7 @@ extensions = [
     'sphinx.ext.viewcode',
     'sphinx.ext.napoleon',
     'sphinx.ext.intersphinx',
+    'sphinxcontrib.mermaid',
     'myst_parser',
 ]
 
@@ -47,8 +48,20 @@ templates_path = ['_templates']
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
+# CONTRIBUTING.md is split in contributing.rst; the tail fragment starts at
+# "## ..." so MyST reports a false-positive heading-level warning.
+suppress_warnings = ['myst.header']
+
 # The suffix(es) of source filenames.
 source_suffix = ['.rst', '.md']
+
+# The docstrings wrap variable names in single backticks. Napoleon renders the name of
+# each entry in a `Parameters:` block in bold, so the default role must be `strong` for a
+# mention of that same name in the surrounding prose to match it. Double backticks mark
+# code expressions, and italics mark math symbols that are not variable names, such as
+# *x*-axis. An API symbol that should link to its own entry carries an explicit role
+# instead.
+default_role = 'strong'
 
 # -- Options for HTML output -------------------------------------------------
 
@@ -61,6 +74,7 @@ html_theme = 'sphinx_rtd_theme'
 # html_static_path = ['_static']
 
 add_module_names = False
+autodoc_typehints_format = "short"
 
 # -- Extension configuration -------------------------------------------------
 
@@ -76,28 +90,25 @@ napoleon_use_admonition_for_references = False
 napoleon_use_ivar = True
 napoleon_use_param = True
 napoleon_use_rtype = True
-# Preprocessing lets the aliases below turn the short names the docstrings use into
-# references that intersphinx can resolve.
-napoleon_preprocess_types = True
-napoleon_type_aliases = {
-    'np.ndarray': 'numpy.ndarray',
-    'Path': 'pathlib.Path',
-    'FCPath': 'filecache.file_cache_path.FCPath',
-    'file': 'io.IOBase',
-    'iterator': 'collections.abc.Iterator',
-}
+# The docstrings write types in annotation style, such as "str | Path | None". Napoleon's
+# preprocessing does not split on "|" and would treat the whole union as one class name,
+# so it is left off; the Python domain parses the type field itself and understands "|",
+# brackets, and the trailing "optional".
+napoleon_preprocess_types = False
+napoleon_type_aliases = None
 napoleon_attr_annotations = True
 
 # Intersphinx settings
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3', None),
     'numpy': ('https://numpy.org/doc/stable/', None),
+    'matplotlib': ('https://matplotlib.org/stable/', None),
     'filecache': ('https://rms-filecache.readthedocs.io/en/latest/', None),
 }
 
-# Nitpicky mode: report every cross-reference that does not resolve. Set here rather
-# than passed as -n so that every build gets it -- the check script, CI, and
-# scripts/read-docs.sh alike -- and none of them can drift out of step.
+# Nitpicky mode: report every cross-reference that does not resolve. The check script,
+# CI, and scripts/read-docs.sh also pass -n, but the ReadTheDocs build takes no extra
+# options, so it gets nitpicky mode only from here.
 nitpicky = True
 
 # The only cross-references that cannot resolve are the informal type words this
@@ -109,8 +120,6 @@ nitpick_ignore_regex = [
     # Napoleon splits a type such as "(bool, optional)" on the comma and looks up each
     # piece, so the trailing "optional" of every optional parameter arrives here.
     (r'py:class', r'optional'),
-    (r'py:class', r'string'),
-    (r'py:class', r'name'),
     (r'py:class', r'array-like'),
 ]
 
@@ -119,3 +128,35 @@ myst_enable_extensions = [
     "colon_fence",
     "deflist",
 ]
+
+# Mermaid settings — use client-side rendering so no mmdc binary is required
+# in CI or on ReadTheDocs.
+mermaid_output_format = 'raw'
+
+# Generate anchor targets for Markdown headings so intra-document links in
+# CONTRIBUTING.md (its table of contents) resolve.
+myst_heading_anchors = 2
+
+# The short type names the docstrings use, mapped to the full names that intersphinx
+# knows them by. A docstring type is limited to one line, so the full names would not fit.
+_TYPE_ALIASES = {
+    'np.ndarray': 'numpy.ndarray',
+    'Path': 'pathlib.Path',
+    'FCPath': 'filecache.file_cache_path.FCPath',
+    'file': 'io.IOBase',
+}
+
+
+def _resolve_type_alias(app, env, node, contnode):
+    """Retarget a reference to a short type name at its full name.
+
+    Returning None passes the rewritten node on to the next missing-reference handler,
+    intersphinx, which resolves it. The displayed text keeps the short name.
+    """
+    if node.get('refdomain') == 'py' and node.get('reftarget') in _TYPE_ALIASES:
+        node['reftarget'] = _TYPE_ALIASES[node['reftarget']]
+
+
+def setup(app):
+    """Run the alias handler ahead of intersphinx, which connects at priority 500."""
+    app.connect('missing-reference', _resolve_type_alias, priority=400)

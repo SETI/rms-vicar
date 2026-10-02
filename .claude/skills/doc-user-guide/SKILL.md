@@ -1,8 +1,6 @@
 ---
-description: Format, layout, and completeness rules for the end-user guide of a Python package, covering overview, configuration, and command-line program references.
-paths:
-  - "docs/**/*.rst"
-  - "docs/**/*.md"
+name: doc-user-guide
+description: Format, layout, and completeness rules for the end-user guide of a Python package, covering overview, configuration, and command-line program references. Use when writing, editing, or reviewing the user guide under docs/.
 ---
 
 # User Guide
@@ -92,4 +90,4 @@ For EACH command-line program the package installs:
   the program's actual argument parser and the packaging metadata. When the code
   changes, update the guide in the same change.
 - For step-by-step task walkthroughs that warrant their own article, follow
-  `doc_how_to` and link to it from the relevant chapter.
+  the `doc-how-to` skill and link to it from the relevant chapter.

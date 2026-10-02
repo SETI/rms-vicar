@@ -1,14 +1,11 @@
-.. vicar documentation master file, created by
-   sphinx-quickstart on Fri May 24 12:58:54 2024.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+.. rms-vicar documentation master file
 
-Welcome to ``vicar``'s documentation!
-=====================================
+Welcome to the Documentation for rms-vicar!
+======================================================================
 
 .. include:: ../README.md
    :parser: myst_parser.sphinx_
-   :start-after: forks/SETI/rms-vicar)
+   :start-after: <!-- start-after-point -->
 
 .. toctree::
    :maxdepth: 2
@@ -16,6 +13,12 @@ Welcome to ``vicar``'s documentation!
 
    module
 
+.. toctree::
+   :maxdepth: 1
+   :caption: Project:
+
+   contributing
+   code_of_conduct
 
 Indices and tables
 ==================

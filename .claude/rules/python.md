@@ -14,26 +14,30 @@ Apply these rules to ALL new and modified Python code. This project is a Python 
 - **Module-level constants (global variables)**: Use `ALL_CAPS_WITH_UNDERSCORES`.
 - **Private names**: Prepend a single underscore for names that are not part of the public API: private attributes (e.g. `_cache`), module-private global variables, and non-public helper functions (e.g. `_parse_header`). Public API names have no leading underscore.
 - **Built-in names**: Do NOT use variable or function names that shadow Python built-ins (e.g. `float`, `filter`, `id`, `list`, `type`). If you must use such a name, append a single underscore (e.g. `filter_`, `type_`).
+- **Falsy checks**: Be explicit about what you are testing. Do NOT rely on truthiness when the intent could be ambiguous. Prefer:
+  - `if x is None:` for None checks (not `if not x:` when 0 or [] could occur).
+  - `if len(seq) == 0:` when you explicitly mean "empty sequence" and other falsy values (0, None) are not possible.
+  - For dicts: `if key in d:` then use `d[key]`; avoid `d.get(key)` when you need to distinguish "missing" from "present with a falsy value" unless that is the intent.
 - **Explicit checks over exceptions**: Prefer explicit membership or presence checks over catching exceptions for control flow. Example: use `if "a" in b: x = b["a"]` (or a clear `get` with a sentinel) rather than `try: x = b["a"]` / `except KeyError: ...` for normal flow. Use exceptions for genuinely exceptional conditions.
 
 ## 2. General Coding
 
-- Always match the coding style of pre-existing Python files.
-- Always make the minimal changes necessary. Never modify code outside the scope of the current task.
-- Do not include backwards-compatibility code unless explicitly requested.
-- Always write simple, clear code; avoid unnecessary complexity.
-- Define magic constants as module-level constants, in a config module, or via environment variables.
-- Catch exceptions at the smallest granularity possible. Do not wrap large blocks in a single `try`/`except`.
+- ALWAYS match the coding style of pre-existing Python files.
+- NEVER include backwards-compatibility code unless explicitly requested.
+- ALWAYS write simple, clear code; avoid unnecessary complexity.
+- NEVER hardcode magic constants. Define them as module-level constants, in a config module, or via environment variables.
+- ALWAYS catch exceptions at the smallest granularity possible. Do NOT wrap large blocks in a single `try`/`except`.
 - **Libraries:** Let exceptions propagate unless you are adding context, converting to a library-specific exception, or the exception represents a recoverable internal state. When re-raising, use `raise ... from` to preserve the full traceback for debugging.
-- **Applications:** Do not allow uncaught exceptions to reach the top level; use a top-level handler (e.g. in the main loop or HTTP framework) so that failures are logged and the process stays predictable. In both cases, always provide full exception information for debugging (e.g. traceback, `raise ... from` when re-raising).
-- Include meaningful, structured logging (use the `logging` module) that can be disabled or redirected. Never use bare `print()` for diagnostic output in library code.
+- **Applications:** Do not allow uncaught exceptions to reach the top level; use a top-level handler (e.g. in the main loop or HTTP framework) so that failures are logged and the process stays predictable. In both cases, ALWAYS provide full exception information for debugging (e.g. traceback, `raise ... from` when re-raising).
+- ALWAYS include meaningful, structured logging that can be disabled or redirected. NEVER use bare `print()` for diagnostic output in library code.
 - Avoid mutable global variables. If unavoidable, document purpose and limit scope. Prefer module-level constants (ALL_CAPS) or dependency injection.
-- Always prefer comprehensions (list, dict, set, generator) over manual loops when the result is a new collection and the expression remains readable.
-- Apply DRY. Avoid duplicating code. Place reusable logic in a utility module. Search existing utilities before writing new functions. Parameterize utility functions to increase generality.
-- Place imports at the top of the file in three alphabetically-sorted groups separated by a blank line: (1) standard library, (2) third-party, (3) local project. When adding new code or tests, add new imports to the appropriate group at the top; do not place them adjacent to the new code. Inline imports are permitted only to avoid heavy optional dependencies (e.g., GUI libraries).
-- Limit new functions to at most 5 positional parameters. Additional parameters should be keyword-only (after `*`). Choose a logical grouping of 0-5 positional parameters before enforcing keyword-only parameters.
+- ALWAYS prefer comprehensions (list, dict, set, generator) over manual loops when the result is a new collection and the expression remains readable.
+- ALWAYS make the minimal changes necessary. NEVER modify code outside the scope of the current task.
+- ALWAYS apply DRY. NEVER duplicate code. Place reusable logic in a utility module. Search existing utilities before writing new functions. Parameterize utility functions to increase generality.
+- ALWAYS place imports at the top of the file in three alphabetically-sorted groups separated by a blank line: (1) standard library, (2) third-party, (3) local project. When adding new code or tests, add new imports to the appropriate group at the top; do not place them adjacent to the new code. Inline imports are permitted only to avoid heavy optional dependencies (e.g., GUI libraries).
+- Positional parameters are the values a caller naturally supplies together: one logical group, in an obvious order. Usually that is at most three, but four or five positional parameters are correct when they form a single logical unit (e.g. `self, pos_x, pos_y, pos_z`) -- NEVER split such a group with `*` just to satisfy a count. Optional and configuration parameters MUST be keyword-only (after `*`). If the leading logical group is larger than about five parameters, make all parameters (after `self`) keyword-only instead.
 - Use the Receive-an-Object, Return-an-Object (RORO) pattern when a function takes or returns more than a few related values: accept a dataclass or TypedDict and return one, rather than long positional tuples.
-- Never use `getattr` just as a defensive measure if it is guaranteed that the object has the attribute. Reference the attribute directly unless there is a specific reason to know the attribute may not be present. NEVER use getattr to reference the result of an `argparse` namespace when the argument name is a constant string.
+- NEVER use `getattr` just as a defensive measure if it is guaranteed that the object has the attribute. ALWAYS reference the attribute directly unless there is a specific reason to know the attribute may not be present. NEVER use getattr to reference the result of an `argparse` namespace when the argument name is a constant string.
 
 ## 3. Public API Design
 
@@ -45,7 +49,8 @@ Apply these rules to ALL new and modified Python code. This project is a Python 
 ## 4. Comments
 
 - ALWAYS write self-documenting code: meaningful names, simple structure, limited nesting.
-- NEVER include comments that merely restate the code, reference user requests, or describe modification history.
+- NEVER write a comment whose ONLY content is a restatement of the code, a user request, or modification history. A comment must earn its place by describing behavior or rationale the code itself cannot show.
+- An issue/ticket number is welcome AS A REFERENCE once a comment already describes the behavior or rationale. Good: `# Cap the tier when the fit is rank-deficient: an unobservable axis is an assumption, not a measurement (#221).` — it explains the behavior and cites the issue for further context. Not acceptable: `# Fix for #221.` — that is only historical.
 - ALWAYS include comments that explain the **rationale** behind non-obvious or complex logic.
 - ALWAYS preserve existing comments that are still accurate and relevant. Remove or update stale comments.
 
@@ -54,25 +59,29 @@ Apply these rules to ALL new and modified Python code. This project is a Python 
 ### Types
 
 - NEVER use type annotations in the src directory tree, with one exception. Types of input parameters and returns should be indicated in the docstrings. The exception is a property, which may carry an inline return annotation so that the rendered documentation shows the type beside the property name; a property annotated this way keeps a one-line docstring rather than a `Returns:` block.
-- Annotate all test function/method parameters and return values, including `-> None` for functions (and `__init__`) that return nothing.
+- ALWAYS annotate all test function/method parameters and return values, including `-> None` for functions (and `__init__`) that return nothing.
 - Use modern generic syntax (`list[str]`, `dict[str, int]`, `X | None`) for Python 3.11+.
 
 ### Mypy
 
-- NEVER run `mypy` on the src directory tree.
-- Run `mypy` on the tests after changes. Fix all errors before delivering.
+- NEVER run `mypy` on the src directory tree. It is deliberately unannotated; the `exclude` patterns and `ignore_errors` override in `pyproject.toml` exist only so that `mypy.stubtest` can check the published stub against it.
+- ALWAYS run `mypy` on the tests after changes. Fix all errors before delivering.
+- NEVER add other global type exclusions. "Global type exclusions" means:
+  - Module-level `# type: ignore` without a specific error code.
+  - `ignore_errors = True` in mypy config.
+  - Broad `exclude` patterns that skip entire packages.
 - In exceptional, unfixable cases use a minimal line-level ignore: `# type: ignore[error-code]  # <brief justification>`.
 
 ### Ruff / Linting
 
-- Include `mypy` and `ruff` in the project's dev dependencies (e.g. in `pyproject.toml`).
-- Run `ruff check` on the full codebase after changes
-- Follow PEP 8 for formatting and naming conventions.
+- ALWAYS include `mypy` and `ruff` in the project's dev dependencies (e.g. in `pyproject.toml`).
+- ALWAYS run `ruff check` on the full codebase after changes. Fix all errors. Do NOT run `ruff format`: the source uses deliberate column alignment that it would remove.
+- Follow PEP 8 for all formatting and naming conventions.
 - Use the project's explicit Ruff rule set in `pyproject.toml` (see **Ruff rule categories** below). Do not disable categories that enforce project conventions (e.g. **A** for no builtin shadowing, **N** for naming).
 
 ## 6. Docstrings
 
-- Include a docstring for every module, class, function, and method.
+- ALWAYS include a docstring for every module, class, function, and method.
 - Follow **PEP 257** using **Google style**. Use `Parameters:` (not `Args:`).
 - Include `Returns:`, `Raises:`, and any important behavioral notes.
 - NEVER mention backwards compatibility, a user request, change history, or an issue/ticket number in a docstring. Docstrings are usage documentation for the published API, not a place to explain the code's provenance; describe only observable behavior. (Issue references are allowed in inline `#` code comments per Section 4, and in commit messages and PR descriptions.)

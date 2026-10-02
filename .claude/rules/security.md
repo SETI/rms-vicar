@@ -14,7 +14,7 @@ description: Security best practices for Python library development — secrets,
 ## 2. Dependency Security
 
 - Specify minimum compatible versions for direct dependencies (e.g., `numpy>=2.2.0`) in `pyproject.toml`.
-- Run `pip audit` regularly and in CI to detect known vulnerabilities.
+- Run `pip-audit` regularly and in CI to detect known vulnerabilities.
 - Enable GitHub Dependabot for automated dependency update PRs.
 - Review changelogs and diffs before merging dependency updates.
 
@@ -34,7 +34,6 @@ description: Security best practices for Python library development — secrets,
 
 - NEVER log secrets, tokens, passwords, or full stack traces containing sensitive data.
 - Sanitize PII (personally identifiable information) before logging.
-- Use the `logging` module with appropriate levels so callers can control verbosity.
 
 ## 6. Code Review Security Checklist
 

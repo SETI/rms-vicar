@@ -14,7 +14,7 @@ It supports the definition of the VICAR file format as found here:
 
 **Getting Started**
 
-The `vicar` modules provies these classes:
+The `vicar` modules provide these classes:
 
     * `VicarLabel`: Class for reading, writing, and parsing of VICAR labels.
     * `VicarImage`: Class for handling VICAR image (and other) data files.

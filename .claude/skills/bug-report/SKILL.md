@@ -1,6 +1,6 @@
 ---
 name: bug-report
-description: Standards for writing clear, reproducible bug reports, covering required components, severity levels, evidence, and environment details. Use when the user asks to write, file, or review a bug report or issue.
+description: Standards for writing clear, reproducible bug reports with severity, evidence, and environment details. Use when writing, filing, or reviewing a bug report or GitHub issue.
 ---
 
 # Bug Report Standards
@@ -56,8 +56,9 @@ Every bug report MUST include:
 ## Actual Behavior
 [What actually happens, including the full traceback.]
 
-## Traceback / Logs
-[Paste full traceback or relevant log output here]
+## Traceback / Logs / Screenshots / Other Evidence
+[Paste full traceback, relevant log output, screenshots, or other relevant evidence
+here when available]
 
 ## Additional Notes
 [Workarounds, frequency, related issues.]

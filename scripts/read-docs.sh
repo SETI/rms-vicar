@@ -2,9 +2,9 @@
 #
 # rms-vicar - Build Sphinx documentation and open the HTML index
 #
-# Runs `make html` in docs/ with SPHINXOPTS=-W (warnings fail the build; docs/conf.py
-# also sets nitpicky = True, so an unresolved cross-reference fails it as well),
-# then opens docs/_build/html/index.html using the platform default handler.
+# Runs `make html` in docs/ with SPHINXOPTS="-W -n" (warnings, including
+# unresolved cross-references, fail the build), then opens
+# docs/_build/html/index.html using the platform default handler.
 #
 # Usage:
 #   ./scripts/read-docs.sh
@@ -36,8 +36,8 @@ fi
 # shellcheck source=/dev/null
 source "$VENV/bin/activate"
 
-echo "Building documentation (warnings and unresolved refs are errors)..."
-make -C "$DOCS_DIR" html SPHINXOPTS="-W"
+echo "Building documentation (nitpicky, warnings treated as errors)..."
+make -C "$DOCS_DIR" html SPHINXOPTS="-W -n"
 
 if [ ! -f "$HTML_INDEX" ]; then
     echo "Error: built HTML not found at $HTML_INDEX" >&2

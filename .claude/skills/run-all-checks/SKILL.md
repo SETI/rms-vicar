@@ -26,37 +26,50 @@ Execute all project checks (lint, typecheck, test, Markdown lint, docs) and fix 
 
 Run from **project root** with the project **virtual environment activated** (e.g. `source venv/bin/activate` or create a new venv and then `pip install -e ".[dev]"`).
 
-### Code (ruff, mypy, pytest)
+### Code (ruff, flake8, mypy, pytest, stubtest, pip-audit)
 
 ```bash
-# Lint (ruff)
-python -m ruff check src tests examples
-python -m ruff format --check src tests examples
+# Lint (ruff); `ruff format` is disabled because it would remove deliberate alignment
+python -m ruff check src tests
 
-# Type check (mypy)
-python -m mypy src tests examples
+# Continuation-line indentation, which ruff does not implement
+python -m flake8 --select=E12,E13 src tests
+
+# Type check (mypy on tests only; src/ is deliberately unannotated)
+MYPYPATH=src python -m mypy tests
 
 # Tests (pytest; use -n auto for parallel when tests are independent)
 python -m pytest tests -q
+
+# The published stub matches the runtime API
+python -m mypy.stubtest vicar --mypy-config-file pyproject.toml --allowlist .stubtest-allowlist
+
+# Known vulnerabilities in dependencies (pip-audit)
+python -m pip_audit --skip-editable
 ```
 
-Omit `examples` if the project has no `examples/` directory. The run-all-checks script runs these in sequence; use the script’s `-c` option to run only code checks.
+The run-all-checks script runs these in sequence; use the script’s `-c` option to run only code checks.
 
-### Markdown (PyMarkdown)
+### Text (codespell, PyMarkdown)
 
 ```bash
-python -m pymarkdown scan docs/ .claude/ README.md CONTRIBUTING.md
+# Spelling: typos and British spellings
+python -m codespell_lib src tests docs scripts README.md CONTRIBUTING.md
+
+# Markdown lint
+python -m pymarkdown scan -r docs/ .claude/ README.md CONTRIBUTING.md
 ```
 
-Use the script’s `-m` option to run only Markdown lint.
+Use the script’s `-m` option to run both text checks, or `--codespell` /
+`--pymarkdown` to run one of them.
 
 ### Documentation (Sphinx)
 
 ```bash
-cd docs && make clean && make html SPHINXOPTS="-W"
+cd docs && make clean && make html SPHINXOPTS="-W -n"
 ```
 
-Warnings are treated as errors (`-W`). The script’s `-d` option runs docs build plus Markdown lint.
+Warnings are treated as errors (`-W`), and nitpicky mode (`-n`) reports every cross-reference that doesn't resolve. The script’s `-d` option runs the docs build plus the text checks.
 
 ## Using the Script
 
@@ -69,9 +82,9 @@ From project root:
 Options:
 
 - **Default**: Run code checks and docs (Sphinx + PyMarkdown) in parallel.
-- `-c, --code`: Only ruff, mypy, pytest.
-- `-d, --docs`: Only Sphinx build and PyMarkdown scan.
-- `-m, --markdown`: Only PyMarkdown scan.
+- `-c, --code`: Only the code checks (ruff, flake8 continuation-line indent, mypy, pytest, stubtest, pip-audit).
+- `-d, --docs`: Only the Sphinx build and the text checks (codespell, PyMarkdown).
+- `-m, --markdown`: Only the text checks; `--codespell` or `--pymarkdown` for one of them.
 - `-s, --sequential`: Run code and docs sequentially (easier to read output).
 - `-p, --parallel`: Run code and docs in parallel (the default).
 - `-h, --help`: Show usage.
@@ -80,14 +93,17 @@ Set `VENV` or `VENV_PATH` to point to the virtual environment if it is not at `.
 
 ## Execution Workflow
 
-```
+```text
 Check Progress:
-- [ ] Ruff check (src, tests, examples)
-- [ ] Ruff format --check
-- [ ] Mypy (src, tests, examples)
+- [ ] Ruff check (src, tests)
+- [ ] Flake8 continuation-line indent (src, tests)
+- [ ] Mypy (tests)
 - [ ] Pytest (tests)
+- [ ] Stubtest (__init__.pyi)
+- [ ] pip-audit (installed dependencies)
+- [ ] codespell (src, tests, docs, scripts, README, CONTRIBUTING)
 - [ ] PyMarkdown scan (docs/, .claude/, README, CONTRIBUTING)
-- [ ] Sphinx build (docs/) with SPHINXOPTS="-W"
+- [ ] Sphinx build (docs/) with SPHINXOPTS="-W -n"
 - [ ] All errors fixed
 - [ ] Re-verify all checks pass
 ```
@@ -99,7 +115,7 @@ Use the script (recommended) or run the commands above manually. Fix any non-zer
 ### Step 2: Analyze Results
 
 - **Errors**: Must be fixed (non-zero exit).
-- **Warnings**: Sphinx is run with `-W`, so docs warnings fail the check; fix them so the build passes.
+- **Warnings**: Sphinx is run with `-W -n`, so docs warnings, including unresolved cross-references, fail the check; fix them so the build passes.
 
 Common error types:
 
@@ -110,7 +126,11 @@ Common error types:
 | mypy    | `error: Name "X" not defined` | Add import or fix typo      |
 | pytest  | `FAILED` / `ERROR`        | Fix test or code under test   |
 | pymarkdown | Rule ID + message       | Fix Markdown style/structure   |
+| codespell | `word ==> correction`   | Fix the spelling. If the word is correct here, add it to `ignore-words-list` in `pyproject.toml` (with a comment saying why) or mark that line `codespell:ignore <word>` |
 | sphinx  | `WARNING: duplicate object` | Add `:no-index:` or fix refs |
+| sphinx  | `reference target not found` | Fix the reference, or add the package to `intersphinx_mapping` |
+| pip-audit | Package, version, and vulnerability ID | Raise the minimum version in `pyproject.toml` |
+| pip-audit | Vulnerability in `pip` or `setuptools` | Upgrade them in the virtual environment (`pip install --upgrade pip setuptools`) |
 
 ### Step 3: Fix Issues
 
@@ -158,8 +178,11 @@ from __future__ import annotations  # at top of file
 All checks pass when:
 
 - `ruff check` → All checks passed
-- `ruff format --check` → Would reformat 0 files (or run `ruff format` and re-check)
+- `flake8 --select=E12,E13` → No output
 - `mypy` → Success: no issues found
 - `pytest` → All tests pass; coverage meets target if configured
+- `stubtest` → Success: no issues found
+- `pip-audit` → No known vulnerabilities found
+- `codespell` → No misspellings reported
 - `pymarkdown scan` → No violations
-- `make html SPHINXOPTS="-W"` (in docs/) → Build completes with exit 0
+- `make html SPHINXOPTS="-W -n"` (in docs/) → Build completes with exit 0

@@ -12,7 +12,7 @@ description: Git, CI/CD (GitHub Actions), virtual environments, and tooling for 
 ## 2. CI/CD
 
 - ALWAYS use **GitHub Actions** for continuous integration and publishing.
-- The local check runner (`scripts/run-all-checks.sh`, Section 3) is the **single source of truth** for which checks the repository runs. CI/CD MUST run the same set of checks the script enables -- no more, no less -- so that the AI, CI/CD, and the script stay consistent. A typical set is lint (`ruff`), type-check (`mypy`), test (`pytest`), Markdown lint (`PyMarkdown`), and documentation build (`sphinx-build`); the repository's actual enabled set is whatever the script defines. If a check is not enabled in the script, CI/CD does not run it either.
+- The local check runner (`scripts/run-all-checks.sh`, Section 3) is the **single source of truth** for which checks the repository runs. CI/CD MUST run the same set of checks the script enables -- no more, no less -- so that the AI, CI/CD, and the script stay consistent. A typical set is lint (`ruff`), type-check (`mypy`), test (`pytest`), spell check (`codespell`), Markdown lint (`PyMarkdown`), and documentation build (`sphinx-build`); the repository's actual enabled set is whatever the script defines. If a check is not enabled in the script, CI/CD does not run it either.
 - Every PR MUST pass that set of checks before merge.
 - When the enabled set changes, change it in the script first, then bring CI/CD into step with it in the same change.
 - Pin action versions to a major tag (e.g., `actions/checkout@v6`) to balance stability and security updates.

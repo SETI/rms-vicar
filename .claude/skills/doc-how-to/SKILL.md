@@ -1,14 +1,12 @@
 ---
-description: Format and completeness rules for task-focused how-to articles that walk a user through a single workflow with prerequisites, steps, and troubleshooting.
-paths:
-  - "docs/**/*.rst"
-  - "docs/**/*.md"
+name: doc-how-to
+description: Format and completeness rules for task-focused how-to articles that walk a user through a single workflow with prerequisites, steps, and troubleshooting. Use when writing, editing, or reviewing a how-to article.
 ---
 
 # How-To Articles
 
 A how-to article walks a reader through ONE concrete task from start to finish.
-It complements the reference material in `doc_user_guide`: the user guide
+It complements the reference material in the `doc-user-guide` skill: the user guide
 documents every option exhaustively, while a how-to picks one goal and shows the
 shortest correct path to it. Build on `doc_python` (prose conventions, build
 discipline). Where a how-to and the user guide describe the same workflow, keep
@@ -41,7 +39,7 @@ them consistent and link between them rather than duplicating detail.
 
 ## 3. Structure
 
-```markdown
+````markdown
 # How To [Action]
 
 [1-3 sentence introduction explaining purpose and value.]
@@ -72,7 +70,7 @@ them consistent and link between them rather than duplicating detail.
 ## Additional Information
 
 [Tips, performance notes, or links to related guides.]
-```
+````
 
 ## 4. Converting Technical Content
 

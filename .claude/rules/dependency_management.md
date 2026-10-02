@@ -32,7 +32,7 @@ description: Standards for declaring, installing, and maintaining Python project
 
 ## 5. Security and Maintenance
 
-- Run `pip audit` in CI to catch known vulnerabilities.
+- Run `pip-audit` in CI to catch known vulnerabilities.
 - Enable automated dependency update tooling (Dependabot, Renovate).
 - Review update PRs for breaking changes before merging.
 - Periodically remove unused dependencies to reduce attack surface.
@@ -47,6 +47,7 @@ Consolidate all tool configuration into `pyproject.toml` where supported:
 | coverage | `[tool.coverage.run]`, `[tool.coverage.report]` |
 | mypy | `[tool.mypy]`, `[[tool.mypy.overrides]]` |
 | ruff | `[tool.ruff]`, `[tool.ruff.lint]` — use explicit `select = [...]` for E, F, W, I, UP, B, SIM, C4, A, N, PT, RUF (see python) |
+| codespell | `[tool.codespell]`, plus `.codespell-dictionary.txt` for the word pairs its parser requires in a separate file |
 | setuptools_scm | `[tool.setuptools_scm]` |
 
 Do NOT create separate config files (`.coveragerc`, `.mypy.ini`, `.flake8`, `setup.cfg`) when the tool supports `pyproject.toml`.

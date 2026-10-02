@@ -58,14 +58,21 @@ filterwarnings = ["error"]
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+# PEP 561 marker and type stub must be shipped in the wheel, or downstream type
+# checkers ignore them.
+vicar = ["py.typed", "*.pyi"]
+
 [tool.setuptools_scm]
 local_scheme = "no-local-version"
 write_to = "src/vicar/_version.py"
 
 [project.optional-dependencies]
 dev = [
+  "codespell>=2.4",
   "coverage>=7.0",
   "flake8",
+  # mypy is not run against src (see CLAUDE.md), but stubtest ships with it
   "mypy>=1.0",
   "pip-audit>=2.7",
   "pymarkdownlnt>=0.9.35",
@@ -80,7 +87,8 @@ dev = [
 ]
 docs = [
   "myst-parser",
-  "sphinx",
+  "sphinx>=7",
+  "sphinxcontrib-mermaid",
   "sphinx-rtd-theme",
 ]
 
@@ -104,15 +112,29 @@ fail_under = 90
 [tool.mypy]
 strict = true
 disallow_subclassing_any = false
+# stubtest discovers every module under the package and would compare each unannotated
+# .py module against itself. Only __init__.pyi carries type information, so every other
+# module is excluded from discovery; the override below keeps mypy from following an
+# import into one of them.
+exclude = [
+  'vicar/(vicarlabel|vicarimage|_DEFINITIONS|_LABEL_GRAMMAR)\.py$',
+]
 
 [[tool.mypy.overrides]]
 module = "vicar._version"
 ignore_missing_imports = true
 
-# The source under src/ is unannotated, so mypy is kept to the tests. Following an import
-# into the package would report every unannotated definition there.
+# The published type information lives in __init__.pyi, because the only supported
+# import is from the package itself. Every other module is deliberately unannotated and
+# has no stub, so mypy must not be turned loose on it. This override keeps mypy to the
+# stub, which is what `mypy.stubtest` needs in order to run.
 [[tool.mypy.overrides]]
-module = ["vicar", "vicar.*"]
+module = [
+  "vicar.vicarlabel",
+  "vicar.vicarimage",
+  "vicar._DEFINITIONS",
+  "vicar._LABEL_GRAMMAR",
+]
 follow_imports = "skip"
 ignore_errors = true
 
@@ -157,22 +179,42 @@ extend-ignore = ["PT011", "SIM105", "SIM108", "RUF005", "I001"]
 #   (s, l, t) convention in the pyparsing documentation.
 "src/vicar/_LABEL_GRAMMAR.py" = ["N999", "E741"]
 
+[tool.codespell]
+# Two dictionaries: the default typo list, and the British-to-American list that
+# enforces the spelling rule in .claude/rules/doc_python.md.
+builtin = "clear,en-GB_to_en-US"
+# The builtin British list carries a base word but not every inflection, so it
+# catches `catalogue` and lets `catalogued` through. `.codespell-dictionary.txt`
+# adds the inflections this tree uses, in codespell's `wrong->right` format --
+# one pair per line, no comments or blank lines, which that parser rejects. The
+# `-` is what keeps the builtins above: naming a dictionary without it replaces
+# them rather than extending them, and it trails the filename because a value
+# opening with `-` reads as another flag.
+dictionary = ".codespell-dictionary.txt,-"
+# Split on everything that is not an ASCII letter. The default word pattern
+# keeps hyphens and apostrophes, which hides two whole classes: a compound like
+# `optical-centre` is one unknown token, and -- because this project quotes
+# strings with single quotes -- so is every string literal, `'colour'` included.
+regex = "[a-zA-Z]+"
+skip = "*/.git/*,*/_build/*,*/venv/*,*/.venv/*,*.lock,*.png,*.jpg,*.svg"
+# Words the dictionaries flag that are correct here. Each is a term of art,
+# an identifier, or a fragment the word pattern above creates -- not an
+# exception granted to avoid fixing a real typo.
+#   doub - the VICAR FORMAT code for a double-precision value, 'DOUB'.
+#   indx - the index argument of the public VicarLabel.insert().
+ignore-words-list = "doub,indx"
+
+[tool.pymarkdown.extensions.front-matter]
+# The rules and skills under .claude/ open with a YAML front-matter block, which would
+# otherwise be read as a setext heading.
+enabled = true
+
 [tool.pymarkdown.plugins.md013]
 # Line length (disable so README/CONTRIBUTING can use longer lines).
 enabled = false
 
 [tool.pymarkdown.plugins.md033]
 # Inline HTML (e.g. <br>) allowed in Markdown.
-enabled = false
-
-[tool.pymarkdown.plugins.md025]
-# Multiple top-level headings. The README uses a level-one heading per major
-# section, and those levels feed the Sphinx TOC through the include in
-# docs/index.rst, so they are deliberate.
-enabled = false
-
-[tool.pymarkdown.plugins.md041]
-# First line must be a top-level heading. The README opens with badges.
 enabled = false
 
 # Uncomment when enabling bandit in [project.optional-dependencies].dev.

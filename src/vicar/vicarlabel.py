@@ -169,7 +169,7 @@ class VicarLabel:
         """Constructor for a VicarLabel.
 
         Parameters:
-            source (file, FCPath, Path, str, None, dict, or list):
+            source (file | FCPath | Path | str | None | dict | list):
                 A representation of a VICAR label:
 
                 * *file*: The label string is read from the given, open file.
@@ -283,7 +283,7 @@ class VicarLabel:
         Parameters:
             names (list[str]): List of names, already validated.
             vals (list): List of values, already validated.
-            fmts (list[_ValueFormat or None]): List of formatting hints, validated.
+            fmts (list[_ValueFormat | None]): List of formatting hints, validated.
         """
 
         self._names = names
@@ -331,7 +331,7 @@ class VicarLabel:
         """The file path associated with this VicarLabel.
 
         Returns:
-            filecache.file_cache_path.FCPath or None:
+            FCPath | None:
                 The FCPath if this object is associated with a file; None otherwise.
         """
 
@@ -342,7 +342,7 @@ class VicarLabel:
         """Set the file path associated with this VicarLabel.
 
         Parameters:
-            value (FCPath, Path, str, or None):
+            value (FCPath | Path | str | None):
                 The FCPath to the file associated with this object; None if this
                 object is not associated with a file.
         """
@@ -399,20 +399,35 @@ class VicarLabel:
         return self._names == other._names and self._values == other._values
 
     def __str__(self):
+        """The content of this label as a string.
+
+        Returns:
+            str: The label string compliant with the VICAR standard, identical to
+            ``self.as_string()``.
+        """
+
         return self.as_string()
 
     def __repr__(self):
+        """A string representation of this VicarLabel.
+
+        Returns:
+            str: A constructor call, ``VicarLabel(...)``, whose argument is the label
+            string in triple quotes, with a blank line inserted before each LBLSIZE after
+            the first.
+        """
+
         return 'VicarLabel("""' + self.as_string(sep='\n\n') + '""")'
 
     ######################################################################################
-    # Validation Utililties
+    # Validation Utilities
     ######################################################################################
 
     def _interpret_source(self, source, required=False, fileio=False):
         """Interpret and validate a source object.
 
         Parameters:
-            source (file, FCPath, Path, str, None, dict, list, or tuple):
+            source (file | FCPath | Path | str | None | dict | list | tuple):
                 A representation of VICAR label content:
 
                 * *file*: The label string is read from the given, open file.
@@ -442,12 +457,12 @@ class VicarLabel:
                 to the lists.
 
         Returns:
-            (list, list, list[, FCPath or None]): A tuple containing:
+            tuple: A 3-tuple, or a 4-tuple if `fileio` is True, containing:
 
             * list[str]: List of names.
-            * list[int, float, str, or list]: List of values.
-            * list[_ValueFormat or None]: List of formatting hints.
-            * FCPath or None, optional: The FCPath of the file if the label
+            * list[int | float | str | list]: List of values.
+            * list[_ValueFormat | None]: List of formatting hints.
+            * FCPath | None, optional: The FCPath of the file if the label
               was read from a file; otherwise, None. Included only if `fileio` is True.
 
         Raises:
@@ -613,7 +628,7 @@ class VicarLabel:
         """Raise a VicarError if this is not valid value for a VICAR label parameter.
 
         Parameters:
-            value (int, float, string, or list): VICAR parameter value.
+            value (int | float | str | list): VICAR parameter value.
             name (str): Name of the VICAR parameter.
             strict (bool, optional): True for strict VICAR conformance, False for loose.
 
@@ -673,10 +688,10 @@ class VicarLabel:
             item (tuple): VICAR parameter value followed by optional formatting hints.
 
         Returns:
-            (any, _ValueFormat or None): A tuple containing:
+            tuple[int | float | str | list, _ValueFormat | None]: A tuple containing:
 
-            * int, float, string, or list: The interpreted value.
-            * _ValueFormat or None: Formatting hints if provided; None otherwise.
+            * int | float | str | list: The interpreted value.
+            * _ValueFormat | None: Formatting hints if provided; None otherwise.
 
         Raises:
             TypeError: If the format string is incompatible with the value.
@@ -737,7 +752,7 @@ class VicarLabel:
             listfmts (list[_ListFormat]): Formats for list elements; may be empty.
 
         Returns:
-            _ValueFormat or None:
+            _ValueFormat | None:
                 Interpreted _ValueFormat; None if no formatting hints were provided.
 
         Raises:
@@ -773,7 +788,7 @@ class VicarLabel:
             hints (tuple): List element format hints.
 
         Returns:
-            _ListFormat or None: Interpreted _ListFormat; None if there is no format.
+            _ListFormat | None: Interpreted _ListFormat; None if there is no format.
         """
 
         if isinstance(hints[0], str):
@@ -798,16 +813,16 @@ class VicarLabel:
 
         Parameters:
             names (list[str]): List of names.
-            vals (list[int, float, str, or list]): List of values.
-            fmts (list[_ValueFormat or None]): List of formatting hints.
+            vals (list[int | float | str | list]): List of values.
+            fmts (list[_ValueFormat | None]): List of formatting hints.
             append (bool, optional): True to append any missing required VICAR parameters.
 
         Returns:
-            (list, list, list): A tuple containing:
+            tuple[list, list, list]: A tuple containing:
 
             * list[str]: List of names.
-            * list[int, float, str, or list]: List of values.
-            * list[_ValueFormat or None]: List of formatting hints.
+            * list[int | float | str | list]: List of values.
+            * list[_ValueFormat | None]: List of formatting hints.
 
         Raises:
             VicarError: A name or value violates the VICAR standard.
@@ -859,7 +874,7 @@ class VicarLabel:
         """Append the additional content to the end of this label.
 
         Parameters:
-            source (file, FCPath, Path, str, None, dict, list, or tuple):
+            source (file | FCPath | Path | str | None | dict | list | tuple):
                 A representation of VICAR label content:
 
                 * *file*: The label string is read from the given, open file.
@@ -961,7 +976,7 @@ class VicarLabel:
         """Insert the given content into this label at the specified index.
 
         Parameters:
-            source (file, FCPath, Path, str, dict, list, or tuple):
+            source (file | FCPath | Path | str | dict | list | tuple):
                 A representation of VICAR label content:
 
                 * *file*: The label string is read from the given, open file.
@@ -1069,7 +1084,7 @@ class VicarLabel:
         """Re-order one or more specified parameters inside this object.
 
         Parameters:
-            *keys (int, name, or tuple):
+            *keys (int | str | tuple):
                 Two or more indexing keys, interpreted as follows:
 
                 * *int* = `n`: The "nth" parameter in the label. `n` can be positive or
@@ -1151,7 +1166,7 @@ class VicarLabel:
         """The numerical index or indices of the keyed item in the VICAR label.
 
         Parameters:
-            key (int, name, or tuple): The indexing key, interpreted as follows:
+            key (int | str | tuple): The indexing key, interpreted as follows:
 
                 * *int* = `n`: The "nth" parameter in the label. `n` can be positive or
                   negative.
@@ -1184,9 +1199,9 @@ class VicarLabel:
                   to insert the new parameter.
 
         Returns:
-            (int or list, bool): A tuple containing:
+            tuple[int | list[int], bool]: A tuple containing:
 
-            * int or list[int]: The index or list of indices that identify matching
+            * int | list[int]: The index or list of indices that identify matching
               parameters. If the key contains a name ending in "+", this is a list
               starting with the "nth" occurrence; otherwise, it is a single int.
             * bool:  True if the identified parameter already exists; False if `mode` is
@@ -1352,7 +1367,7 @@ class VicarLabel:
         """The numerical index or indices of the keyed item in the VICAR label.
 
         Parameters:
-            key (int, name, or tuple): The indexing key, interpreted as follows:
+            key (int | str | tuple): The indexing key, interpreted as follows:
 
                 * *int* = `n`: The "nth" parameter in the label. `n` can be positive or
                   negative.
@@ -1376,7 +1391,7 @@ class VicarLabel:
                 Append a "+" to the name to return a list of all indices where the
                 constraints are satisfied, starting with the first or "nth".
 
-            value (int, float, or string, optional):
+            value (int | float | str, optional):
                 If provided, the identified parameter must equal this value. For an
                 integer key, if the indexed parameter does not have this value, ValueError
                 is raised. For any key involving a name, values of the named parameter
@@ -1384,7 +1399,7 @@ class VicarLabel:
                 correct value are found.
 
         Returns:
-            int or list[int]:
+            int | list[int]:
                 The index or list of indices that identify matching parameters. If the key
                 contains a name ending in "+", this is a list starting with the "nth"
                 occurrence; otherwise, it is a single int.
@@ -1423,7 +1438,7 @@ class VicarLabel:
         various indexing options.
 
         Parameters:
-            key (int, name, or tuple): The indexing key, interpreted as follows:
+            key (int | str | tuple): The indexing key, interpreted as follows:
 
                 * *int* = `n`: The "nth" parameter in the label. `n` can be positive or
                   negative.
@@ -1448,7 +1463,7 @@ class VicarLabel:
                 constraints are satisfied, starting with the first or "nth".
 
         Returns:
-            int, float, string, or list:
+            int | float | str | list:
                 If `key` contains a name ending in "+", this is the list of values of the
                 matching parameters, starting with the "nth". Otherwise, it is the single
                 matching value.
@@ -1477,7 +1492,7 @@ class VicarLabel:
         If the key is not found, return a specified default value.
 
         Parameters:
-            key (int, str, or tuple): The indexing key, interpreted as follows:
+            key (int | str | tuple): The indexing key, interpreted as follows:
 
                 * *int* = `n`: The "nth" parameter in the label. `n` can be positive or
                   negative.
@@ -1501,11 +1516,11 @@ class VicarLabel:
                 Append a "+" to the name to return a list of all values where the
                 constraints are satisfied, starting with the first or "nth".
 
-            default (int, float, str, or list): The value to return if the key is not
+            default (int | float | str | list): The value to return if the key is not
                 found.
 
         Returns:
-            int, float, str, or list:
+            int | float | str | list:
                 If a name is provided that ends in a plus, the returned value will be the
                 list of all values of the selected key, or else `[default]` if the key
                 would raise an error.
@@ -1537,7 +1552,7 @@ class VicarLabel:
         parameter name and value if necessary.
 
         Parameters:
-            key (int, str, or tuple): The indexing key, interpreted as follows:
+            key (int | str | tuple): The indexing key, interpreted as follows:
 
                 * *int* = `n`: The "nth" parameter in the label. `n` can be positive or
                   negative.
@@ -1561,7 +1576,7 @@ class VicarLabel:
                 Append a "+" to the name to force a new occurrence of the key to be
                 inserted, even if the key already exists.
 
-            value (int, float, string, list, or tuple):
+            value (int | float | str | list | tuple):
                 Value to assign to the indexed entry in the label.
 
                 Optional formatting can be included if a user wants additional control
@@ -1695,7 +1710,7 @@ class VicarLabel:
         """Delete the value of the VICAR parameter identified by the given key.
 
         Parameters:
-            key (int, str, or tuple): The indexing key, interpreted as follows:
+            key (int | str | tuple): The indexing key, interpreted as follows:
 
                 * *int* = `n`: The "nth" parameter in the label. `n` can be positive or
                   negative.
@@ -1757,7 +1772,7 @@ class VicarLabel:
         """True if the given key can be used to index the VICAR label.
 
         Parameters:
-            key (int, str, or tuple): The indexing key, interpreted as follows:
+            key (int | str | tuple): The indexing key, interpreted as follows:
 
                 * *int* = `n`: The "nth" parameter in the label. `n` can be positive or
                   negative.
@@ -1797,7 +1812,7 @@ class VicarLabel:
         """The value of the given parameter as it will appear in the label.
 
         Parameters:
-            key (int, str, or tuple): The indexing key, interpreted as follows:
+            key (int | str | tuple): The indexing key, interpreted as follows:
 
                 * *int* = `n`: The "nth" parameter in the label. `n` can be positive or
                   negative.
@@ -1925,7 +1940,7 @@ class VicarLabel:
         """Convert one entry in the dictionary to a string of the form "NAME=VALUE".
 
         Parameters:
-            key (int, str, or tuple): The indexing key, interpreted as follows:
+            key (int | str | tuple): The indexing key, interpreted as follows:
 
                 * *int* = `n`: The "nth" parameter in the label. `n` can be positive or
                   negative.
@@ -2040,7 +2055,7 @@ class VicarLabel:
                 content will be placed into an end-of-file label.
 
         Returns:
-            (str, str): A tuple containing:
+            tuple[str, str]: A tuple containing:
 
             * str: The VICAR label at the top of the file, as constrained by the internal
               values of LBLSIZE and RECSIZE. The string is padded with null characters to
@@ -2077,10 +2092,11 @@ class VicarLabel:
         """The content of this label as a string.
 
         Parameters:
-            start (int, optional):
-                Index or key of the first parameter to include in the string.
-            stop (int, optional):
-                Index or key just after the last parameter to include in the string.
+            start (int | str | tuple, optional):
+                Index or key of the first parameter to include in the string; default 0.
+            stop (int | str | tuple, optional):
+                Index or key of the parameter just after the last one to include in the
+                string; None (the default) to continue to the end of the label.
             sep (str, optional):
                 Optional characters to insert before a second LBLSIZE. For example, use
                 "\\n" to create a string with a line break before any extension label.
@@ -2133,10 +2149,10 @@ class VicarLabel:
         return self._unique_keys[i]
 
     def names(self, pattern=None):
-        """Iterator over the names in this label.
+        """The names of the parameters in this label.
 
         Parameters:
-            pattern (str or re.Pattern, optional):
+            pattern (str | re.Pattern, optional):
                 Regular expression that can be used to filter the label parameter names.
 
         Returns:
@@ -2152,10 +2168,10 @@ class VicarLabel:
         return list(self._names)        # return a copy
 
     def keys(self, pattern=None):
-        """Iterator over the keys of the parameters within this label.
+        """The keys of the parameters in this label.
 
         Parameters:
-            pattern (str or re.Pattern, optional):
+            pattern (str | re.Pattern, optional):
                 Regular expression that can be used to filter the label parameter names.
 
         Returns:
@@ -2174,15 +2190,14 @@ class VicarLabel:
         return list(self._unique_keys)  # return a copy
 
     def values(self, pattern=None):
-        """Iterator over the values in this VicarLabel.
+        """The values of the parameters in this VicarLabel.
 
         Parameters:
-            pattern (str or re.Pattern, optional):
+            pattern (str | re.Pattern, optional):
                 Regular expression that can be used to filter the label parameter names.
 
         Returns:
-            collections.abc.Iterator:
-                The values of the matching parameters within this label, in order.
+            list: The values of the matching parameters within this label, in order.
         """
 
         self._finish_update()
@@ -2195,10 +2210,10 @@ class VicarLabel:
         return list(self._values)
 
     def items(self, pattern=None, unique=True):
-        """Iterator over the (key, value) pairs in this label.
+        """The (key, value) pairs of the parameters in this label.
 
         Parameters:
-            pattern (str or re.Pattern, optional):
+            pattern (str | re.Pattern, optional):
                 Regular expression that can be used to filter the label parameter names.
 
             unique (bool, optional):
@@ -2207,9 +2222,10 @@ class VicarLabel:
                 may appear multiple times.
 
         Returns:
-            collections.abc.Iterator:
-                The tuples (name, value) of the matching parameter names within this
-                label, in order.
+            list[tuple]:
+                The (key, value) pairs of the matching parameters within this label, in
+                order. Each key is a name or a (name, occurrence) tuple, as selected by
+                `unique`.
         """
 
         self._finish_update()
@@ -2228,15 +2244,16 @@ class VicarLabel:
         return list(zip(self._names, self._values, strict=True))
 
     def args(self, pattern=None):
-        """Iterator over the numerical indices of the keywords.
+        """The numerical indices of the parameters in this label.
 
         Parameters:
-            pattern (str or re.Pattern, optional):
+            pattern (str | re.Pattern, optional):
                 Regular expression that can be used to filter the label parameter names.
 
         Returns:
-            collections.abc.Iterator:
-                The indices of the matching parameter names within this label, in order.
+            list[int] | range:
+                The indices of the matching parameters within this label, in order: a
+                list if `pattern` is given; otherwise, a range over every index.
         """
 
         self._finish_update()
@@ -2260,7 +2277,7 @@ class VicarLabel:
         parameter.
 
         Parameters:
-            source (str, FCPath, Path, or file):
+            source (str | FCPath | Path | file):
                 A path to a VICAR data file or else a file object already opened for
                 binary read.
             _extra (bool, optional):
@@ -2268,7 +2285,7 @@ class VicarLabel:
                 addition to the label.
 
         Returns:
-            str or (str, bytes): A string or a tuple containing:
+            str | tuple[str, bytes]: A string or a tuple containing:
 
             * str: The VICAR label as a character string, with the EOL label appended if
               one is present. The EOL label can be recognized by the presence of a second
@@ -2296,7 +2313,7 @@ class VicarLabel:
 
         Parameters:
             f (file): The file to read the label from.
-            filepath (FCPath or Path): The path to the file.
+            filepath (FCPath | Path): The path to the file.
             _extra (bool): True to return any extraneous bytes from the end of the file.
         """
 
@@ -2355,7 +2372,7 @@ class VicarLabel:
         """A new VicarLabel object derived from the given VICAR data file.
 
         Parameters:
-            filepath (FCPath, Path, or str): Path to a VICAR data file.
+            filepath (FCPath | Path | str): Path to a VICAR data file.
 
         Returns:
             VicarLabel: VicarLabel object read from file.
@@ -2367,7 +2384,7 @@ class VicarLabel:
         """Replace the label in the selected VICAR file with this label content.
 
         Parameters:
-            filepath (FCPath, Path, or str, optional):
+            filepath (FCPath | Path | str, optional):
                 Optional path of the existing file to write. If not provided, the value of
                 this object's filepath attribute is used.
 
@@ -2415,7 +2432,7 @@ class VicarLabel:
         """True if the given file appears to have a VICAR header.
 
         Parameters:
-            filepath (str, Path, or FCPath): Path to the file.
+            filepath (str | Path | FCPath): Path to the file.
 
         Returns:
             bool: True if `filepath` has a VICAR header.

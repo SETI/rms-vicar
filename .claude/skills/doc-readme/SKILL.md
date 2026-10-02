@@ -1,7 +1,6 @@
 ---
-description: Format and completeness rules for the top-level README of a Python package, including badges, quickstart, and Sphinx inclusion.
-paths:
-  - "README.md"
+name: doc-readme
+description: Format and completeness rules for the top-level README of a Python package, including badges, quickstart, and Sphinx inclusion. Use when writing, editing, or reviewing the README.
 ---
 
 # README

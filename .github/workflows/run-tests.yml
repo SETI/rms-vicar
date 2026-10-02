@@ -42,26 +42,42 @@ jobs:
         run: |
           flake8 --select=E12,E13 src tests
 
-      # Every module under tests/ is checked. src/ is unannotated, so mypy is kept off
-      # it by the overrides in pyproject.toml; this step matches `--mypy` in
+      # Every module under tests/ is checked. src/ is deliberately unannotated and
+      # its type information lives in __init__.pyi, so mypy is kept off the modules by
+      # the excludes and the overrides in pyproject.toml; this step matches `--mypy` in
       # scripts/run-all-checks.sh.
       - name: Mypy
         run: |
           MYPYPATH=src mypy tests
 
+      - name: pip-audit
+        run: |
+          pip-audit --skip-editable
+
       - name: Pyroma
         run: |
           pyroma .
 
-      # -W makes warnings errors; docs/conf.py sets nitpicky = True, so a
-      # cross-reference with no target fails the build too.
+      # The published stub, __init__.pyi, must keep describing the runtime API. The
+      # allowlist accepts only the deliberate absence of stubs for the implementation
+      # modules.
+      - name: Stubtest
+        run: |
+          python -m mypy.stubtest vicar --mypy-config-file pyproject.toml --allowlist .stubtest-allowlist
+
+      # -W makes warnings errors and -n (nitpicky) makes a cross-reference with no
+      # target one of them.
       - name: Sphinx
         run: |
-          sphinx-build -W -b html docs docs/_build
+          sphinx-build -W -n -b html docs docs/_build
+
+      - name: Codespell
+        run: |
+          codespell src tests docs scripts README.md CONTRIBUTING.md
 
       - name: PyMarkdown
         run: |
-          pymarkdown scan docs/ .claude/ README.md CONTRIBUTING.md
+          pymarkdown scan -r docs/ .claude/ README.md CONTRIBUTING.md
 
   test:
     name: Test rms-vicar

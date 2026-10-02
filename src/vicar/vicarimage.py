@@ -112,9 +112,9 @@ class VicarImage:
         """Constructor for a VicarImage object.
 
         Parameters:
-            source (FCPath, Path, str, or VicarLabel, optional):
+            source (FCPath | Path | str | VicarLabel, optional):
                 Source for the VicarImage based on a file path or VicarLabel; if not
-                specified (equvalent to source=None), a minimal label is created.
+                specified (equivalent to source=None), a minimal label is created.
             array (array-like, optional):
                 Optional data array for this object. If the source is a file path,
                 this array will override that in the file.
@@ -122,7 +122,7 @@ class VicarImage:
                 Optional prefix bytes for this object. If the source is a file
                 path, this value will override that in the file. To remove the
                 prefix array found in the file, use prefix=[].
-            binheader (array-like or bytes, optional):
+            binheader (array-like | bytes, optional):
                 Optional binary header for this data file. If the source is a
                 file path, this value will override that in the file. To remove
                 the binheader found in the file, use binheader=b''.
@@ -170,8 +170,7 @@ class VicarImage:
         """The path to the associated file.
 
         Returns:
-            filecache.file_cache_path.FCPath or None:
-                The path to the associated file, if any.
+            FCPath | None: The path to the associated file, if any.
         """
 
         return self._filepath
@@ -181,7 +180,7 @@ class VicarImage:
         """Set the path to the associated file.
 
         Parameters:
-            value (FCPath, Path, str, or None):
+            value (FCPath | Path | str | None):
                 The path to the associated file; None to remove a file association.
         """
 
@@ -205,7 +204,7 @@ class VicarImage:
         """The data array as 2-D.
 
         Returns:
-            numpy.ndarray or None:
+            numpy.ndarray | None:
                 The data array as 2-dimensional if it is present; otherwise, None.
 
         Raises:
@@ -223,7 +222,7 @@ class VicarImage:
         """The data array as 2-D; DEPRECATED name.
 
         Returns:
-            numpy.ndarray or None:
+            numpy.ndarray | None:
                 The data array as 2-dimensional if it is present; otherwise, None.
 
         Raises:
@@ -237,7 +236,7 @@ class VicarImage:
         """The data array as 3-D.
 
         Returns:
-            numpy.ndarray or None:
+            numpy.ndarray | None:
                 The data array as 3-dimensional if it is present; otherwise, None.
         """
 
@@ -248,7 +247,7 @@ class VicarImage:
         """The data array as 3-D; DEPRECATED name.
 
         Returns:
-            numpy.ndarray or None:
+            numpy.ndarray | None:
                 The data array as 3-dimensional if it is present; otherwise, None.
         """
 
@@ -259,7 +258,7 @@ class VicarImage:
         """The data array.
 
         Returns:
-            numpy.ndarray or None: The data array if it is present; otherwise, None.
+            numpy.ndarray | None: The data array if it is present; otherwise, None.
         """
 
         return self._array
@@ -269,7 +268,7 @@ class VicarImage:
         """Set the data array.
 
         Parameters:
-            value (array-like or None):
+            value (array-like | None):
                 The prefix array or None to remove the data array.
 
         Raises:
@@ -376,7 +375,7 @@ class VicarImage:
         """Set the image prefix array.
 
         Parameters:
-            value (array-like or None):
+            value (array-like | None):
                 The prefix array or None to remove the prefix array.
 
         Raises:
@@ -436,7 +435,7 @@ class VicarImage:
         """The binary header as an array or bytes object.
 
         Returns:
-            numpy.ndarray, bytes, or None: The binary header if present; otherwise, None.
+            numpy.ndarray | bytes | None: The binary header if present; otherwise, None.
         """
 
         return self._binheader
@@ -446,7 +445,7 @@ class VicarImage:
         """Set the binary header.
 
         Parameters:
-            value (bytes, np.ndarray, or None):
+            value (bytes | np.ndarray | None):
                 The binary header or None to remove the binary header.
 
         Raises:
@@ -536,9 +535,24 @@ class VicarImage:
                 and binheader1 == binheader2)
 
     def __str__(self):
+        """The content of this VicarImage's label as a string.
+
+        Returns:
+            str: The label string compliant with the VICAR standard, identical to
+            ``str(self.label)``.
+        """
+
         return str(self._label)
 
     def __repr__(self):
+        """A string representation of this VicarImage.
+
+        Returns:
+            str: A constructor call, ``VicarImage(...)``, whose argument is the label
+            string in triple quotes, with a blank line inserted before each LBLSIZE after
+            the first. The data array, prefix, and binary header are not included.
+        """
+
         return 'VicarImage("""' + self._label.as_string(sep='\n\n') + '""")'
 
     ######################################################################################
@@ -550,7 +564,7 @@ class VicarImage:
         """VicarImage object from an existing VICAR image file.
 
         Parameters:
-            filepath (FCPath, Path, or str): Path to an existing VICAR data file.
+            filepath (FCPath | Path | str): Path to an existing VICAR data file.
 
             extraneous (str, optional):
                 How to handle the presence of extraneous bytes at the end of the file, one
@@ -567,11 +581,12 @@ class VicarImage:
                 False for a looser version of the standard.
 
         Returns:
-            VicarImage or (VicarImage, bytes or None): A VicarImage or a tuple containing:
+            VicarImage | tuple[VicarImage, bytes | None]:
+                A VicarImage or a tuple containing:
 
-            * VicarImage: A new object containing the content of the specified file.
-            * bytes or None: Any extraneous bytes from the end of the file, included if
-              `extraneous` equals "include".
+                * VicarImage: A new object containing the content of the specified file.
+                * bytes | None: Any extraneous bytes from the end of the file, included
+                  if `extraneous` equals "include".
         """
 
         info = VicarImage._read_file(filepath, extraneous=extraneous, strict=strict)
@@ -603,7 +618,7 @@ class VicarImage:
         """Write the VicarImage object into a file.
 
         Parameters:
-            filepath (FCPath, Path, or str, optional):
+            filepath (FCPath | Path | str, optional):
                 Optional the path of the file to write. If not specified but this object's
                 filepath attribute is defined, it will write to this file.
         """
@@ -660,7 +675,7 @@ class VicarImage:
                 "u"; 2 for kind = "i"; 4 for kind = "f".
 
         Returns:
-            numpy.ndarray or None:
+            numpy.ndarray | None:
                 The binary header as an array; None if there is no binary header.
         """
 
@@ -718,7 +733,7 @@ class VicarImage:
         data file.
 
         Parameters:
-            filepath (FCPath, Path, or str): Path to an existing VICAR data file.
+            filepath (FCPath | Path | str): Path to an existing VICAR data file.
 
             extraneous (str, optional):
                 How to handle the presence of extraneous bytes at the end of the file, one
@@ -734,14 +749,13 @@ class VicarImage:
                 the VICAR standard; False for a looser version of the standard.
 
         Returns:
-            (VicarLabel, numpy.ndarray, numpy.ndarray or None, bytes[, bytes]):
-            A tuple containing:
+            tuple: A 4-tuple, or a 5-tuple if `extraneous` equals "include", containing:
 
             * VicarLabel: The label.
             * numpy.ndarray: The data as a 3D array converted to native format.
-            * numpy.ndarray or None: The prefix array as a 3D array of unsigned bytes if
+            * numpy.ndarray | None: The prefix array as a 3D array of unsigned bytes if
               present; otherwise, None.
-            * bytes: The binary header if present; otherwise, None.
+            * bytes | None: The binary header if present; otherwise, None.
             * bytes, optional: Any extraneous bytes at the end of the file, included if
               `extraneous` equals "include".
 
@@ -850,7 +864,7 @@ class VicarImage:
         various indexing options.
 
         Parameters:
-            key (int, name, or tuple): The indexing key, interpreted as follows:
+            key (int | str | tuple): The indexing key, interpreted as follows:
 
                 * *int* = `n`: The "nth" parameter in the label. `n` can be positive or
                   negative.
@@ -875,7 +889,7 @@ class VicarImage:
                 constraints are satisfied, starting with the first or "nth".
 
         Returns:
-            int, float, string, or list:
+            int | float | str | list:
                 The value of the indexed parameter if there is no name ending in "+";
                 otherwise, a list of all the parameter values starting with the "nth".
 
@@ -899,7 +913,7 @@ class VicarImage:
         If the key is not found, return a specified default value.
 
         Parameters:
-            key (int, str, or tuple): The indexing key, interpreted as follows:
+            key (int | str | tuple): The indexing key, interpreted as follows:
 
                 * *int* = `n`: The "nth" parameter in the label. `n` can be positive or
                   negative.
@@ -923,11 +937,11 @@ class VicarImage:
                 Append a "+" to the name to return a list of all values where the
                 constraints are satisfied, starting with the first or "nth".
 
-            default (int, float, str, or list): The value to return if the key is not
+            default (int | float | str | list): The value to return if the key is not
                 found.
 
         Returns:
-            int, float, str, or list:
+            int | float | str | list:
                 If a name is provided that ends in a plus, the returned value will be the
                 list of all values of the selected key, or else `[default]` if the list
                 would be empty or the key would raise an error.
@@ -953,7 +967,7 @@ class VicarImage:
         parameter name and value if necessary.
 
         Parameters:
-            key (int, str, or tuple): The indexing key, interpreted as follows:
+            key (int | str | tuple): The indexing key, interpreted as follows:
 
                 * *int* = `n`: The "nth" parameter in the label. `n` can be positive or
                   negative.
@@ -977,7 +991,7 @@ class VicarImage:
                 Append a "+" to the name to force a new occurrence of the key to be
                 inserted, even if the key already exists.
 
-            value (int, float, string, list, or tuple): Value to assign to the indexed
+            value (int | float | str | list | tuple): Value to assign to the indexed
                 entry in the label.
 
                 Optional formatting can be included if a user wants additional control
@@ -1068,7 +1082,7 @@ class VicarImage:
         """Delete the value of the VICAR parameter identified by the given key.
 
         Parameters:
-            key (int, str, or tuple): The indexing key, interpreted as follows:
+            key (int | str | tuple): The indexing key, interpreted as follows:
 
                 * *int* = `n`: The "nth" parameter in the label. `n` can be positive or
                   negative.
@@ -1115,7 +1129,7 @@ class VicarImage:
         """True if the given key can is found in the label of this VicarImage.
 
         Parameters:
-            key (int, str, or tuple): The key identifying the label parameter to check.
+            key (int | str | tuple): The key identifying the label parameter to check.
 
                 * *int* = `n`: The "nth" parameter in the label. `n` can be positive or
                   negative.
@@ -1146,7 +1160,7 @@ class VicarImage:
         """The index or indices of the keyed item in the label of this VicarImage.
 
         Parameters:
-            key (int, name, or tuple): The indexing key, interpreted as follows:
+            key (int | str | tuple): The indexing key, interpreted as follows:
 
                 * *int* = `n`: The "nth" parameter in the label. `n` can be positive or
                   negative.
@@ -1170,15 +1184,8 @@ class VicarImage:
                 Append a "+" to the name to return a list of all indices where the
                 constraints are satisfied, starting with the first or "nth".
 
-            value (int, float, or string, optional):
-                If provided, the identified parameter must equal this value. For an
-                integer key, if the indexed parameter does not have this value, ValueError
-                is raised. For any key involving a name, values of the named parameter
-                that do not match `value` are skipped over until the one(s) with the
-                correct value are found.
-
         Returns:
-            int or list[int]:
+            int | list[int]:
                 If "+" is appended to `name`, the list of all positive indices that
                 identify matching parameters, starting with the "nth". Otherwise, the
                 single positive index into the label identifying the parameter.
@@ -1209,10 +1216,10 @@ class VicarImage:
         return self._label.__iter__()
 
     def names(self, pattern=None):
-        """Iterator for the VICAR parameter name strings in the label of this VicarImage.
+        """The names of the parameters in the label of this VicarImage.
 
         Parameters:
-            pattern (str or re.Pattern, optional):
+            pattern (str | re.Pattern, optional):
                 Regular expression that can be used to filter the label parameter names.
 
         Returns:
@@ -1222,11 +1229,13 @@ class VicarImage:
         return self._label.names(pattern=pattern)
 
     def keys(self, pattern=None):
-        """Iterator over the keys in the label of this VicarImage. The key is the
-        parameter name if it is unique or (name, occurrence number) otherwise.
+        """The keys of the parameters in the label of this VicarImage.
+
+        The key is the parameter name if it is unique or (name, occurrence number)
+        otherwise.
 
         Parameters:
-            pattern (str or re.Pattern, optional):
+            pattern (str | re.Pattern, optional):
                 Regular expression that can be used to filter the label parameter names.
 
         Returns:
@@ -1238,24 +1247,23 @@ class VicarImage:
         return self._label.keys(pattern=pattern)
 
     def values(self, pattern=None):
-        """Iterator over the values in the label of this VicarImage.
+        """The values of the parameters in the label of this VicarImage.
 
         Parameters:
-            pattern (str or re.Pattern, optional):
+            pattern (str | re.Pattern, optional):
                 Regular expression that can be used to filter the label parameter names.
 
         Returns:
-            collections.abc.Iterator:
-                The values of the matching parameters within this label, in order.
+            list: The values of the matching parameters within this label, in order.
         """
 
         return self._label.values(pattern=pattern)
 
     def items(self, pattern=None, unique=True):
-        """Iterator over the (key, value) pairs in the label of this VicarImage.
+        """The (key, value) pairs of the parameters in the label of this VicarImage.
 
         Parameters:
-            pattern (str or re.Pattern, optional):
+            pattern (str | re.Pattern, optional):
                 Regular expression that can be used to filter the label parameter names.
             unique (bool, optional):
                 True to return unique keys, in which non-unique names are replaced by
@@ -1263,33 +1271,34 @@ class VicarImage:
                 may appear multiple times.
 
         Returns:
-            collections.abc.Iterator:
-                Tuples (name, value) of the matching parameter names within this label, in
-                order.
+            list[tuple]:
+                The (key, value) pairs of the matching parameters within this label, in
+                order. Each key is a name or a (name, occurrence) tuple, as selected by
+                `unique`.
         """
 
         return self._label.items(pattern=pattern, unique=unique)
 
     def args(self, pattern=None):
-        """Iterator over the numerical indices of the keywords in the label of this
-        VicarImage.
+        """The numerical indices of the parameters in the label of this VicarImage.
 
         Parameters:
-            pattern (str or re.Pattern, optional):
+            pattern (str | re.Pattern, optional):
                 Regular expression that can be used to filter the label parameter names.
 
         Returns:
-            collections.abc.Iterator:
-                The indices of the matching parameter names within this label, in order.
+            list[int] | range:
+                The indices of the matching parameters within this label, in order: a
+                list if `pattern` is given; otherwise, a range over every index.
         """
 
         return self._label.args(pattern=pattern)
 
     def as_dict(self):
-        """The VicarLabel object.
+        """The VicarLabel object; DEPRECATED name.
 
-        DEPRECATED, provided primarily for backward compatibility. Use the `label`
-        property instead, because it behaves as a dictionary.
+        Use the `label` property instead. The returned VicarLabel is not a dict, but it
+        supports dictionary-style access.
 
         Returns:
             VicarLabel: The VicarLabel object associated with this VicarImage.
@@ -1342,8 +1351,8 @@ class VicarImage:
         compatible.
 
         Parameters:
-            array (np.ndarray or None): A data array.
-            prefix (np.ndarray or None): A prefix array.
+            array (np.ndarray | None): A data array.
+            prefix (np.ndarray | None): A prefix array.
 
         Raises:
             VicarError: If the arrays are invalid or inconsistent with one another.

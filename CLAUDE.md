@@ -10,9 +10,10 @@ prefix bytes, and binary header.
 ## Detailed rules
 
 `.claude/rules/*.md` hold the authoritative standards (Python style, testing, documentation,
-dependencies, environment) and load automatically; the `doc_*` and `how_to` rules load only when
-you touch `README.md` or `docs/`. Process standards live in `.claude/skills/` (`git-workflow`,
-`pull-request`, `bug-report`, `run-all-checks`, ...). This file records only what you would
+dependencies, environment) and load automatically. The standards for each kind of document
+build on `doc_python` and live in `.claude/skills/`, loaded on demand: `doc-readme`,
+`doc-user-guide`, `doc-dev-guide`, `doc-how-to`. So do the process standards: `git-workflow`,
+`pull-request`, `bug-report`, `run-all-checks`. This file records only what you would
 otherwise get wrong.
 
 ## Verifying changes
@@ -22,10 +23,14 @@ otherwise get wrong.
 
 - It needs a virtualenv at `./venv` (override with `VENV`); create it with
   `./scripts/setup-venv.sh`. Never install into system Python.
-- Single checks: `--pytest`, `--ruff-check`, `--flake8-cont`, `--mypy`, `--sphinx`,
-  `--pymarkdown`; or `-c` (code) / `-d` (docs).
+- Single checks: `--pytest`, `--ruff-check`, `--flake8-cont`, `--mypy`, `--stubtest`,
+  `--pip-audit`, `--sphinx`, `--codespell`, `--pymarkdown`; or `-c` (code) / `-d` (docs) /
+  `-m` (text).
 - `ruff format`, `bandit`, and `vulture` are disabled. Leave them off; the codebase uses
   column-aligned assignments and imports that the formatter would destroy.
+- `codespell` enforces American spelling as well as typos. A word it flags that is correct here
+  goes in `ignore-words-list` in `pyproject.toml` with its reason; a one-off goes on its own
+  line as `codespell:ignore <word>`.
 
 ## Python style
 
@@ -38,8 +43,18 @@ otherwise get wrong.
   before re-enabling one. `_DEFINITIONS` and `_LABEL_GRAMMAR` keep their uppercase names because
   code imports them.
 - No type annotations under `src/`; types go in the docstrings. **Never run mypy on `src/`** --
-  it is unannotated, and `pyproject.toml` keeps mypy off the `vicar` package. mypy runs strict on
-  `tests/`, so every test function and fixture needs annotations, including `-> None`.
+  it is unannotated, and the `exclude` and override in `pyproject.toml` keep mypy off its
+  modules. mypy runs strict on `tests/`, so every test function and fixture needs annotations,
+  including `-> None`.
+- The package ships a PEP 561 `py.typed` marker, and **exactly one stub**, `__init__.pyi`, carries
+  the public type information. The only supported import is `from vicar import ...`, so no other
+  module has a stub and none may be added. A stub replaces its module entirely for type checkers,
+  so whatever it omits is invisible downstream. `stubtest` enforces that the stub covers the
+  whole public surface and runs in the check script and in CI, so adding, renaming, or
+  re-signing any public member means updating `__init__.pyi` in the same change. Types come from
+  the docstrings, so the two must agree. A new
+  public module goes in `[tool.mypy] exclude`, the override list in `pyproject.toml`, and
+  `.stubtest-allowlist`.
 - Helpers such as `VicarImage._intfmt` are `@staticmethod`s called through the class; keep new
   ones that way.
 
@@ -58,15 +73,20 @@ otherwise get wrong.
 
 ## Documentation
 
-Sphinx runs with `-W` and `nitpicky = True`, so an unresolved cross-reference fails the build.
-Napoleon's `napoleon_type_aliases` in `docs/conf.py` resolve short names (`np.ndarray`, `Path`,
-`FCPath`, `file`, `iterator`) in **parameter** types only. In `Returns:` blocks write the
-resolvable spelling: `numpy.ndarray`, `collections.abc.Iterator`,
-`filecache.file_cache_path.FCPath`. Add to `nitpick_ignore_regex` only for informal type words
-that name no Python object. Write union types as `(str, Path, or FCPath)`, not `str | Path`.
+Sphinx runs with `-W -n`, and `docs/conf.py` sets `nitpicky = True` so the ReadTheDocs build is
+nitpicky too; an unresolved cross-reference fails the build. Napoleon's type preprocessing is
+off, because it cannot split a union on `|`; the Python domain parses each type field instead.
+`_TYPE_ALIASES` in `docs/conf.py` resolves the short names `np.ndarray`, `Path`, `FCPath`, and
+`file` wherever they appear in a type, through a `missing-reference` handler that runs ahead of
+intersphinx. Any other third-party name needs its resolvable spelling, such as `numpy.ndarray`
+or `collections.abc.Iterator`. Add to `nitpick_ignore_regex` only for informal type words that
+name no Python object. Write docstring types in annotation style, with `|` between alternatives,
+`list[...]` and `tuple[...]` for containers, and a trailing `, optional` for a parameter with a
+default: `filepath (str | Path | FCPath, optional)`.
 
-PyMarkdown scans `docs/`, `.claude/`, `README.md`, and `CONTRIBUTING.md` in both CI and the
-check script; keep the two lists in step.
+PyMarkdown scans `docs/`, `.claude/` (recursively), `README.md`, and `CONTRIBUTING.md`, and
+codespell scans `src/`, `tests/`, `docs/`, `scripts/`, `README.md`, and `CONTRIBUTING.md`, in both
+CI and the check script; keep the two lists in step.
 
 `docs-dev/` is a second Sphinx tree that also documents private members; it is not built in CI.
 

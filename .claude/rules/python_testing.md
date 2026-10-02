@@ -24,8 +24,10 @@ the same standard as the package they exercise.
 ## 2. Framework and Tooling
 
 - ALWAYS use `pytest`. Do not write `unittest.TestCase` classes for new tests.
-- ALWAYS use `pytest-cov` for coverage and `pytest-xdist` for parallelism; run
-  with `-n auto`. Declare all three in the dev dependency group.
+- ALWAYS use `pytest-cov` for coverage. `pytest-xdist` with `-n auto` should be
+  used if possible for parallelism but serial test runs may be required if the
+  code is not thread-safe. Declare appropriate options in the dev dependency
+  group.
 - ALWAYS put type annotations on test functions (parameters and `-> None`),
   exactly as on library code.
 - ALWAYS write tests that are independent and order-agnostic so they are safe to
@@ -69,11 +71,11 @@ Configure pytest under `[tool.pytest.ini_options]`; do not add separate
   name and scope them (`function`, `module`, `session`) to the broadest reuse
   that is still safe.
 - Use the built-in fixtures instead of hand-rolling isolation:
-    - `tmp_path` / `tmp_path_factory` for filesystem work — never write into the
-      repo or a fixed temp path.
-    - `monkeypatch` for environment variables, attributes, and `sys` state — it
-      auto-reverts after the test.
-    - `capsys` (or `capfd`) to capture and assert on stdout/stderr.
+  - `tmp_path` / `tmp_path_factory` for filesystem work — never write into the
+    repo or a fixed temp path.
+  - `monkeypatch` for environment variables, attributes, and `sys` state — it
+    auto-reverts after the test.
+  - `capsys` (or `capfd`) to capture and assert on stdout/stderr.
 - If a test must mutate global or class state that no fixture manages, restore
   the original value in a fixture teardown or a `try`/`finally` so it cannot
   leak into other tests (critical under parallel execution).

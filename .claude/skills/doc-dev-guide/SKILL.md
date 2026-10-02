@@ -1,8 +1,6 @@
 ---
-description: Format, layout, and completeness rules for the developer/contributor guide of a Python package, covering repository layout, class diagrams, per-module prose, and the API reference.
-paths:
-  - "docs/**/*.rst"
-  - "docs/**/*.md"
+name: doc-dev-guide
+description: Format, layout, and completeness rules for the developer/contributor guide of a Python package, covering repository layout, class diagrams, per-module prose, and the API reference. Use when writing, editing, or reviewing the developer guide or API reference under docs/.
 ---
 
 # Developer Guide
@@ -34,17 +32,17 @@ what the code already says.
   and a statement of which part is the importable public package versus
   supporting code.
 - **Environment setup** — how to get a working development checkout:
-    - Clone, virtual-environment creation, and an editable install with the dev
-      extras (`pip install -e ".[dev]"`).
-    - Every environment variable needed to run, test, or build, with defaults.
-    - How to run the package's entry points locally, including a smoke test.
-    - How to run the test suite: the default invocation, how to include slower
-      or integration tiers, parallel/CI-matching flags, running a single
-      file/test, and coverage. Note the test layout and any required markers.
-    - How to run linters, type checks, formatters, and the docs build, plus any
-      one-command wrapper that runs them all.
-    - The CI/CD pipeline (what runs on which trigger) and the release process.
-    - The contribution workflow, or a pointer to the contribution guide.
+  - Clone, virtual-environment creation, and an editable install with the dev
+    extras (`pip install -e ".[dev]"`).
+  - Every environment variable needed to run, test, or build, with defaults.
+  - How to run the package's entry points locally, including a smoke test.
+  - How to run the test suite: the default invocation, how to include slower
+    or integration tiers, parallel/CI-matching flags, running a single
+    file/test, and coverage. Note the test layout and any required markers.
+  - How to run linters, type checks, formatters, and the docs build, plus any
+    one-command wrapper that runs them all.
+  - The CI/CD pipeline (what runs on which trigger) and the release process.
+  - The contribution workflow, or a pointer to the contribution guide.
 - **Architecture / class hierarchy** — see Section 3.
 - **Per-subsystem chapters** — see Section 4.
 - **Extending the system** — see Section 5.
