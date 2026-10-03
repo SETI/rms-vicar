@@ -1,112 +1,142 @@
-# Information for Potential Contributors
+# Contributing to rms-vicar
 
-First off, thanks for taking the time to contribute!
-
-This software is maintained by the [Ring-Moon Systems Node](https://pds-rings.seti.org) of NASA's [Planetary Data System](https://pds.nasa.gov). All types of contributions are encouraged and valued. See the [Table of Contents](#table-of-contents) for different ways to help and details about how this project handles them; please read the relevant section before making your contribution.
-
-> If you like the project, but just don't have time to contribute, there are other easy ways to support the project and show your appreciation!
-> - Star the project on GitHub
-> - Post about it on social media
-> - Refer to this project in your project's README
-> - Mention the project at conferences and workshops and tell your friends/colleagues
-> - Cite the project in your papers and posters
-
-
-## Table of Contents
-
-- [Code of Conduct](#code-of-conduct)
-- [I Have a Question](#i-have-a-question)
-- [I Want to Report a Bug](#i-want-to-report-a-bug)
-- [I Want to Suggest an Enhancement](#i-want-to-suggest-an-enhancement)
-- [I Want To Contribute Code](#i-want-to-contribute-code)
-
+Thank you for your interest in contributing to rms-vicar! This document provides guidelines and instructions for contributing to the project.
 
 ## Code of Conduct
 
-This project and everyone participating in it are governed by the
-[Code of Conduct](CODE_OF_CONDUCT.md).
-By participating, you are expected to uphold this code. Please report unacceptable behavior
-to <matt@seti.org>.
+We expect all contributors to follow our Code of Conduct, which ensures a welcoming and inclusive environment for everyone.
+See [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
 
+## Getting Started
 
-## I Have a Question
+1. Fork the repository on GitHub
+2. Clone your fork locally:
 
-> Please read the available documentation!
+   ```bash
+   git clone https://github.com/your-username/rms-vicar.git
+   cd rms-vicar
+   ```
 
-Before asking a question, you can search for existing [issues](https://github.com/SETI/rms-vicar/issues) that might help you. If you find a suitable issue and still need clarification, you can write your question in that issue.
+3. Create the virtual environment and install the package with its dev and docs dependencies. The script is safe to re-run, and `scripts/run-all-checks.sh` expects the environment it creates:
 
-If you can't find an appropriate issue and still want to ask a question, we recommend the following:
+   ```bash
+   ./scripts/setup-venv.sh
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
 
-- Open an [issue](https://github.com/SETI/rms-vicar/issues/new).
-- Provide as much context and detail as you can.
-- Provide project and platform versions (operating system, Python version, etc.), depending on what seems relevant.
+## Development Workflow
 
-We will try to answer your question as soon as possible.
+1. Create a new branch from `main`, named `<initials>_<YYMMDD>_<topic>`:
 
+   ```bash
+   git checkout -b rf_251204_mixins
+   ```
 
-## I Want to Report a Bug
+2. Make your changes, following our coding standards
+3. Write or update tests as necessary
+4. Run the tests, lint, and docs build to ensure they pass:
 
-### Before Submitting a Bug Report
+   ```bash
+   ./scripts/run-all-checks.sh
+   ```
 
-A good bug report shouldn't leave others needing to chase you for more information. Therefore, we ask you to investigate carefully and collect all appropriate information in advance.
+5. Commit your changes with a subject written as a plain imperative sentence, with no type prefix:
 
-- Make sure that you are using the latest version of this software and its supporting packages.
-- Make sure that you have read the documentation.
-- Determine that your bug really is a bug and not an error in your code or a misunderstanding in how to use our software.
-- To see if other users have experienced (and potentially solved) the same issue you're having, check if there is an existing issue for your bug or error in the [bug tracker](https://github.com/SETI/rms-vicar/issues).
-- Collect information about the bug:
-  - Stack trace (Traceback)
-  - OS and version (Windows/Linux/macOS), processor (x86/ARM/M1), Python version
-  - Detailed information on how to reproduce the bug, including function parameters, command line arguments, and input given/output received.
+   ```bash
+   git commit -m "Add VicarLabel.is_vicar_file"
+   ```
 
-### How Do I Submit a Good Bug Report?
+6. Push your branch to your fork:
 
-> You must never report security-related issues, vulnerabilities, or bugs that include sensitive information to the issue tracker or elsewhere in public. Instead, sensitive bugs must be sent by email to <matt@seti.org>.
+   ```bash
+   git push origin rf_251204_mixins
+   ```
 
-We use GitHub Issues to track bugs and errors. If you run into an issue with the project:
+7. Open a Pull Request on GitHub
 
-- Open an [issue](https://github.com/SETI/rms-vicar/issues/new) with a **clear and descriptive title**. Please label the issue as `A-Bug` with no other labels.
-- Explain the **behavior you would expect** and the **behavior observed**.
-- Provide as much context as possible and describe the **detailed steps** that someone can follow to reproduce the problem. This usually includes providing your code; for a good bug report you should isolate the problem and create a reduced test case.
-- Provide other information collected in the previous section, such as the operating system and language version.
+## Coding Standards
 
-Once it's filed:
+We follow these standards for all code contributions:
 
-- The project team will label the issue accordingly.
-- A team member will try to reproduce the issue with your provided steps. If there are no steps given and no obvious way to reproduce the issue, the team will ask you for clarification.
-- If the team is able to reproduce the issue, it will be appropriately labeled and either assigned to a team member to fix, or left unassigned to be [implemented by someone else](#i-want-to-contribute-code).
+* **Python Style**: Follow PEP 8, with a maximum line length of 90. `ruff check` is the linter of record; do not run `ruff format`, because it removes the column alignment the code uses deliberately
+* **Type Hints**: Do not annotate code under `src/`; give parameter and return types in the docstrings instead. The published type information lives in `src/vicar/__init__.pyi`, so a change to the public API must update it as well. Annotate every test function
+* **Docstrings**: Document all modules, classes, and methods with docstrings following the Google style, using `Parameters:` rather than `Args:`
+* **Testing**: Include unit tests for new functionality
+* **Compatibility**: Ensure compatibility with Python 3.11+
 
+Example of a well-formatted method:
 
-## I Want to Suggest an Enhancement
+```python
+@staticmethod
+def is_vicar_file(filepath):
+    """True if the given file appears to have a VICAR header.
 
-This section guides you through submitting an enhancement, **including completely new features and minor improvements to existing functionality**.
+    Parameters:
+        filepath (str | Path | FCPath): Path to the file.
 
-### Before Submitting an Enhancement
+    Returns:
+        bool: True if `filepath` has a VICAR header.
 
-- Make sure that you are using the latest version of this software and its supporting packages.
-- Make sure that you have read the documentation to see if the desired functionality is already provided.
-- Perform a [search](https://github.com/SETI/rms-vicar/issues) to see if the enhancement has already been suggested. If it has, add a comment to the existing issue instead of opening a new one.
-- Find out whether your idea fits within the scope and aims of the project. It's up to you to make a strong case to convince the project's developers of the merits of this feature. Keep in mind that we want features that will be useful to the majority of our users and not just a small subset. If you're just targeting a minority of users, consider writing an add-on/plugin library.
+    Raises:
+        OSError: If `filepath` cannot be read.
+    """
+```
 
-### How Do I Submit a Good Enhancement Suggestion?
+## Pull Request Process
 
-We use GitHub Issues to track enhancement requests. If you want to suggest an enhancement:
+1. Ensure all checks in `scripts/run-all-checks.sh` pass
+2. Update documentation if necessary
+3. Request a review from a maintainer
+4. Address any feedback from reviewers
 
-- Open an [issue](https://github.com/SETI/rms-vicar/issues/new) with a **clear and descriptive title**. Please label the issue as `A-Enhancement` with no other labels.
-- Provide a **detailed** description of the suggested enhancement.
-- **Explain why this enhancement would be useful** to most users.
+The maintainers will squash-merge your PR once it meets all requirements.
 
+## Testing
 
-## I Want To Contribute Code
+We use pytest for testing. To run the tests:
 
-> ### Legal Notice 
-> When contributing to this project, you must agree that you have authored 100% of the content, that you have the necessary rights to the content, and that the content you contribute may be provided under the project license.
+```bash
+pytest
+```
 
-We welcome all code contributions, including bug fixes, new features, and improvements to documentation.
+For more verbose output:
 
-- All suggested changes must be submitted using GitHub's "Pull Request" functionality.
-- All code changes must include appropriate new or updated tests to verify the changes made.
-- Existing documentation, including function- and file-level docstrings, must be updated as necessary, and new features fully described.
-- Code style must conform to that of the existing code; for Python this is generally a variant of PEP8 and PEP257.
+```bash
+pytest -v
+```
 
-All submissions will be reviewed in detail by a project team member and changes may be suggested. Once the reviewer approves the changes, they will be merged into the main project branch and made a permanent part of the software. Your efforts to improve the software are greatly appreciated!
+To run a specific test file:
+
+```bash
+pytest tests/test_specific_file.py
+```
+
+## Documentation
+
+We use Sphinx for documentation. To build the docs and open them in a browser:
+
+```bash
+./scripts/read-docs.sh
+```
+
+The generated documentation will be in `docs/_build/html`.
+
+When adding new features, please update the relevant documentation:
+
+* Update docstrings for new functions and classes
+* Add examples if appropriate
+* Update the README if necessary
+
+## Reporting Issues
+
+If you find a bug or have a suggestion for improvement:
+
+1. Check if the issue already exists in the GitHub issue tracker
+2. If not, create a new issue with:
+   * A clear, descriptive title
+   * A detailed description of the issue
+   * Steps to reproduce (for bugs)
+   * Your environment information (Python version, OS, etc.)
+   * Any relevant logs or screenshots
+
+Thank you for contributing to rms-vicar!

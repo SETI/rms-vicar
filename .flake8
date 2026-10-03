@@ -1,6 +1,12 @@
+# Ruff is the linter of record for everything it implements; see [tool.ruff] in
+# pyproject.toml. Ruff has no rule in the E121-E133 range, so the
+# continuation-line indent checks come from flake8, and CI and
+# scripts/run-all-checks.sh read the per-file-ignores below when they run
+# `flake8 --select=E12,E13`. For every other code, this file is for anyone
+# running flake8 by hand and is not authoritative.
 [flake8]
 max-line-length: 90
-extend-ignore = 
+extend-ignore =
     # E203 Whitespace before ':'
     # E221 Multiple spaces before operator
     # E231 Missing whitespace after ',', ';', or ':'
@@ -20,10 +26,7 @@ per-file-ignores =
     vicarlabel.py: E261
 
     # E501 Line too long (82 > 79 characters)
-    test_vicarlabel.py: E501
-
-    # E501 Line too long (82 > 79 characters)
-    test_vicarimage.py: E501
+    tests/*: E501
 
 
 

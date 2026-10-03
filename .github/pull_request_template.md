@@ -1,18 +1,52 @@
-# Fixed Issues
+# Purpose
 
-*Does this pull request fix any open issues? If so, list them here, one per line,
-each in the format `Fixes #<n>`. Delete this comment.*
+<!-- Why is this change needed? What problem does it solve? -->
 
-- Fixes #
+Closes #<!-- issue number -->
 
-# Summary of Changes
+## Changes/Implementation Details
 
-*Summarize the changes made by this pull request. Consider this a permanent record of the work you have done and make it sufficiently detailed and readable that a developer in the future would be able to get the complete picture without looking at the code changes. Skimming through the changed files will help you create the summary. Delete this comment.*
+<!-- What changed and how? Note any non-obvious design decisions. Bullet list is fine. -->
 
-- Summary
+-
 
-# Known Problems
+## Type of Change
 
-*Are there any relevant problems not fixed by, or problems caused by, this pull request? Delete this comment.*
+- [ ] Bug fix (non-breaking)
+- [ ] New feature (non-breaking)
+- [ ] Breaking change (fix or feature that alters existing behavior or public API)
+- [ ] Refactor (no functional or API changes)
+- [ ] Documentation
+- [ ] Tests only (no production code change)
+- [ ] CI / Build / Dependencies
 
-- Problem
+## Testing
+
+- [ ] Unit tests pass
+- [ ] Integration tests pass (if applicable)
+- [ ] End-to-end tests pass (if applicable)
+- [ ] New or updated tests for changed code
+- [ ] Tested manually (describe below if applicable)
+
+<!-- Manual verification steps, if any. -->
+
+## Potential Impacts
+
+<!-- Effects on the public API, backward compatibility, performance, or downstream
+     packages. Write "None" if straightforward. -->
+
+## Checklist
+
+- [ ] Code follows project style (`ruff check`, `ruff format`)
+- [ ] Type annotations present and `mypy` passes
+- [ ] No secrets or credentials committed
+- [ ] No warnings or errors introduced (CI, linters, type checking, builds) or justified in Notes
+- [ ] Docstrings and Sphinx docs updated (if applicable)
+- [ ] No temporary or debug code left in
+- [ ] Performance impact assessed (see Potential Impacts above)
+- [ ] Breaking changes flagged in Type of Change above
+
+## Notes
+
+<!-- Anything reviewers should know: tricky areas, unresolved questions, follow-up
+     work. Say "None" if nothing relevant. -->

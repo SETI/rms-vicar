@@ -1,0 +1,9 @@
+# Allowlist for `mypy.stubtest`, read by scripts/run-all-checks.sh and CI.
+#
+# The only supported import is "from vicar import ...", so __init__.pyi is the only
+# stub and describes the whole public API. The modules below are implementation detail
+# and deliberately carry no stub; stubtest reports each one as "failed to find stubs",
+# which this file accepts. Nothing else is accepted: a public name missing from the
+# stub still fails the check.
+vicar\.vicarlabel
+vicar\.vicarimage

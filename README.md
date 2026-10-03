@@ -1,3 +1,7 @@
+# rms-vicar
+
+<!-- pyml disable MD025 -->
+
 [![GitHub release; latest by date](https://img.shields.io/github/v/release/SETI/rms-vicar)](https://github.com/SETI/rms-vicar/releases)
 [![GitHub Release Date](https://img.shields.io/github/release-date/SETI/rms-vicar)](https://github.com/SETI/rms-vicar/releases)
 [![Test Status](https://img.shields.io/github/actions/workflow/status/SETI/rms-vicar/run-tests.yml?branch=main)](https://github.com/SETI/rms-vicar/actions)
@@ -21,6 +25,8 @@
 ![GitHub License](https://img.shields.io/github/license/SETI/rms-vicar)
 [![Number of GitHub stars](https://img.shields.io/github/stars/SETI/rms-vicar)](https://github.com/SETI/rms-vicar/stargazers)
 ![GitHub forks](https://img.shields.io/github/forks/SETI/rms-vicar)
+
+<!-- start-after-point -->
 
 # Introduction
 
@@ -48,7 +54,6 @@ The `vicar` module provides these classes:
   Extension of class ValueError to contain exceptions.
 
 Details of each class are available in the [module documentation](https://rms-vicar.readthedocs.io/en/latest/module.html).
-
 
 To read a VICAR image file:
 
