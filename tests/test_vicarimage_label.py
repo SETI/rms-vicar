@@ -109,6 +109,16 @@ def test_vicarimage_iterators(test: Any) -> None:
     assert list(test.args()) == list(range(70))
 
 
+@pytest.mark.parametrize(('unique', 'indices'),
+                         [(True, False), (False, False), (True, True), (False, True)])
+def test_vicarimage_as_dict(test: Any, unique: bool, indices: bool) -> None:
+    """as_dict() returns the label's dictionary for each combination of options."""
+
+    dict_ = test.as_dict(unique=unique, indices=indices)
+    assert type(dict_) is dict
+    assert dict_ == test._label.as_dict(unique=unique, indices=indices)
+
+
 def test_vicarimage_delete_and_append(test: Any) -> None:
     """A deleted parameter can be appended again with "NAME+"."""
 

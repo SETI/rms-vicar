@@ -1,6 +1,5 @@
-# rms-vicar
-
 <!-- pyml disable MD025 -->
+# rms-vicar
 
 [![GitHub release; latest by date](https://img.shields.io/github/v/release/SETI/rms-vicar)](https://github.com/SETI/rms-vicar/releases)
 [![GitHub Release Date](https://img.shields.io/github/release-date/SETI/rms-vicar)](https://github.com/SETI/rms-vicar/releases)
@@ -110,6 +109,11 @@ Iterators can take a regular expression as input to restrict the items returned:
 ```python
 for value in vic.values(r'LAB\d\d'): ...
 ```
+
+Use `vic.as_dict()` to get a copy of the label content as a plain Python dictionary,
+keyed the same way as `vic.keys()`. Use `vic.as_dict(unique=False)` to key it by name
+alone, keeping only the first occurrence of a repeated name, and `indices=True` to add an
+entry for each parameter's integer index.
 
 Use `str(vic)` to get the VICAR label content represented as a string.
 

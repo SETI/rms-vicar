@@ -38,7 +38,9 @@ a change.
 
 ``_unique_keys`` holds, for each position, the key that iteration and
 :meth:`~vicar.VicarLabel.keys` report: the bare name when it occurs once, or
-``(name, n)`` when it repeats.
+``(name, n)`` when it repeats. :meth:`~vicar.VicarLabel.as_dict` uses it for its default
+keys, and with ``unique=False`` takes each name's first position from ``_key_index`` so
+that the dictionary keeps label order.
 
 Resolving Keys
 ==============

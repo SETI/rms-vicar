@@ -1295,17 +1295,28 @@ class VicarImage:
 
         return self._label.args(pattern=pattern)
 
-    def as_dict(self):
-        """The VicarLabel object; DEPRECATED name.
+    def as_dict(self, unique=True, indices=False):
+        """The content of the label as a Python dictionary.
 
-        Use the `label` property instead. The returned VicarLabel is not a dict, but it
-        supports dictionary-style access.
+        Parameters:
+            unique (bool, optional):
+                True to key each parameter by its unique key: the name if it occurs once,
+                or the tuple (name, occurrence) if it repeats, so every parameter appears.
+                False to key by name only, in which case a repeated name maps to the
+                value of its first occurrence and later occurrences are omitted.
+            indices (bool, optional):
+                True to add an entry for each parameter keyed by its integer index,
+                counted from zero, after the named entries. Negative indices are not
+                included.
 
         Returns:
-            VicarLabel: The VicarLabel object associated with this VicarImage.
+            dict[str | tuple[str, int] | int, Any]:
+                A new dictionary of the parameter values in this image's label, with the
+                named entries in label order. The dictionary is independent of the label,
+                but list values are shared with it rather than copied.
         """
 
-        return self._label
+        return self._label.as_dict(unique=unique, indices=indices)
 
     ######################################################################################
     # Utilities

@@ -152,6 +152,51 @@ def test_vicarlabel_iterators(vic: Any) -> None:
     assert list(vic.args()) == list(range(71))
 
 
+def test_vicarlabel_as_dict_unique(vic: Any) -> None:
+    """as_dict() keys every parameter by its unique key, in label order."""
+
+    dict_ = vic.as_dict()
+    assert list(dict_) == vic.keys()
+    assert list(dict_.values()) == vic.values()
+    assert dict_[('LBLSIZE', 0)] == 1536
+    assert dict_[('TASK', 2)] == 'RESLOC'
+    assert 'TASK' not in dict_
+
+
+def test_vicarlabel_as_dict_not_unique(vic: Any) -> None:
+    """as_dict(unique=False) keys by name, keeping each name's first occurrence."""
+
+    dict_ = vic.as_dict(unique=False)
+    assert list(dict_) == list(dict.fromkeys(vic.names()))
+    assert dict_['LBLSIZE'] == 1536
+    assert dict_['TASK'] == 'TASK'
+    assert ('TASK', 0) not in dict_
+
+
+@pytest.mark.parametrize('unique', [True, False])
+def test_vicarlabel_as_dict_indices(vic: Any, unique: bool) -> None:
+    """as_dict(indices=True) appends an entry for each nonnegative index."""
+
+    named = vic.as_dict(unique=unique)
+    dict_ = vic.as_dict(unique=unique, indices=True)
+    assert list(dict_)[:len(named)] == list(named)
+    assert list(dict_)[len(named):] == list(range(len(vic)))
+    assert [dict_[i] for i in range(len(vic))] == vic.values()
+    assert -1 not in dict_
+
+
+def test_vicarlabel_as_dict_independent(vic: Any) -> None:
+    """The dictionary is a snapshot: edits to either side do not affect the other."""
+
+    dict_ = vic.as_dict()
+    dict_['FORMAT'] = 'HALF'
+    assert vic['FORMAT'] == 'BYTE'
+
+    vic['NEWKEY'] = 7
+    assert 'NEWKEY' not in dict_
+    assert vic.as_dict()['NEWKEY'] == 7
+
+
 def test_vicarlabel_file_object_left_open(geoma_path: Path) -> None:
     """Reading from an open file does not close it."""
 
