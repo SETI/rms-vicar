@@ -43,6 +43,7 @@ class VicarImage:
 
         * :meth:`arg`: The index of a parameter name within this label.
         * :meth:`args`: List of the numeric indices of the parameters in a label.
+        * :meth:`as_dict`: The label content as a Python dictionary.
         * :meth:`binheader_array`: Interpret the content of a binary header.
         * :meth:`copy`: A copy of this VicarImage.
         * :meth:`deepcopy`: An independent (deep) copy of this VicarImage.

@@ -39,6 +39,7 @@ class VicarLabel:
         * :meth:`append`: Append one or more parameters to the end of this label.
         * :meth:`arg`: The index of a parameter name within this label.
         * :meth:`args`: List of the numeric indices of the parameters in this label.
+        * :meth:`as_dict`: The label content as a Python dictionary.
         * :meth:`as_string`: A string representing all or part of this label.
         * :meth:`copy`: An independent (deep) copy of this VicarLabel.
         * :meth:`export`: The label and end-of-file label strings to write into a data
