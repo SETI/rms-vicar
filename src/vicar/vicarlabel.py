@@ -39,6 +39,7 @@ class VicarLabel:
         * :meth:`append`: Append one or more parameters to the end of this label.
         * :meth:`arg`: The index of a parameter name within this label.
         * :meth:`args`: List of the numeric indices of the parameters in this label.
+        * :meth:`as_dict`: The label content as a Python dictionary.
         * :meth:`as_string`: A string representing all or part of this label.
         * :meth:`copy`: An independent (deep) copy of this VicarLabel.
         * :meth:`export`: The label and end-of-file label strings to write into a data
@@ -2266,6 +2267,40 @@ class VicarLabel:
             return [i for i,n in enumerate(self._names) if pattern.fullmatch(n)]
 
         return range(self._len)
+
+    def as_dict(self, unique=True, indices=False):
+        """The content of the label as a Python dictionary.
+
+        Parameters:
+            unique (bool, optional):
+                True to key each parameter by its unique key: the name if it occurs once,
+                or the tuple (name, occurrence) if it repeats, so every parameter appears.
+                False to key by name only, in which case a repeated name maps to the
+                value of its first occurrence and later occurrences are omitted.
+            indices (bool, optional):
+                True to add an entry for each parameter keyed by its integer index,
+                counted from zero, after the named entries. Negative indices are not
+                included.
+
+        Returns:
+            dict[str | tuple[str, int] | int, Any]:
+                A new dictionary of the label's parameter values, with the named entries
+                in label order. The dictionary is independent of the label, but list
+                values are shared with it rather than copied.
+        """
+
+        self._finish_update()
+
+        if unique:
+            dict_ = {self._unique_keys[i]: self._values[i] for i in range(self._len)}
+        else:
+            dict_ = {name: self._values[self._key_index[name][0]]
+                     for name in self._names}
+
+        if indices:
+            dict_.update({i: self._values[i] for i in range(self._len)})
+
+        return dict_
 
     ######################################################################################
     # File I/O
