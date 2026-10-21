@@ -196,8 +196,8 @@ Three GitHub Actions workflows live in ``.github/workflows/``.
   ``main``, weekly, and on demand. Its lint job runs ruff, flake8, mypy, pip-audit,
   pyroma, stubtest, Sphinx, codespell, and PyMarkdown on Python 3.13, which is the check
   script's default set minus pytest. Its test job runs pytest with coverage on Ubuntu,
-  macOS, and Windows for each of Python 3.11, 3.12, and 3.13, and uploads coverage to
-  Codecov from the Ubuntu, Python 3.13 cell of the matrix.
+  macOS, and Windows for each of Python 3.11, 3.12, 3.13, 3.14, and 3.15, and uploads
+  coverage to Codecov from the Ubuntu, Python 3.13 cell of the matrix.
 * ``publish_to_pypi.yml`` builds the distribution and uploads it to PyPI when a GitHub
   Release is published.
 * ``publish_to_test_pypi.yml`` does the same for Test PyPI, on demand.
